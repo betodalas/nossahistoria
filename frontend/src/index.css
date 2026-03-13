@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background-color: #0f0a1a;
+    color: #f3e8ff;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  input, textarea, button { font-family: inherit; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-pink-700 text-white font-bold text-sm cursor-pointer border-none;
+  }
+  .btn-secondary {
+    @apply w-full py-3 px-4 rounded-xl border border-violet-600 text-violet-300 font-semibold text-sm cursor-pointer bg-transparent;
+  }
+  .card {
+    @apply bg-violet-950 border border-white/10 rounded-2xl p-4 mb-3 cursor-pointer transition-colors hover:border-violet-600;
+  }
+  .input-field {
+    @apply w-full px-3 py-2.5 rounded-xl border border-white/10 text-white text-sm outline-none focus:border-violet-500;
+    background: rgba(255,255,255,0.08);
+  }
+  .input-field::placeholder { color: rgba(255,255,255,0.3); }
+  .pill-purple {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-400/20 text-violet-300;
+  }
+  .pill-green {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300;
+  }
+  .pill-gray {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full border border-white/10 text-white/40;
+    background: rgba(255,255,255,0.05);
+  }
+  .persp-ana {
+    @apply rounded-xl p-3 mb-2 border-l-4 border-violet-500;
+    background: rgba(124,58,237,0.2);
+  }
+  .persp-pedro {
+    @apply rounded-xl p-3 mb-2 border-l-4 border-pink-600;
+    background: rgba(190,24,93,0.2);
+  }
+  .section-label {
+    @apply text-xs font-bold text-white/30 tracking-widest uppercase mb-3;
+  }
+}
