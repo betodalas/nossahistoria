@@ -13,15 +13,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ]
 
   return (
-    <div style={{background:'#070412', minHeight:'100vh', display:'flex', justifyContent:'center'}}>
-      <div style={{width:'100%', maxWidth:'430px', minHeight:'100vh', background:'#0f0a1a', position:'relative', paddingBottom:'72px'}}>
+    <div style={{background:'#FFF0F3', minHeight:'100vh', display:'flex', justifyContent:'center'}}>
+      <div style={{width:'100%', maxWidth:'430px', minHeight:'100vh', background:'#FFF0F3', position:'relative', paddingBottom:'72px'}}>
         <div style={{overflowY:'auto'}}>
           {children}
         </div>
         <nav style={{
           position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)',
           width:'100%', maxWidth:'430px',
-          background:'#6b5a8a', borderTop:'1px solid rgba(255,255,255,0.1)',
+          background:'white',
+          borderTop:'1.5px solid #E8C4CE',
           height:'64px', display:'flex', justifyContent:'space-around', alignItems:'center',
           padding:'0 8px', zIndex:40
         }}>
@@ -32,11 +33,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 style={{
                   display:'flex', flexDirection:'column', alignItems:'center',
                   justifyContent:'center', gap:'2px', flex:1, padding:'4px',
-                  borderRadius:'12px', opacity: active ? 1 : 0.5,
-                  background:'none', border:'none', cursor:'pointer'
+                  borderRadius:'12px',
+                  background: active ? '#FADADD' : 'none',
+                  border:'none', cursor:'pointer'
                 }}>
                 <span style={{fontSize:'20px', lineHeight:1}}>{t.icon}</span>
-                <span style={{color:'white', fontWeight:500, fontSize:'9px'}}>{t.label}</span>
+                <span style={{
+                  fontWeight: active ? 700 : 400,
+                  fontSize:'9px',
+                  color: active ? '#7C4D6B' : '#C9A0B0'
+                }}>{t.label}</span>
               </button>
             )
           })}

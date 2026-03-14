@@ -5,8 +5,8 @@
 @layer base {
   * { box-sizing: border-box; }
   body {
-    background-color: #0f0a1a;
-    color: #f3e8ff;
+    background-color: #FFF0F3;
+    color: #3D1A2A;
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -15,38 +15,48 @@
 
 @layer components {
   .btn-primary {
-    @apply w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-pink-700 text-white font-bold text-sm cursor-pointer border-none;
+    @apply w-full py-3 px-4 rounded-xl font-bold text-sm cursor-pointer border-none;
+    background: linear-gradient(135deg, #C9A0B0, #7C4D6B);
+    color: white;
   }
   .btn-secondary {
-    @apply w-full py-3 px-4 rounded-xl border border-violet-600 text-violet-300 font-semibold text-sm cursor-pointer bg-transparent;
+    @apply w-full py-3 px-4 rounded-xl font-semibold text-sm cursor-pointer;
+    background: transparent;
+    border: 1.5px solid #C9A0B0;
+    color: #7C4D6B;
   }
   .card {
-    @apply bg-violet-950 border border-white/10 rounded-2xl p-4 mb-3 cursor-pointer transition-colors hover:border-violet-600;
+    @apply rounded-2xl p-4 mb-3 cursor-pointer transition-colors;
+    background: #FADADD;
+    border: 1px solid #E8C4CE;
   }
+  .card:hover { border-color: #C9A0B0; }
   .input-field {
-    @apply w-full px-3 py-2.5 rounded-xl border border-white/10 text-white text-sm outline-none focus:border-violet-500;
-    background: rgba(255,255,255,0.08);
+    @apply w-full px-3 py-2.5 rounded-xl text-sm outline-none;
+    background: white;
+    border: 1.5px solid #E8C4CE;
+    color: #3D1A2A;
   }
-  .input-field::placeholder { color: rgba(255,255,255,0.3); }
+  .input-field:focus { border-color: #C9A0B0; }
+  .input-field::placeholder { color: #C9A0B0; }
   .pill-purple {
-    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-400/20 text-violet-300;
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: #E8C4CE;
+    color: #7C4D6B;
   }
   .pill-green {
-    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300;
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: #d1fae5;
+    color: #065f46;
   }
   .pill-gray {
-    @apply text-xs font-semibold px-2 py-0.5 rounded-full border border-white/10 text-white/40;
-    background: rgba(255,255,255,0.05);
-  }
-  .persp-ana {
-    @apply rounded-xl p-3 mb-2 border-l-4 border-violet-500;
-    background: rgba(124,58,237,0.2);
-  }
-  .persp-pedro {
-    @apply rounded-xl p-3 mb-2 border-l-4 border-pink-600;
-    background: rgba(190,24,93,0.2);
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: #F5E6EA;
+    color: #9B6B7A;
+    border: 1px solid #E8C4CE;
   }
   .section-label {
-    @apply text-xs font-bold text-white/30 tracking-widest uppercase mb-3;
+    @apply text-xs font-bold tracking-widest uppercase mb-3;
+    color: #C9A0B0;
   }
 }
