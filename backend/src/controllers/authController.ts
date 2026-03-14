@@ -3,6 +3,9 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid'
 import { pool } from '../utils/db'
+import { OAuth2Client } from 'google-auth-library'
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 export const register = async (req: Request, res: Response) => {
   const { name, email, password } = req.body
@@ -38,12 +41,67 @@ export const login = async (req: Request, res: Response) => {
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) return res.status(401).json({ error: 'E-mail ou senha inválidos' })
 
-    // Busca casal vinculado
     const coupleResult = await pool.query(
-      'SELECT id, is_premium FROM couples WHERE user1_id = $1 OR user2_id = $1',
+      'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1',
       [user.id]
     )
     const couple = coupleResult.rows[0]
+
+    const token = jwt.sign(
+      { userId: user.id, coupleId: couple?.id },
+      process.env.JWT_SECRET!,
+      { expiresIn: '30d' }
+    )
+
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, avatar_url: user.avatar_url },
+      couple: couple || null,
+      token
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao fazer login' })
+  }
+}
+
+export const googleLogin = async (req: Request, res: Response) => {
+  const { credential } = req.body
+  if (!credential) return res.status(400).json({ error: 'Credencial do Google não fornecida' })
+
+  try {
+    // Verifica o token do Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+    const payload = ticket.getPayload()
+    if (!payload) return res.status(401).json({ error: 'Token do Google inválido' })
+
+    const { email, name, picture } = payload
+
+    // Busca ou cria o usuário
+    let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email])
+    let user = userResult.rows[0]
+
+    if (!user) {
+      // Cria novo usuário via Google (sem senha)
+      const insertResult = await pool.query(
+        'INSERT INTO users (name, email, password_hash, avatar_url) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, email, '', picture || null]
+      )
+      user = insertResult.rows[0]
+    } else if (picture && !user.avatar_url) {
+      // Atualiza avatar se não tiver
+      await pool.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [picture, user.id])
+      user.avatar_url = picture
+    }
+
+    // Busca casal vinculado
+    const coupleResult = await pool.query(
+      'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1',
+      [user.id]
+    )
+    const couple = coupleResult.rows[0] || null
 
     const token = jwt.sign(
       { userId: user.id, coupleId: couple?.id },
@@ -58,7 +116,7 @@ export const login = async (req: Request, res: Response) => {
     })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'Erro ao fazer login' })
+    res.status(500).json({ error: 'Erro ao autenticar com Google' })
   }
 }
 
@@ -81,7 +139,6 @@ export const createCouple = async (req: Request & { userId?: string }, res: Resp
       [userId, partnerId, weddingDate || null, coupleName || null, inviteToken]
     )
 
-    // Gera datas de desbloqueio automáticas se tiver data do casamento
     if (weddingDate) {
       const coupleId = result.rows[0].id
       const unlocks = [

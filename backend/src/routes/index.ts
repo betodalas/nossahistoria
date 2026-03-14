@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { register, login, createCouple } from '../controllers/authController'
+import { register, login, googleLogin, createCouple } from '../controllers/authController'
 import { getMoments, createMoment, addPerspective, deleteMoment } from '../controllers/momentsController'
 import { getWeeklyQuestion, answerQuestion, seedQuestions } from '../controllers/questionsController'
 import { createOrder, captureOrder } from '../controllers/paymentController'
@@ -12,6 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() })
 // Auth
 router.post('/auth/register', register)
 router.post('/auth/login', login)
+router.post('/auth/google', googleLogin)
 router.post('/auth/couple', authMiddleware, createCouple)
 
 router.get('/auth/me', authMiddleware, async (req: any, res) => {
