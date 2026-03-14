@@ -31,7 +31,18 @@ export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
       [result.rows[0].id, coupleId]
     )
 
-    res.json({ question: result.rows[0], answers: answers.rows })
+    // Histórico de perguntas já respondidas pelo casal
+    const historyResult = await pool.query(
+      `SELECT q.text AS question, qa.answer, qa.user_id, qa.created_at AS date
+       FROM question_answers qa
+       JOIN questions q ON q.id = qa.question_id
+       WHERE qa.couple_id = $1 AND qa.user_id = $2
+       ORDER BY qa.created_at DESC
+       LIMIT 50`,
+      [coupleId, req.userId]
+    )
+
+    res.json({ question: result.rows[0], answers: answers.rows, history: historyResult.rows })
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar pergunta' })
   }
