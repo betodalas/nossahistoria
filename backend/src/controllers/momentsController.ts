@@ -26,6 +26,7 @@ const uploadToCloudinary = (buffer: Buffer, options: object): Promise<any> =>
 
 export const getMoments = async (req: AuthRequest, res: Response) => {
   const { coupleId } = req
+  if (!coupleId) return res.json([])
   try {
     const result = await pool.query(
       `SELECT m.*, 
@@ -45,6 +46,8 @@ export const getMoments = async (req: AuthRequest, res: Response) => {
 export const createMoment = async (req: AuthRequest, res: Response) => {
   const { coupleId, userId } = req
   const { title, description, moment_date, music_name, music_link, voice_duration } = req.body
+
+  if (!coupleId) return res.status(400).json({ error: 'Você precisa vincular um casal antes de adicionar momentos.' })
 
   try {
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])
@@ -178,3 +181,4 @@ export const deleteMoment = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Erro ao deletar momento' })
   }
 }
+
