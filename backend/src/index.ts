@@ -56,6 +56,11 @@ const runMigrations = async () => {
         moment_date DATE NOT NULL,
         music_name VARCHAR(150),
         photo_url TEXT,
+        voice_url TEXT,
+        voice_duration INTEGER DEFAULT 0,
+        photo_size INTEGER DEFAULT 0,
+        audio_size INTEGER DEFAULT 0,
+        music_link TEXT,
         created_by UUID REFERENCES users(id),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
@@ -95,6 +100,15 @@ const runMigrations = async () => {
         unlock_date DATE NOT NULL,
         message TEXT,
         is_unlocked BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS storage_purchases (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        extra_mb INTEGER NOT NULL,
+        paypal_order_id VARCHAR(255) UNIQUE,
+        price_paid DECIMAL(10,2),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
