@@ -49,8 +49,6 @@ const getDayKey = () => new Date().toISOString().split('T')[0] // ex: "2026-03-1
 export default function Questions() {
   const { couple } = useAuth()
   const navigate = useNavigate()
-  const [answer, setAnswer] = useState('')
-  const [saved, setSaved] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [tab, setTab] = useState<'hoje'|'historico'>('hoje')
   const [currentQuestion, setCurrentQuestion] = useState<any>(null)
@@ -60,7 +58,19 @@ export default function Questions() {
   const todayQuestion = currentQuestion?.question || getTodayQuestion()
   const dayKey = getDayKey()
 
-  // Busca pergunta do backend com respostas reais
+  // Inicializa já verificando localStorage — evita piscar "responder" quando já respondeu
+  const [answer, setAnswer] = useState(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem('daily_answers') || '{}')
+      return all[getDayKey()]?.myAnswer || ''
+    } catch { return '' }
+  })
+  const [saved, setSaved] = useState(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem('daily_answers') || '{}')
+      return !!all[getDayKey()]?.myAnswer
+    } catch { return false }
+  })
   useEffect(() => {
     const loadQuestion = async () => {
       try {

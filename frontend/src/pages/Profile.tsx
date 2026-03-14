@@ -9,9 +9,11 @@ export default function Profile() {
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
   const [coupleName, setCoupleName] = useState(couple?.couple_name || '')
-  const [weddingDate, setWeddingDate] = useState(couple?.wedding_date || '')
+  const [weddingDate, setWeddingDate] = useState(
+    // Normaliza data para formato YYYY-MM-DD que o input type=date aceita
+    couple?.wedding_date ? couple.wedding_date.split('T')[0] : ''
+  )
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
   const handleSave = async (e: React.FormEvent) => {
@@ -20,40 +22,54 @@ export default function Profile() {
     setSaving(true)
     try {
       if (couple?.id) {
-        // Atualiza no backend
-        await authService.createCouple({
-          partnerEmail: couple?.partner_email || '',
+        // Casal já existe — atualiza com PUT
+        const res = await authService.updateCouple({
           weddingDate: weddingDate || undefined,
           coupleName: coupleName || undefined,
+          partnerName: partnerName || undefined,
+        })
+        // Usa dados retornados pelo backend (fonte da verdade)
+        const updated = {
+          ...couple,
+          ...res.data,
+          partner_name: partnerName || couple?.partner_name,
+        }
+        saveCouple(updated)
+      } else {
+        // Sem casal vinculado — salva só localmente
+        saveCouple({
+          ...couple,
+          id: couple?.id || '1',
+          couple_name: coupleName,
+          partner_name: partnerName,
+          wedding_date: weddingDate,
         })
       }
-      // Atualiza localmente
-      saveCouple({
-        ...couple,
-        id: couple?.id || '1',
-        couple_name: coupleName,
-        partner_name: partnerName,
-        wedding_date: weddingDate,
-      })
-      // Recarrega do backend para sincronizar
-      await refreshCouple()
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch {
-      // Mesmo se backend falhar, salva localmente
-      saveCouple({
-        ...couple,
-        id: couple?.id || '1',
-        couple_name: coupleName,
-        partner_name: partnerName,
-        wedding_date: weddingDate,
-      })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      // Navega de volta para o dashboard imediatamente
+      navigate('/dashboard')
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || ''
+      if (msg) {
+        setError(msg)
+      } else {
+        // Fallback offline — salva localmente e volta
+        saveCouple({
+          ...couple,
+          id: couple?.id || '1',
+          couple_name: coupleName,
+          partner_name: partnerName,
+          wedding_date: weddingDate,
+        })
+        navigate('/dashboard')
+      }
     } finally {
       setSaving(false)
     }
   }
+
+  const daysLeft = weddingDate
+    ? Math.ceil((new Date(weddingDate).getTime() - Date.now()) / 86400000)
+    : null
 
   return (
     <div className="min-h-screen flex flex-col" style={{background:'#0f0a1a'}}>
@@ -96,16 +112,21 @@ export default function Profile() {
         <div className="mb-6">
           <label className="text-xs text-white/60 block mb-1">Data do casamento 💍</label>
           <input className="input-field" type="date" value={weddingDate} onChange={e => setWeddingDate(e.target.value)} />
-          {weddingDate && (
+          {weddingDate && daysLeft !== null && (
             <p className="text-xs text-violet-300 mt-1.5">
-              {Math.max(0, Math.ceil((new Date(weddingDate).getTime() - Date.now()) / 86400000))} dias para o grande dia! 🎉
+              {daysLeft > 0
+                ? `${daysLeft} dias para o grande dia! 🎉`
+                : daysLeft === 0
+                  ? '🎊 É hoje!'
+                  : `Casados há ${Math.abs(daysLeft)} dias 💍`
+              }
             </p>
           )}
         </div>
 
         <button type="button" className="btn-secondary mb-3" onClick={() => navigate('/armazenamento')}>💾 Armazenamento</button>
         <button type="submit" disabled={saving} className="btn-primary mb-3 disabled:opacity-60">
-          {saving ? 'Salvando...' : saved ? '✅ Salvo!' : 'Salvar'}
+          {saving ? 'Salvando...' : '✅ Salvar e voltar'}
         </button>
 
       </form>

@@ -15,6 +15,41 @@ router.post('/auth/login', login)
 router.post('/auth/google', googleLogin)
 router.post('/auth/couple', authMiddleware, createCouple)
 
+// Atualiza dados do casal existente (nome, data casamento)
+router.put('/auth/couple', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { weddingDate, coupleName, partnerName } = req.body
+  const userId = req.userId
+  try {
+    const coupleResult = await pool.query(
+      'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1',
+      [userId]
+    )
+    if (!coupleResult.rows[0]) {
+      return res.status(404).json({ error: 'Casal não encontrado' })
+    }
+    const couple = coupleResult.rows[0]
+    const updated = await pool.query(
+      `UPDATE couples SET
+        wedding_date = CASE WHEN $1::text IS NOT NULL THEN $1::date ELSE wedding_date END,
+        couple_name  = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE couple_name END
+       WHERE id = $3 RETURNING *`,
+      [weddingDate || null, coupleName || null, couple.id]
+    )
+    // Atualiza nome do parceiro na tabela users se fornecido
+    if (partnerName) {
+      const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id
+      if (partnerId) {
+        await pool.query('UPDATE users SET name = $1 WHERE id = $2', [partnerName, partnerId])
+      }
+    }
+    res.json(updated.rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao atualizar casal' })
+  }
+})
+
 router.get('/auth/me', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   try {

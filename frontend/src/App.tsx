@@ -28,15 +28,29 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   return user ? children : <Navigate to="/login" />
 }
 
+// Rota raiz: sempre mostra Splash primeiro, que depois redireciona
+const RootRoute = () => {
+  const { user, loading } = useAuth()
+  // Enquanto carrega, mostra Splash
+  if (loading) return <Splash />
+  // Se já passou pela splash nesta sessão, vai direto
+  const splashShown = sessionStorage.getItem('splash_shown')
+  if (splashShown) {
+    return user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+  }
+  return <Splash />
+}
+
 function App() {
   return (
     <PayPalScriptProvider options={{ clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || 'test', currency: 'BRL' }}>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/linha-do-tempo" element={<PrivateRoute><Timeline /></PrivateRoute>} />
             <Route path="/novo-momento" element={<PrivateRoute><AddMoment /></PrivateRoute>} />
             <Route path="/perguntas" element={<PrivateRoute><Questions /></PrivateRoute>} />
@@ -50,7 +64,7 @@ function App() {
             <Route path="/dia-do-casamento" element={<PrivateRoute><WeddingDay /></PrivateRoute>} />
             <Route path="/pagamento/sucesso" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
             <Route path="/splash" element={<Splash />} />
-            <Route path="*" element={<Navigate to="/splash" />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

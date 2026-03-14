@@ -34,8 +34,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [couple, setCouple] = useState<Couple | null>(null)
+  // Carrega imediatamente do localStorage — campos do perfil não ficam vazios
+  const [user, setUser] = useState<User | null>(() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null') } catch { return null }
+  })
+  const [couple, setCouple] = useState<Couple | null>(() => {
+    try { return JSON.parse(localStorage.getItem('couple') || 'null') } catch { return null }
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,13 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) {
       authService.me()
         .then(res => {
-          setUser(res.data.user)
-          setCouple(res.data.couple || null)
+          const u = res.data.user
+          const c = res.data.couple || null
+          setUser(u)
+          setCouple(c)
+          localStorage.setItem('user', JSON.stringify(u))
+          if (c) localStorage.setItem('couple', JSON.stringify(c))
+          else localStorage.removeItem('couple')
         })
         .catch(() => {
           localStorage.removeItem('token')
           localStorage.removeItem('user')
           localStorage.removeItem('couple')
+          setUser(null)
+          setCouple(null)
         })
         .finally(() => setLoading(false))
     } else {
@@ -93,10 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshCouple = async () => {
     try {
       const res = await authService.me()
-      setCouple(res.data.couple || null)
-      if (res.data.couple) {
-        localStorage.setItem('couple', JSON.stringify(res.data.couple))
-      }
+      const c = res.data.couple || null
+      setCouple(c)
+      if (c) localStorage.setItem('couple', JSON.stringify(c))
+      else localStorage.removeItem('couple')
     } catch {}
   }
 

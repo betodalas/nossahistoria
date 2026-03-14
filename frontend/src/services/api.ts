@@ -35,6 +35,8 @@ export const authService = {
     api.get('/auth/me'),
   createCouple: (data: { partnerEmail: string; weddingDate?: string; coupleName?: string }) =>
     api.post('/auth/couple', data),
+  updateCouple: (data: { weddingDate?: string; coupleName?: string; partnerName?: string }) =>
+    api.put('/auth/couple', data),
 }
 
 // Momentos

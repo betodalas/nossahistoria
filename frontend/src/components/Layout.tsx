@@ -6,7 +6,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const path = location.pathname
 
   const tabs = [
-    { icon: '🏠', label: 'Início',    route: '/' },
+    { icon: '🏠', label: 'Início',    route: '/dashboard' },
     { icon: '📖', label: 'Timeline',  route: '/linha-do-tempo' },
     { icon: '💬', label: 'Perguntas', route: '/perguntas' },
     { icon: '📚', label: 'Livro',     route: '/nosso-livro' },

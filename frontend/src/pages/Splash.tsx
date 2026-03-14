@@ -12,7 +12,8 @@ export default function Splash() {
     const timer = setTimeout(() => {
       setVisible(false)
       setTimeout(() => {
-        if (user) navigate('/')
+        sessionStorage.setItem('splash_shown', '1')
+        if (user) navigate('/dashboard')
         else navigate('/login')
       }, 600)
     }, 2800)

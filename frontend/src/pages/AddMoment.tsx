@@ -68,7 +68,7 @@ export default function AddMoment() {
       if (voiceDuration) formData.append('voice_duration', String(voiceDuration))
 
       await momentsService.create(formData)
-      navigate('/')
+      navigate('/dashboard')
     } catch (err: any) {
       // Tenta extrair mensagem do backend
       const msg = err?.response?.data?.message || err?.response?.data?.error || ''
@@ -97,7 +97,7 @@ export default function AddMoment() {
       }
       const updated = [newMoment, ...localMoments]
       localStorage.setItem('moments', JSON.stringify(updated))
-      navigate('/')
+      navigate('/dashboard')
     } finally {
       setSaving(false)
     }
