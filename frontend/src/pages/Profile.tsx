@@ -65,6 +65,7 @@ export default function Profile() {
           )}
         </div>
 
+        <button type="button" className="btn-secondary mb-3" onClick={() => navigate('/armazenamento')}>💾 Armazenamento</button>
         <button type="submit" className="btn-primary mb-3">
           {saved ? '✅ Salvo!' : 'Salvar'}
         </button>

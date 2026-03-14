@@ -15,6 +15,8 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('couple')
       window.location.href = '/login'
     }
     return Promise.reject(err)
@@ -66,3 +68,10 @@ export const familyService = {
 }
 
 export default api
+
+// Armazenamento extra
+export const storageService = {
+  getInfo: () => api.get('/storage'),
+  createOrder: () => api.post('/storage/create-order'),
+  capture: (orderId: string) => api.post('/storage/capture', { orderId }),
+}

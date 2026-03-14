@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import WeddingDay from './pages/WeddingDay'
 import Invite from './pages/Invite'
 import GuestAlbum from './pages/GuestAlbum'
+import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
@@ -43,6 +44,7 @@ function App() {
             <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/convidar" element={<PrivateRoute><Invite /></PrivateRoute>} />
             <Route path="/album-convidados" element={<PrivateRoute><GuestAlbum /></PrivateRoute>} />
+            <Route path="/armazenamento" element={<PrivateRoute><Storage /></PrivateRoute>} />
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />
             <Route path="/dia-do-casamento" element={<PrivateRoute><WeddingDay /></PrivateRoute>} />
             <Route path="/pagamento/sucesso" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
