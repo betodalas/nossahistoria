@@ -39,7 +39,7 @@ export default function MusicPlayer({ musicName }: Props) {
             <span className="text-lg animate-pulse">🎵</span>
             <p className="text-xs text-violet-300 font-medium flex-1">{musicName}</p>
             <button onClick={() => setPlaying(false)}
-              className="text-xs text-white/40 px-2 py-1 rounded-lg"
+              className="text-xs text-white/60 px-2 py-1 rounded-lg"
               style={{background:'rgba(255,255,255,0.08)'}}>✕</button>
           </div>
           <div className="px-3 pb-3 flex gap-2">

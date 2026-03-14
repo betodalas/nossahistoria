@@ -1,14 +1,61 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+
+declare global {
+  interface Window {
+    google: any
+  }
+}
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { login, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = () => initGoogle()
+    document.body.appendChild(script)
+    return () => { document.body.removeChild(script) }
+  }, [])
+
+  const initGoogle = () => {
+    if (!window.google) return
+    window.google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      callback: handleGoogleResponse,
+    })
+    window.google.accounts.id.renderButton(
+      document.getElementById('google-btn'),
+      {
+        theme: 'outline',
+        size: 'large',
+        width: '100%',
+        text: 'signin_with',
+        locale: 'pt-BR',
+      }
+    )
+  }
+
+  const handleGoogleResponse = async (response: any) => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithGoogle(response.credential)
+      navigate('/')
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Erro ao entrar com Google.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,40 +65,69 @@ export default function Login() {
       await login(email, password)
       navigate('/')
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'E-mail ou senha incorretos.')
+      setError(err?.response?.data?.error || 'E-mail ou senha inválidos.')
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8"
-      style={{background:'linear-gradient(160deg, #FFF0F3, #FADADD 50%, #E8C4CE)'}}>
-      <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-6"
-        style={{background:'white', border:'2px solid #E8C4CE', boxShadow:'0 4px 20px rgba(201,160,176,0.3)'}}>
-        💍
-      </div>
-      <h1 className="text-2xl font-bold mb-1" style={{color:'#3D1A2A'}}>Nossa história</h1>
-      <p className="text-sm mb-8" style={{color:'#9B6B7A'}}>O app do seu relacionamento</p>
+  const labelStyle = { fontSize: '12px', color: '#9B6B7A', display: 'block', marginBottom: '4px' }
 
-      <form onSubmit={handleSubmit} className="w-full max-w-sm">
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#FFF0F3' }}>
+      {/* Header */}
+      <div className="flex flex-col items-center pt-16 pb-8 px-4">
+        <div className="text-5xl mb-4">💍</div>
+        <h1 className="text-2xl font-bold mb-1" style={{ color: '#3D1A2A', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+          Nossa História
+        </h1>
+        <p className="text-xs" style={{ color: '#C9A0B0', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          cada momento importa
+        </p>
+      </div>
+
+      <div className="flex-1 px-4 pb-8">
         {error && (
           <div className="mb-4 px-4 py-3 rounded-xl text-sm text-center"
-            style={{background:'#fef2f2', border:'1px solid #fca5a5', color:'#b91c1c'}}>
+            style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c' }}>
             {error}
           </div>
         )}
-        <input className="input-field mb-3" type="email" placeholder="seu@email.com"
-          value={email} onChange={e => setEmail(e.target.value)} required />
-        <input className="input-field mb-4" type="password" placeholder="senha"
-          value={password} onChange={e => setPassword(e.target.value)} required />
-        <button type="submit" disabled={loading} className="btn-primary mb-3 disabled:opacity-60">
-          {loading ? 'Entrando...' : 'Entrar'}
-        </button>
+
+        {/* Botão Google */}
+        <div className="mb-4">
+          <div id="google-btn" className="w-full flex justify-center"></div>
+        </div>
+
+        {/* Divisor */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px" style={{ background: '#E8C4CE' }}></div>
+          <span className="text-xs" style={{ color: '#C9A0B0' }}>ou entre com e-mail</span>
+          <div className="flex-1 h-px" style={{ background: '#E8C4CE' }}></div>
+        </div>
+
+        {/* Formulário email/senha */}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label style={labelStyle}>E-mail</label>
+            <input className="input-field" type="email" placeholder="seu@email.com"
+              value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div className="mb-5">
+            <label style={labelStyle}>Senha</label>
+            <input className="input-field" type="password" placeholder="sua senha"
+              value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+
+          <button type="submit" disabled={loading} className="btn-primary mb-3 disabled:opacity-60">
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+
         <Link to="/cadastro">
-          <button type="button" className="btn-secondary">Criar conta</button>
+          <button className="btn-secondary">Criar conta</button>
         </Link>
-      </form>
+      </div>
     </div>
   )
 }

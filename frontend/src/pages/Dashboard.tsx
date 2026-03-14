@@ -66,7 +66,7 @@ export default function Dashboard() {
             <div className="text-5xl font-extrabold" style={{color:'#7C4D6B'}}>{daysLeft}</div>
             <div className="text-xs mt-1" style={{color:'#9B6B7A'}}>dias para o casamento</div>
             <div className="text-xs mt-1" style={{color:'#C9A0B0'}}>
-              {new Date(couple.wedding_date).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}
+              {new Date(couple?.wedding_date || "").toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}
             </div>
           </div>
         ) : daysLeft === null && (

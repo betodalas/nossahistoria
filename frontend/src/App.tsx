@@ -16,6 +16,7 @@ import Invite from './pages/Invite'
 import GuestAlbum from './pages/GuestAlbum'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
+import Splash from './pages/Splash'
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth()
@@ -48,7 +49,8 @@ function App() {
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />
             <Route path="/dia-do-casamento" element={<PrivateRoute><WeddingDay /></PrivateRoute>} />
             <Route path="/pagamento/sucesso" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="/splash" element={<Splash />} />
+            <Route path="*" element={<Navigate to="/splash" />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

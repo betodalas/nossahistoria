@@ -29,6 +29,10 @@ export const authService = {
     api.post('/auth/register', data),
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
+  googleLogin: (data: { credential: string }) =>
+    api.post('/auth/google', data),
+  me: () =>
+    api.get('/auth/me'),
   createCouple: (data: { partnerEmail: string; weddingDate?: string; coupleName?: string }) =>
     api.post('/auth/couple', data),
 }
@@ -67,11 +71,11 @@ export const familyService = {
   share: (email: string) => api.post('/family/share', { email }),
 }
 
-export default api
-
 // Armazenamento extra
 export const storageService = {
   getInfo: () => api.get('/storage'),
   createOrder: () => api.post('/storage/create-order'),
   capture: (orderId: string) => api.post('/storage/capture', { orderId }),
 }
+
+export default api

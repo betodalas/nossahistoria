@@ -12,11 +12,11 @@ export default function ShareMoment({ moment, onClose }: Props) {
         <div className="text-center mb-5">
           <div className="text-3xl mb-2">💌</div>
           <h2 className="text-base font-bold text-white">Compartilhar momento</h2>
-          <p className="text-xs text-white/40 mt-1">Mostre este momento para a família</p>
+          <p className="text-xs text-white/60 mt-1">Mostre este momento para a família</p>
         </div>
         <div className="rounded-2xl p-4 mb-5 border border-white/10" style={{background:'rgba(255,255,255,0.05)'}}>
           <p className="text-sm font-semibold text-white mb-1">{moment.title}</p>
-          <p className="text-xs text-white/40 mb-2">{new Date(moment.moment_date).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}</p>
+          <p className="text-xs text-white/60 mb-2">{new Date(moment.moment_date).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}</p>
           {moment.description && <p className="text-xs text-white/60 line-clamp-2">{moment.description}</p>}
           {moment.music_name && <p className="text-xs text-violet-300 mt-1">♪ {moment.music_name}</p>}
         </div>

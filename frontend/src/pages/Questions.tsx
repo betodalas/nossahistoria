@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { questionsService } from '../services/api'
 import Layout from '../components/Layout'
 
 const ALL_QUESTIONS = [
@@ -52,51 +53,120 @@ export default function Questions() {
   const [saved, setSaved] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [tab, setTab] = useState<'hoje'|'historico'>('hoje')
+  const [currentQuestion, setCurrentQuestion] = useState<any>(null)
+  const [loadingQuestion, setLoadingQuestion] = useState(true)
+  const [savingAnswer, setSavingAnswer] = useState(false)
 
-  const todayQuestion = getTodayQuestion()
+  const todayQuestion = currentQuestion?.question || getTodayQuestion()
   const dayKey = getDayKey()
 
-  // Carrega respostas do histórico
-  const allAnswers: Record<string, any> = JSON.parse(localStorage.getItem('daily_answers') || '{}')
-  const todayData = allAnswers[dayKey]
-  const alreadyAnswered = !!todayData?.myAnswer
-
+  // Busca pergunta do backend com respostas reais
   useEffect(() => {
-    if (todayData?.myAnswer) {
-      setAnswer(todayData.myAnswer)
-      setSaved(true)
+    const loadQuestion = async () => {
+      try {
+        const res = await questionsService.getCurrent()
+        const data = res.data
+
+        // Backend retorna { question: {...}, answers: [...] }
+        // Mas pode também retornar { done: true } se não houver perguntas
+        if (data?.done) {
+          setLoadingQuestion(false)
+          return
+        }
+
+        const q = data?.question
+        const answers = data?.answers || []
+
+        // Tenta pegar o user logado do localStorage para separar respostas
+        const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+        const myUserId = storedUser?.id
+
+        const myAnswerObj = myUserId
+          ? answers.find((a: any) => String(a.user_id) === String(myUserId))
+          : answers[0]
+        const partnerAnswerObj = myUserId
+          ? answers.find((a: any) => String(a.user_id) !== String(myUserId))
+          : answers[1]
+
+        const mapped = {
+          id: q?.id,
+          question: q?.text || q?.question,
+          myAnswer: myAnswerObj?.answer || null,
+          partnerAnswer: partnerAnswerObj?.answer || null,
+        }
+        setCurrentQuestion(mapped)
+        if (mapped.myAnswer) {
+          setAnswer(mapped.myAnswer)
+          setSaved(true)
+        }
+      } catch {
+        // Fallback: usa localStorage
+        const allAnswers: Record<string, any> = JSON.parse(localStorage.getItem('daily_answers') || '{}')
+        const todayData = allAnswers[dayKey]
+        if (todayData?.myAnswer) {
+          setAnswer(todayData.myAnswer)
+          setSaved(true)
+        }
+      } finally {
+        setLoadingQuestion(false)
+      }
     }
+    loadQuestion()
   }, [])
 
-  const saveAnswer = () => {
+  const saveAnswer = async () => {
     if (!answer.trim()) return
+    setSavingAnswer(true)
+    try {
+      if (currentQuestion?.id) {
+        await questionsService.answer(currentQuestion.id, answer)
+        // Recarrega para pegar resposta do parceiro
+        const res = await questionsService.getCurrent()
+        const data = res.data
+        const q = data?.question
+        const answers = data?.answers || []
+        const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+        const myUserId = storedUser?.id
+        const myAnswerObj = myUserId
+          ? answers.find((a: any) => String(a.user_id) === String(myUserId))
+          : answers[0]
+        const partnerAnswerObj = myUserId
+          ? answers.find((a: any) => String(a.user_id) !== String(myUserId))
+          : answers[1]
+        setCurrentQuestion({
+          id: q?.id,
+          question: q?.text || q?.question,
+          myAnswer: myAnswerObj?.answer || answer,
+          partnerAnswer: partnerAnswerObj?.answer || null,
+        })
+      }
+    } catch {
+      // Fallback: ignora erro do reload
+    }
+    // Sempre salva localmente também
+    const allAnswers: Record<string, any> = JSON.parse(localStorage.getItem('daily_answers') || '{}')
     const updated = {
       ...allAnswers,
       [dayKey]: {
         question: todayQuestion,
         myAnswer: answer,
         date: new Date().toISOString(),
-        partnerAnswer: todayData?.partnerAnswer || null,
+        partnerAnswer: currentQuestion?.partnerAnswer || allAnswers[dayKey]?.partnerAnswer || null,
       }
     }
     localStorage.setItem('daily_answers', JSON.stringify(updated))
     setSaved(true)
+    setSavingAnswer(false)
   }
 
-  // Histórico ordenado do mais recente
+  const partnerAnswer = currentQuestion?.partnerAnswer || null
+  const alreadyAnswered = !!currentQuestion?.myAnswer || saved
+
+  // Histórico do localStorage
+  const allAnswers: Record<string, any> = JSON.parse(localStorage.getItem('daily_answers') || '{}')
   const history = Object.entries(allAnswers)
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([key, val]: any) => ({ key, ...val }))
-
-  // Simula resposta do parceiro (em produção viria do backend)
-  const partnerAnswers = [
-    "Foi no dia que você riu daquele jeito, eu pensei: é ela.",
-    "Quando você ficou do meu lado naquele momento difícil sem eu pedir.",
-    "Nunca me senti tão em casa com alguém.",
-    "Quando percebi que contava tudo pra você antes de contar pra qualquer outra pessoa.",
-    "No dia que você me ligou só pra dizer que estava pensando em mim.",
-  ]
-  const simulatedPartnerAnswer = partnerAnswers[Math.floor(new Date(dayKey).getTime() / 86400000) % partnerAnswers.length]
 
   return (
     <Layout>
@@ -132,12 +202,12 @@ export default function Questions() {
                 <span className="text-2xl">🔥</span>
                 <div>
                   <p className="text-sm font-bold text-white">{history.length} dias seguidos</p>
-                  <p className="text-xs text-white/40">continue respondendo!</p>
+                  <p className="text-xs text-white/60">continue respondendo!</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-white/40">{new Date().toLocaleDateString('pt-BR', {weekday:'long'})}</p>
-                <p className="text-xs text-white/25">{new Date().toLocaleDateString('pt-BR')}</p>
+                <p className="text-xs text-white/60">{new Date().toLocaleDateString('pt-BR', {weekday:'long'})}</p>
+                <p className="text-xs text-white/50">{new Date().toLocaleDateString('pt-BR')}</p>
               </div>
             </div>
 
@@ -153,7 +223,7 @@ export default function Questions() {
 
             {/* Resposta */}
             <div className="mb-4">
-              <label className="text-xs text-white/40 block mb-2">Sua resposta</label>
+              <label className="text-xs text-white/60 block mb-2">Sua resposta</label>
               <textarea
                 className="input-field resize-none"
                 style={{height:'120px'}}
@@ -165,8 +235,8 @@ export default function Questions() {
             </div>
 
             {!saved ? (
-              <button onClick={saveAnswer} disabled={!answer.trim()} className="btn-primary disabled:opacity-40 mb-4">
-                💌 Salvar resposta
+              <button onClick={saveAnswer} disabled={!answer.trim() || savingAnswer} className="btn-primary disabled:opacity-40 mb-4">
+                {savingAnswer ? '💌 Salvando...' : '💌 Salvar resposta'}
               </button>
             ) : (
               <div className="rounded-xl p-3 mb-4 text-center"
@@ -176,7 +246,7 @@ export default function Questions() {
             )}
 
             {/* Resposta do parceiro */}
-            {saved && (
+            {saved && partnerAnswer && (
               <div className="rounded-2xl p-4 border border-pink-500/25"
                 style={{background:'rgba(190,24,93,0.15)'}}>
                 <div className="flex items-center gap-2 mb-3">
@@ -189,18 +259,29 @@ export default function Questions() {
                   <div className="text-center cursor-pointer py-2" onClick={() => setRevealed(true)}>
                     <p className="text-sm text-purple-100 leading-relaxed select-none"
                       style={{filter:'blur(6px)'}}>
-                      {simulatedPartnerAnswer}
+                      {partnerAnswer}
                     </p>
-                    <p className="text-xs text-white/40 mt-3">👆 toque para revelar</p>
+                    <p className="text-xs text-white/60 mt-3">👆 toque para revelar</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-purple-100 leading-relaxed">{simulatedPartnerAnswer}</p>
+                  <p className="text-sm text-purple-100 leading-relaxed">{partnerAnswer}</p>
                 )}
               </div>
             )}
 
+            {saved && !partnerAnswer && (
+              <div className="rounded-2xl p-4 border border-white/10 text-center"
+                style={{background:'rgba(255,255,255,0.05)'}}>
+                <span className="text-2xl block mb-2">⏳</span>
+                <p className="text-xs text-white/50">
+                  {couple?.partner_name || 'Parceiro(a)'} ainda não respondeu hoje
+                </p>
+                <p className="text-xs text-white/50 mt-1">Volte mais tarde para ver a resposta 💜</p>
+              </div>
+            )}
+
             {!saved && (
-              <p className="text-xs text-white/25 text-center mt-2">
+              <p className="text-xs text-white/50 text-center mt-2">
                 Responda primeiro para ver o que {couple?.partner_name || 'o(a) parceiro(a)'} disse 💜
               </p>
             )}
@@ -213,8 +294,8 @@ export default function Questions() {
             {history.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">📖</div>
-                <p className="text-sm text-white/30">Nenhuma resposta ainda</p>
-                <p className="text-xs text-white/20 mt-1">Responda a pergunta de hoje!</p>
+                <p className="text-sm text-white/50">Nenhuma resposta ainda</p>
+                <p className="text-xs text-white/60 mt-1">Responda a pergunta de hoje!</p>
                 <button className="btn-primary mt-6 max-w-xs mx-auto" onClick={() => setTab('hoje')}>
                   Responder agora ✨
                 </button>
@@ -224,7 +305,7 @@ export default function Questions() {
                 <div key={item.key} className="rounded-2xl p-4 mb-3 border border-white/8"
                   style={{background:'#1a1030'}}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-white/30">
+                    <span className="text-xs text-white/50">
                       {new Date(item.date).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}
                     </span>
                     {i === 0 && <span className="pill-green text-xs">hoje</span>}
@@ -232,12 +313,12 @@ export default function Questions() {
                   <p className="text-xs text-violet-300 italic mb-2">"{item.question}"</p>
                   <div className="space-y-2">
                     <div className="rounded-xl p-3" style={{background:'rgba(124,58,237,0.15)'}}>
-                      <p className="text-xs text-white/40 mb-1">Você</p>
+                      <p className="text-xs text-white/60 mb-1">Você</p>
                       <p className="text-sm text-purple-100">{item.myAnswer}</p>
                     </div>
                     {item.partnerAnswer && (
                       <div className="rounded-xl p-3" style={{background:'rgba(190,24,93,0.15)'}}>
-                        <p className="text-xs text-white/40 mb-1">{couple?.partner_name || 'Parceiro(a)'}</p>
+                        <p className="text-xs text-white/60 mb-1">{couple?.partner_name || 'Parceiro(a)'}</p>
                         <p className="text-sm text-purple-100">{item.partnerAnswer}</p>
                       </div>
                     )}

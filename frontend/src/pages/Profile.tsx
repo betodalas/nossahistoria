@@ -1,27 +1,58 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { authService } from '../services/api'
 
 export default function Profile() {
-  const { user, couple, saveCouple } = useAuth()
+  const { user, couple, saveCouple, refreshCouple } = useAuth()
   const navigate = useNavigate()
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
   const [coupleName, setCoupleName] = useState(couple?.couple_name || '')
   const [weddingDate, setWeddingDate] = useState(couple?.wedding_date || '')
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    saveCouple({
-      ...couple,
-      id: couple?.id || '1',
-      couple_name: coupleName,
-      partner_name: partnerName,
-      wedding_date: weddingDate,
-    })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setError('')
+    setSaving(true)
+    try {
+      if (couple?.id) {
+        // Atualiza no backend
+        await authService.createCouple({
+          partnerEmail: couple?.partner_email || '',
+          weddingDate: weddingDate || undefined,
+          coupleName: coupleName || undefined,
+        })
+      }
+      // Atualiza localmente
+      saveCouple({
+        ...couple,
+        id: couple?.id || '1',
+        couple_name: coupleName,
+        partner_name: partnerName,
+        wedding_date: weddingDate,
+      })
+      // Recarrega do backend para sincronizar
+      await refreshCouple()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // Mesmo se backend falhar, salva localmente
+      saveCouple({
+        ...couple,
+        id: couple?.id || '1',
+        couple_name: coupleName,
+        partner_name: partnerName,
+        wedding_date: weddingDate,
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -39,24 +70,31 @@ export default function Profile() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">{coupleName || user?.name || 'Meu casal'}</p>
-            <p className="text-xs text-white/40 mt-0.5">{user?.email}</p>
+            <p className="text-xs text-white/50 mt-0.5">{user?.email}</p>
           </div>
         </div>
 
-        <p className="section-label">Informações do casal</p>
+        {error && (
+          <div className="mb-4 px-3 py-2 rounded-xl text-xs text-center"
+            style={{background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#fca5a5'}}>
+            {error}
+          </div>
+        )}
+
+        <p className="section-label" style={{color:'rgba(255,255,255,0.5)'}}>Informações do casal</p>
 
         <div className="mb-3">
-          <label className="text-xs text-white/40 block mb-1">Nome do casal</label>
+          <label className="text-xs text-white/60 block mb-1">Nome do casal</label>
           <input className="input-field" placeholder="ex: Ana & Pedro" value={coupleName} onChange={e => setCoupleName(e.target.value)} />
         </div>
 
         <div className="mb-3">
-          <label className="text-xs text-white/40 block mb-1">Nome do(a) parceiro(a)</label>
+          <label className="text-xs text-white/60 block mb-1">Nome do(a) parceiro(a)</label>
           <input className="input-field" placeholder="ex: Pedro" value={partnerName} onChange={e => setPartnerName(e.target.value)} />
         </div>
 
         <div className="mb-6">
-          <label className="text-xs text-white/40 block mb-1">Data do casamento 💍</label>
+          <label className="text-xs text-white/60 block mb-1">Data do casamento 💍</label>
           <input className="input-field" type="date" value={weddingDate} onChange={e => setWeddingDate(e.target.value)} />
           {weddingDate && (
             <p className="text-xs text-violet-300 mt-1.5">
@@ -66,8 +104,8 @@ export default function Profile() {
         </div>
 
         <button type="button" className="btn-secondary mb-3" onClick={() => navigate('/armazenamento')}>💾 Armazenamento</button>
-        <button type="submit" className="btn-primary mb-3">
-          {saved ? '✅ Salvo!' : 'Salvar'}
+        <button type="submit" disabled={saving} className="btn-primary mb-3 disabled:opacity-60">
+          {saving ? 'Salvando...' : saved ? '✅ Salvo!' : 'Salvar'}
         </button>
 
       </form>

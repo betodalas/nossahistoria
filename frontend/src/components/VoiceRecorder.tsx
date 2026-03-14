@@ -110,7 +110,7 @@ export default function VoiceRecorder({ onSave, existingAudio, existingDuration 
               style={{background:'rgba(190,24,93,0.4)', border:'2px solid #be185d'}}>🔴</div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-pink-300">Gravando...</p>
-              <p className="text-xs text-white/40">{fmtTime(seconds)}</p>
+              <p className="text-xs text-white/60">{fmtTime(seconds)}</p>
             </div>
             <div className="flex items-center gap-0.5">
               {[1,2,3,4,5].map(i => (
