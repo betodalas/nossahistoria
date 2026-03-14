@@ -167,16 +167,25 @@ export default function Book() {
               </div>
             )}
 
-            {/* Carta do parceiro — com blur */}
-            <div className="rounded-2xl p-4 mb-4" style={{background:'rgba(190,24,93,0.2)',border:'1px solid rgba(190,24,93,0.3)'}}>
-              <p className="text-xs font-bold text-pink-300 mb-2">💌 Carta do(a) parceiro(a)</p>
-              <p className="text-sm text-purple-100 leading-relaxed"
-                style={{filter:'blur(5px)', cursor:'pointer', transition:'filter 0.4s'}}
-                onClick={e => (e.currentTarget.style.filter='none')}>
-                "Meu amor, quando você ler isso... toque para revelar 💜"
-              </p>
-              <p className="text-xs text-white/30 text-center mt-2">toque para revelar</p>
-            </div>
+            {/* Carta do parceiro */}
+            {(() => {
+              const partnerLetter = letters[`partner_${openCapsule.key}`]?.text
+              return partnerLetter ? (
+                <div className="rounded-2xl p-4 mb-4" style={{background:'rgba(190,24,93,0.2)',border:'1px solid rgba(190,24,93,0.3)'}}>
+                  <p className="text-xs font-bold text-pink-300 mb-2">💌 Carta do(a) {couple?.partner_name || 'parceiro(a)'}</p>
+                  <p className="text-sm text-purple-100 leading-relaxed"
+                    style={{filter:'blur(5px)', cursor:'pointer', transition:'filter 0.4s'}}
+                    onClick={e => (e.currentTarget.style.filter='none')}>
+                    {partnerLetter}
+                  </p>
+                  <p className="text-xs text-white/30 text-center mt-2">toque para revelar</p>
+                </div>
+              ) : (
+                <div className="rounded-2xl p-4 mb-4 text-center" style={{background:'rgba(255,255,255,0.04)',border:'1px dashed rgba(255,255,255,0.1)'}}>
+                  <p className="text-xs text-white/30">💌 {couple?.partner_name || 'Parceiro(a)'} ainda não escreveu a carta para este momento</p>
+                </div>
+              )
+            })()}
 
             {/* Momentos do período */}
             {(() => {

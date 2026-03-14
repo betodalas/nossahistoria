@@ -10,7 +10,6 @@ export default function Profile() {
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
   const [coupleName, setCoupleName] = useState(couple?.couple_name || '')
   const [weddingDate, setWeddingDate] = useState(
-    // Normaliza data para formato YYYY-MM-DD que o input type=date aceita
     couple?.wedding_date ? couple.wedding_date.split('T')[0] : ''
   )
   const [saving, setSaving] = useState(false)
@@ -21,41 +20,44 @@ export default function Profile() {
     setError('')
     setSaving(true)
     try {
-      if (couple?.id) {
-        // Casal já existe — atualiza com PUT
-        const res = await authService.updateCouple({
-          weddingDate: weddingDate || undefined,
-          coupleName: coupleName || undefined,
-          partnerName: partnerName || undefined,
-        })
-        // Usa dados retornados pelo backend (fonte da verdade)
-        const updated = {
-          ...couple,
-          ...res.data,
-          partner_name: partnerName || couple?.partner_name,
-        }
-        saveCouple(updated)
-      } else {
-        // Sem casal vinculado — salva só localmente
+      // Sempre tenta PUT primeiro (atualizar casal existente)
+      // Se der 404 não tem casal — informa o usuário
+      const res = await authService.updateCouple({
+        weddingDate: weddingDate || undefined,
+        coupleName: coupleName || undefined,
+        partnerName: partnerName || undefined,
+      })
+      // Atualiza contexto com dados reais do backend
+      saveCouple({
+        ...couple,
+        ...res.data,
+        partner_name: partnerName || couple?.partner_name,
+      })
+      await refreshCouple()
+      navigate('/dashboard')
+    } catch (err: any) {
+      const status = err?.response?.status
+      const msg = err?.response?.data?.error || err?.response?.data?.message || ''
+
+      if (status === 404) {
+        // Não tem casal vinculado — salva localmente e avisa
         saveCouple({
           ...couple,
-          id: couple?.id || '1',
+          id: couple?.id || '',
           couple_name: coupleName,
           partner_name: partnerName,
           wedding_date: weddingDate,
         })
-      }
-      // Navega de volta para o dashboard imediatamente
-      navigate('/dashboard')
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || ''
-      if (msg) {
+        setError('Você ainda não tem um casal vinculado. Vá em "Convidar parceiro(a)" para conectar. Os dados foram salvos localmente por enquanto.')
+      } else if (status === 401) {
+        setError('Sessão expirada. Faça login novamente.')
+      } else if (msg) {
         setError(msg)
       } else {
-        // Fallback offline — salva localmente e volta
+        // Fallback offline
         saveCouple({
           ...couple,
-          id: couple?.id || '1',
+          id: couple?.id || '',
           couple_name: coupleName,
           partner_name: partnerName,
           wedding_date: weddingDate,
@@ -91,13 +93,19 @@ export default function Profile() {
         </div>
 
         {error && (
-          <div className="mb-4 px-3 py-2 rounded-xl text-xs text-center"
+          <div className="mb-4 px-3 py-2 rounded-xl text-xs"
             style={{background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#fca5a5'}}>
             {error}
+            {error.includes('Convidar') && (
+              <button type="button" className="block mt-2 underline text-violet-300"
+                onClick={() => navigate('/convidar')}>
+                Ir para Convidar parceiro(a) →
+              </button>
+            )}
           </div>
         )}
 
-        <p className="section-label" style={{color:'rgba(255,255,255,0.5)'}}>Informações do casal</p>
+        <p className="section-label mb-3" style={{color:'rgba(255,255,255,0.5)'}}>Informações do casal</p>
 
         <div className="mb-3">
           <label className="text-xs text-white/60 block mb-1">Nome do casal</label>

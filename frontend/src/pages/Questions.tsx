@@ -99,7 +99,11 @@ export default function Questions() {
   }
 
   const saveAnswer = async () => {
-    if (!answer.trim() || !currentQuestion?.id) return
+    if (!answer.trim()) return
+    if (!currentQuestion?.id) {
+      setError('Pergunta não carregada. Tente recarregar a página.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -166,6 +170,20 @@ export default function Questions() {
 
             {loading ? (
               <div className="text-center py-8 text-white/40 text-sm">Carregando pergunta...</div>
+            ) : !currentQuestion ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-3">💬</div>
+                <p className="text-sm text-white/50 mb-2">Nenhuma pergunta disponível</p>
+                <p className="text-xs text-white/30 mb-4">O banco de perguntas está vazio</p>
+                <button className="btn-primary max-w-xs mx-auto" onClick={async () => {
+                  try {
+                    await fetch(`${import.meta.env.VITE_API_URL || 'https://nossahistoria-xtjq.onrender.com/api'}/questions/seed`, { method: 'POST' })
+                    loadQuestion()
+                  } catch { loadQuestion() }
+                }}>
+                  ✨ Carregar perguntas
+                </button>
+              </div>
             ) : (
               <>
                 <div className="rounded-2xl p-5 mb-4 border border-violet-500/30"
