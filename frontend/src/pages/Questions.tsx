@@ -85,11 +85,22 @@ export default function Questions() {
     try {
       const res = await questionsService.getCurrent()
       const data = res.data
-      if (data?.done) { setLoading(false); return }
+      // Se banco vazio, faz seed automático e tenta de novo
+      if (data?.done || !data?.question) {
+        await fetch(`${import.meta.env.VITE_API_URL || 'https://nossahistoria-xtjq.onrender.com/api'}/questions/seed`, { method: 'POST' }).catch(() => {})
+        const res2 = await questionsService.getCurrent()
+        const data2 = res2.data
+        if (data2?.question) {
+          const mapped = mapResponse(data2, user?.id)
+          setCurrentQuestion(mapped)
+          if (mapped.myAnswer) setAnswer(mapped.myAnswer)
+          if (data2?.history) setHistory(data2.history)
+        }
+        return
+      }
       const mapped = mapResponse(data, user?.id)
       setCurrentQuestion(mapped)
       if (mapped.myAnswer) setAnswer(mapped.myAnswer)
-      // Histórico vem do backend se disponível
       if (data?.history) setHistory(data.history)
     } catch {
       setError('Erro ao carregar pergunta. Verifique sua conexão.')
@@ -173,16 +184,7 @@ export default function Questions() {
             ) : !currentQuestion ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">💬</div>
-                <p className="text-sm text-white/50 mb-2">Nenhuma pergunta disponível</p>
-                <p className="text-xs text-white/30 mb-4">O banco de perguntas está vazio</p>
-                <button className="btn-primary max-w-xs mx-auto" onClick={async () => {
-                  try {
-                    await fetch(`${import.meta.env.VITE_API_URL || 'https://nossahistoria-xtjq.onrender.com/api'}/questions/seed`, { method: 'POST' })
-                    loadQuestion()
-                  } catch { loadQuestion() }
-                }}>
-                  ✨ Carregar perguntas
-                </button>
+                <p className="text-sm text-white/50">Carregando perguntas...</p>
               </div>
             ) : (
               <>

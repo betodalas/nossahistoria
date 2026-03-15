@@ -5,8 +5,20 @@ import { AuthRequest } from '../middleware/auth'
 const FREE_QUESTIONS_PER_WEEK = 3
 
 export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
-  const { coupleId } = req
+  const { userId } = req
+  let { coupleId } = req
   try {
+    // Se coupleId não está no token (usuário recém criou casal solo), busca do banco
+    if (!coupleId) {
+      const coupleRow = await pool.query(
+        'SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
+        [userId]
+      )
+      coupleId = coupleRow.rows[0]?.id
+    }
+    if (!coupleId) {
+      return res.json({ message: 'Sem casal vinculado', done: true })
+    }
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])
     const isPremium = coupleResult.rows[0]?.is_premium
 
@@ -49,10 +61,21 @@ export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
 }
 
 export const answerQuestion = async (req: AuthRequest, res: Response) => {
-  const { userId, coupleId } = req
+  const { userId } = req
+  let { coupleId } = req
   const { questionId, answer } = req.body
 
   try {
+    if (!coupleId) {
+      const coupleRow = await pool.query(
+        'SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
+        [userId]
+      )
+      coupleId = coupleRow.rows[0]?.id
+    }
+    if (!coupleId) {
+      return res.status(400).json({ error: 'Você precisa ter um casal configurado para responder.' })
+    }
     // Verifica limite semanal no plano gratuito
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])
     const isPremium = coupleResult.rows[0]?.is_premium

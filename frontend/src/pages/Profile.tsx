@@ -20,14 +20,12 @@ export default function Profile() {
     setError('')
     setSaving(true)
     try {
-      // Sempre tenta PUT primeiro (atualizar casal existente)
-      // Se der 404 não tem casal — informa o usuário
+      // PUT cria casal solo automaticamente se não tiver parceiro ainda
       const res = await authService.updateCouple({
         weddingDate: weddingDate || undefined,
         coupleName: coupleName || undefined,
         partnerName: partnerName || undefined,
       })
-      // Atualiza contexto com dados reais do backend
       saveCouple({
         ...couple,
         ...res.data,
@@ -38,23 +36,12 @@ export default function Profile() {
     } catch (err: any) {
       const status = err?.response?.status
       const msg = err?.response?.data?.error || err?.response?.data?.message || ''
-
-      if (status === 404) {
-        // Não tem casal vinculado — salva localmente e avisa
-        saveCouple({
-          ...couple,
-          id: couple?.id || '',
-          couple_name: coupleName,
-          partner_name: partnerName,
-          wedding_date: weddingDate,
-        })
-        setError('Você ainda não tem um casal vinculado. Vá em "Convidar parceiro(a)" para conectar. Os dados foram salvos localmente por enquanto.')
-      } else if (status === 401) {
+      if (status === 401) {
         setError('Sessão expirada. Faça login novamente.')
       } else if (msg) {
         setError(msg)
       } else {
-        // Fallback offline
+        // Offline fallback silencioso
         saveCouple({
           ...couple,
           id: couple?.id || '',
@@ -96,12 +83,6 @@ export default function Profile() {
           <div className="mb-4 px-3 py-2 rounded-xl text-xs"
             style={{background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#fca5a5'}}>
             {error}
-            {error.includes('Convidar') && (
-              <button type="button" className="block mt-2 underline text-violet-300"
-                onClick={() => navigate('/convidar')}>
-                Ir para Convidar parceiro(a) →
-              </button>
-            )}
           </div>
         )}
 
@@ -117,19 +98,25 @@ export default function Profile() {
           <input className="input-field" placeholder="ex: Pedro" value={partnerName} onChange={e => setPartnerName(e.target.value)} />
         </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="text-xs text-white/60 block mb-1">Data do casamento 💍</label>
           <input className="input-field" type="date" value={weddingDate} onChange={e => setWeddingDate(e.target.value)} />
           {weddingDate && daysLeft !== null && (
             <p className="text-xs text-violet-300 mt-1.5">
               {daysLeft > 0
                 ? `${daysLeft} dias para o grande dia! 🎉`
-                : daysLeft === 0
-                  ? '🎊 É hoje!'
-                  : `Casados há ${Math.abs(daysLeft)} dias 💍`
-              }
+                : daysLeft === 0 ? '🎊 É hoje!'
+                : `Casados há ${Math.abs(daysLeft)} dias 💍`}
             </p>
           )}
+        </div>
+
+        <div className="mb-4 p-3 rounded-xl" style={{background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.2)'}}>
+          <p className="text-xs text-violet-300 mb-1">💡 Conectar parceiro(a)</p>
+          <p className="text-xs text-white/50 mb-2">Vincule seu parceiro(a) para compartilhar momentos e perguntas</p>
+          <button type="button" className="text-xs text-violet-300 underline" onClick={() => navigate('/convidar')}>
+            Ir para Convidar parceiro(a) →
+          </button>
         </div>
 
         <button type="button" className="btn-secondary mb-3" onClick={() => navigate('/armazenamento')}>💾 Armazenamento</button>

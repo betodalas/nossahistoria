@@ -49,7 +49,7 @@ export default function Login() {
     setLoading(true)
     try {
       await loginWithGoogle(response.credential)
-      navigate('/')
+      const pending = localStorage.getItem('pending_invite'); if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) } else { navigate('/dashboard') }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erro ao entrar com Google.')
     } finally {
@@ -63,7 +63,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(email, password)
-      navigate('/')
+      const pending = localStorage.getItem('pending_invite'); if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) } else { navigate('/dashboard') }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'E-mail ou senha inválidos.')
     } finally {

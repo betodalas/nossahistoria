@@ -25,7 +25,12 @@ const uploadToCloudinary = (buffer: Buffer, options: object): Promise<any> =>
   })
 
 export const getMoments = async (req: AuthRequest, res: Response) => {
-  const { coupleId } = req
+  const { userId } = req
+  let { coupleId } = req
+  if (!coupleId) {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    coupleId = row.rows[0]?.id
+  }
   if (!coupleId) return res.json([])
   try {
     const result = await pool.query(
@@ -44,10 +49,15 @@ export const getMoments = async (req: AuthRequest, res: Response) => {
 }
 
 export const createMoment = async (req: AuthRequest, res: Response) => {
-  const { coupleId, userId } = req
+  const { userId } = req
+  let { coupleId } = req
   const { title, description, moment_date, music_name, music_link, voice_duration } = req.body
 
-  if (!coupleId) return res.status(400).json({ error: 'Você precisa vincular um casal antes de adicionar momentos.' })
+  if (!coupleId) {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    coupleId = row.rows[0]?.id
+  }
+  if (!coupleId) return res.status(400).json({ error: 'Configure seu perfil antes de adicionar momentos.' })
 
   try {
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])

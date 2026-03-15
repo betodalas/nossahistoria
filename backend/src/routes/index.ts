@@ -18,15 +18,23 @@ router.post('/auth/couple', authMiddleware, createCouple)
 // Atualiza dados do casal existente (nome, data casamento)
 router.put('/auth/couple', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
+  const { v4: uuidv4 } = await import('uuid')
   const { weddingDate, coupleName, partnerName } = req.body
   const userId = req.userId
   try {
-    const coupleResult = await pool.query(
+    let coupleResult = await pool.query(
       'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1',
       [userId]
     )
+    // Se não tem casal, cria um solo (sem parceiro) para salvar os dados
     if (!coupleResult.rows[0]) {
-      return res.status(404).json({ error: 'Casal não encontrado' })
+      const inviteToken = uuidv4()
+      coupleResult = await pool.query(
+        `INSERT INTO couples (user1_id, wedding_date, couple_name, invite_token)
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [userId, weddingDate || null, coupleName || null, inviteToken]
+      )
+      return res.json(coupleResult.rows[0])
     }
     const couple = coupleResult.rows[0]
     const updated = await pool.query(
@@ -36,7 +44,6 @@ router.put('/auth/couple', authMiddleware, async (req: any, res) => {
        WHERE id = $3 RETURNING *`,
       [weddingDate || null, coupleName || null, couple.id]
     )
-    // Atualiza nome do parceiro na tabela users se fornecido
     if (partnerName) {
       const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id
       if (partnerId) {
@@ -57,13 +64,88 @@ router.get('/auth/me', authMiddleware, async (req: any, res) => {
       'SELECT id, name, email, avatar_url FROM users WHERE id = $1',
       [req.userId]
     )
+    // Busca casal pelo userId — não depende do coupleId no token
     const coupleResult = await pool.query(
-      'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1',
+      `SELECT c.*,
+        CASE WHEN c.user1_id = $1 THEN u2.name ELSE u1.name END AS partner_name,
+        CASE WHEN c.user1_id = $1 THEN u2.email ELSE u1.email END AS partner_email
+       FROM couples c
+       LEFT JOIN users u1 ON u1.id = c.user1_id
+       LEFT JOIN users u2 ON u2.id = c.user2_id
+       WHERE c.user1_id = $1 OR c.user2_id = $1
+       LIMIT 1`,
       [req.userId]
     )
     res.json({ user: userResult.rows[0], couple: coupleResult.rows[0] || null })
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar dados do usuário' })
+  }
+})
+
+// Envia convite por email para o parceiro
+router.post('/auth/invite', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { v4: uuidv4 } = await import('uuid')
+  const { sendInviteEmail } = await import('../utils/email')
+  const { partnerEmail } = req.body
+  if (!partnerEmail) return res.status(400).json({ error: 'Email do parceiro obrigatório' })
+  try {
+    const userResult = await pool.query('SELECT name FROM users WHERE id = $1', [req.userId])
+    const fromName = userResult.rows[0]?.name || 'Seu amor'
+
+    // Busca ou cria casal para pegar o invite_token
+    let coupleResult = await pool.query(
+      'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
+      [req.userId]
+    )
+    if (!coupleResult.rows[0]) {
+      const token = uuidv4()
+      coupleResult = await pool.query(
+        'INSERT INTO couples (user1_id, invite_token) VALUES ($1, $2) RETURNING *',
+        [req.userId, token]
+      )
+    }
+    const couple = coupleResult.rows[0]
+    const inviteLink = `${process.env.FRONTEND_URL || 'https://nossahistoria.app'}/convite/${couple.invite_token}`
+
+    await sendInviteEmail({
+      toEmail: partnerEmail,
+      fromName,
+      coupleName: couple.couple_name || '',
+      inviteLink,
+    })
+
+    res.json({ success: true, inviteLink })
+  } catch (err: any) {
+    console.error('Erro ao enviar email:', err)
+    res.status(500).json({ error: 'Erro ao enviar email. Verifique as configurações SMTP.' })
+  }
+})
+
+// Aceitar convite pelo token
+router.post('/auth/invite/accept', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { token } = req.body
+  if (!token) return res.status(400).json({ error: 'Token obrigatório' })
+  try {
+    const coupleResult = await pool.query(
+      'SELECT * FROM couples WHERE invite_token = $1',
+      [token]
+    )
+    if (!coupleResult.rows[0]) return res.status(404).json({ error: 'Convite inválido ou expirado' })
+    const couple = coupleResult.rows[0]
+    if (couple.user1_id === req.userId || couple.user2_id === req.userId) {
+      return res.status(400).json({ error: 'Você já faz parte deste casal' })
+    }
+    // Vincula o segundo usuário ao casal
+    const updated = await pool.query(
+      'UPDATE couples SET user2_id = $1 WHERE id = $2 AND user2_id IS NULL RETURNING *',
+      [req.userId, couple.id]
+    )
+    if (!updated.rows[0]) return res.status(400).json({ error: 'Este convite já foi usado' })
+    res.json(updated.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao aceitar convite' })
   }
 })
 

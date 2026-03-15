@@ -37,6 +37,10 @@ export const authService = {
     api.post('/auth/couple', data),
   updateCouple: (data: { weddingDate?: string; coupleName?: string; partnerName?: string }) =>
     api.put('/auth/couple', data),
+  sendInvite: (partnerEmail: string) =>
+    api.post('/auth/invite', { partnerEmail }),
+  acceptInvite: (token: string) =>
+    api.post('/auth/invite/accept', { token }),
 }
 
 // Momentos

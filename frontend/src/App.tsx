@@ -13,6 +13,7 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import Profile from './pages/Profile'
 import WeddingDay from './pages/WeddingDay'
 import Invite from './pages/Invite'
+import AcceptInvite from './pages/AcceptInvite'
 import GuestAlbum from './pages/GuestAlbum'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
@@ -58,6 +59,7 @@ function App() {
             <Route path="/premium" element={<PrivateRoute><Premium /></PrivateRoute>} />
             <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/convidar" element={<PrivateRoute><Invite /></PrivateRoute>} />
+            <Route path="/convite/:token" element={<AcceptInvite />} />
             <Route path="/album-convidados" element={<PrivateRoute><GuestAlbum /></PrivateRoute>} />
             <Route path="/armazenamento" element={<PrivateRoute><Storage /></PrivateRoute>} />
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />
