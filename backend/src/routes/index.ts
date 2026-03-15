@@ -111,13 +111,14 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
       )
     }
     const couple = coupleResult.rows[0]
-    const inviteLink = `${process.env.FRONTEND_URL || 'https://nossahistoria.app'}/convite/${couple.invite_token}`
+    const inviteLink = `https://play.google.com/store/apps/details?id=com.nossahistoria.app&referrer=convite_${couple.invite_token}`
 
     // Retorna o link imediatamente — envia email em background sem bloquear
     res.json({ success: true, inviteLink, emailSent: true })
 
-    // Envia email de forma assíncrona após responder
-    sendInviteEmail({ toEmail: partnerEmail, fromName, coupleName: couple.couple_name || '', inviteLink })
+    // Envia email com link da Play Store + token de convite
+    const emailInviteLink = `${process.env.FRONTEND_URL || 'https://nossahistoria.app'}/convite/${couple.invite_token}`
+    sendInviteEmail({ toEmail: partnerEmail, fromName, coupleName: couple.couple_name || '', inviteLink: emailInviteLink })
       .then(() => console.log(`[INVITE] Email enviado para ${partnerEmail}`))
       .catch((err: any) => console.error('[INVITE] Email falhou:', err?.message))
   } catch (err: any) {
