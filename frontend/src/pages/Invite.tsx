@@ -12,10 +12,22 @@ export default function Invite() {
   const [inviteLink, setInviteLink] = useState('')
   const [error, setError] = useState('')
 
+  // Link da Play Store (substitua pelo link real quando publicar)
+  const playstoreLink = 'https://play.google.com/store/apps/details?id=com.nossahistoria.app'
+  const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'https://nossahistoria.app'
+
   const handleWhatsApp = () => {
-    const link = inviteLink || `https://nossahistoria.app/convite`
-    const msg = `💍 Oi! Quero te convidar para o *Nossa História* — o app onde vamos registrar nossa história antes do casamento!\n\nAcesse o link abaixo:\n${link}`
+    const link = inviteLink || `${frontendUrl}/convite`
+    const msg = `💍 Oi! Quero te convidar para o *Nossa História* — o app onde vamos registrar nossa história juntos!\n\n` +
+      `1️⃣ Baixe o app na Play Store:\n${playstoreLink}\n\n` +
+      `2️⃣ Depois acesse este link para nos vincular:\n${link}`
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  const handleCopyLink = async () => {
+    const link = inviteLink || `${frontendUrl}/convite`
+    await navigator.clipboard.writeText(link)
+    alert('Link copiado!')
   }
 
   const handleSendEmail = async () => {
@@ -23,19 +35,27 @@ export default function Invite() {
     setSending(true)
     setError('')
     try {
+      // Timeout de 15 segundos
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15000)
       const res = await authService.sendInvite(partnerEmail)
+      clearTimeout(timeout)
       setInviteLink(res.data.inviteLink)
       setSent(true)
       await refreshCouple()
     } catch (err: any) {
-      const msg = err?.response?.data?.error || ''
-      setError(msg || 'Erro ao enviar email. Tente pelo WhatsApp.')
+      if (err?.name === 'AbortError' || err?.code === 'ECONNABORTED') {
+        setError('Tempo esgotado. Verifique sua conexão e tente novamente.')
+      } else {
+        const msg = err?.response?.data?.error || ''
+        setError(msg || 'Erro ao enviar email. Tente pelo WhatsApp.')
+      }
     } finally {
       setSending(false)
     }
   }
 
-  const hasPartner = !!(couple?.user2_id || couple?.partner_name)
+  const hasPartner = !!(couple?.user2_id || (couple?.partner_name && couple?.partner_email))
 
   return (
     <div className="min-h-screen flex flex-col" style={{background:'#0f0a1a'}}>
@@ -49,7 +69,7 @@ export default function Invite() {
           <div className="text-center py-8">
             <div className="text-5xl mb-4">💑</div>
             <p className="text-base font-bold text-white mb-1">Parceiro(a) já vinculado!</p>
-            <p className="text-sm text-white/50">{couple?.partner_name || 'Seu amor'} já faz parte do casal</p>
+            <p className="text-sm text-white/50">{couple?.partner_name || 'Seu amor'} já faz parte do casal 💍</p>
             <button className="btn-primary mt-6 max-w-xs mx-auto" onClick={() => navigate('/dashboard')}>
               Voltar para o início
             </button>
@@ -59,16 +79,26 @@ export default function Invite() {
             <div className="text-center py-6">
               <div className="text-5xl mb-4">💌</div>
               <h2 className="text-lg font-bold text-white mb-2">Chame o(a) parceiro(a)</h2>
-              <p className="text-sm text-white/50 leading-relaxed">Vocês dois usam o app juntos — compartilham momentos, perguntas e cartas</p>
+              <p className="text-sm text-white/50 leading-relaxed">
+                Vocês dois compartilham momentos, perguntas e cartas — tudo sincronizado em tempo real
+              </p>
+            </div>
+
+            {/* Como funciona */}
+            <div className="rounded-2xl p-4 mb-4" style={{background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.2)'}}>
+              <p className="text-xs font-bold text-violet-300 mb-2">💡 Como funciona</p>
+              <p className="text-xs text-white/50 leading-relaxed">
+                1. Você envia o convite → 2. Ele(a) baixa o app e cria conta → 3. Acessa o link do convite → 4. Vocês ficam vinculados e compartilham tudo
+              </p>
             </div>
 
             {sent ? (
               <div className="rounded-2xl p-5 mb-4 text-center" style={{background:'rgba(52,211,153,0.1)', border:'1px solid rgba(52,211,153,0.3)'}}>
                 <p className="text-2xl mb-2">✅</p>
                 <p className="text-sm font-bold text-emerald-400">Email enviado para {partnerEmail}!</p>
-                <p className="text-xs text-white/40 mt-1">Quando ele(a) aceitar, vocês ficarão vinculados</p>
+                <p className="text-xs text-white/40 mt-1">Quando ele(a) aceitar, vocês ficarão vinculados automaticamente</p>
                 {inviteLink && (
-                  <button onClick={() => { navigator.clipboard.writeText(inviteLink); }} className="text-xs text-violet-300 underline mt-3 block mx-auto">
+                  <button onClick={handleCopyLink} className="text-xs text-violet-300 underline mt-3 block mx-auto">
                     📋 Copiar link do convite
                   </button>
                 )}
@@ -80,8 +110,13 @@ export default function Invite() {
                   <span className="text-2xl">💬</span>
                   <div className="text-left">
                     <p className="font-bold">Enviar pelo WhatsApp</p>
-                    <p className="text-xs opacity-70">Recomendado</p>
+                    <p className="text-xs opacity-70">Inclui link da Play Store + convite</p>
                   </div>
+                </button>
+
+                <button onClick={handleCopyLink} className="w-full py-3 rounded-2xl font-semibold text-sm mb-4 flex items-center justify-center gap-2"
+                  style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:'white'}}>
+                  🔗 Copiar link de convite
                 </button>
 
                 <div className="border-t border-white/10 pt-4">
@@ -100,7 +135,11 @@ export default function Invite() {
                       value={partnerEmail} onChange={e => setPartnerEmail(e.target.value)} />
                   </div>
                   <button onClick={handleSendEmail} disabled={!partnerEmail || sending} className="btn-primary disabled:opacity-40">
-                    {sending ? '📧 Enviando...' : '📧 Enviar convite por e-mail'}
+                    {sending ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="animate-spin">⏳</span> Enviando email...
+                      </span>
+                    ) : '📧 Enviar convite por e-mail'}
                   </button>
                 </div>
               </>

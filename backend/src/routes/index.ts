@@ -40,10 +40,12 @@ router.put('/auth/couple', authMiddleware, async (req: any, res) => {
     const updated = await pool.query(
       `UPDATE couples SET
         wedding_date = CASE WHEN $1::text IS NOT NULL THEN $1::date ELSE wedding_date END,
-        couple_name  = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE couple_name END
+        couple_name  = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE couple_name END,
+        partner_name_manual = CASE WHEN $4::text IS NOT NULL THEN $4 ELSE partner_name_manual END
        WHERE id = $3 RETURNING *`,
-      [weddingDate || null, coupleName || null, couple.id]
+      [weddingDate || null, coupleName || null, couple.id, partnerName || null]
     )
+    // Se tem parceiro real, atualiza o nome dele também
     if (partnerName) {
       const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id
       if (partnerId) {
@@ -67,7 +69,10 @@ router.get('/auth/me', authMiddleware, async (req: any, res) => {
     // Busca casal pelo userId — não depende do coupleId no token
     const coupleResult = await pool.query(
       `SELECT c.*,
-        CASE WHEN c.user1_id = $1 THEN u2.name ELSE u1.name END AS partner_name,
+        COALESCE(
+          CASE WHEN c.user1_id = $1 THEN u2.name ELSE u1.name END,
+          c.partner_name_manual
+        ) AS partner_name,
         CASE WHEN c.user1_id = $1 THEN u2.email ELSE u1.email END AS partner_email
        FROM couples c
        LEFT JOIN users u1 ON u1.id = c.user1_id

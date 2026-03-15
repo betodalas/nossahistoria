@@ -40,6 +40,7 @@ const runMigrations = async () => {
         user2_id UUID REFERENCES users(id) ON DELETE CASCADE,
         wedding_date DATE,
         couple_name VARCHAR(100),
+        partner_name_manual VARCHAR(100),
         is_premium BOOLEAN DEFAULT FALSE,
         premium_activated_at TIMESTAMPTZ,
         paypal_order_id VARCHAR(255),
@@ -47,6 +48,8 @@ const runMigrations = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(user1_id, user2_id)
       );
+      -- Adiciona coluna se já existir tabela sem ela
+      ALTER TABLE couples ADD COLUMN IF NOT EXISTS partner_name_manual VARCHAR(100);
 
       CREATE TABLE IF NOT EXISTS moments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
