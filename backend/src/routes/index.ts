@@ -113,17 +113,21 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
     const couple = coupleResult.rows[0]
     const inviteLink = `${process.env.FRONTEND_URL || 'https://nossahistoria.app'}/convite/${couple.invite_token}`
 
-    await sendInviteEmail({
-      toEmail: partnerEmail,
-      fromName,
-      coupleName: couple.couple_name || '',
-      inviteLink,
-    })
+    // Tenta enviar email mas não trava se falhar — retorna o link de qualquer forma
+    let emailSent = false
+    let emailError = null
+    try {
+      await sendInviteEmail({ toEmail: partnerEmail, fromName, coupleName: couple.couple_name || '', inviteLink })
+      emailSent = true
+    } catch (emailErr: any) {
+      emailError = emailErr?.message || 'erro ao enviar email'
+      console.error('[INVITE] Email falhou:', emailError)
+    }
 
-    res.json({ success: true, inviteLink })
+    res.json({ success: true, inviteLink, emailSent, emailError })
   } catch (err: any) {
-    console.error('Erro ao enviar email:', err)
-    res.status(500).json({ error: 'Erro ao enviar email. Verifique as configurações SMTP.' })
+    console.error('Erro no convite:', err)
+    res.status(500).json({ error: 'Erro ao processar convite.' })
   }
 })
 
