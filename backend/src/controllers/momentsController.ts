@@ -57,7 +57,15 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
     const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
     coupleId = row.rows[0]?.id
   }
-  if (!coupleId) return res.status(400).json({ error: 'Configure seu perfil antes de adicionar momentos.' })
+  // Auto-cria casal solo se não tiver nenhum
+  if (!coupleId) {
+    const { v4: uuidv4 } = await import('uuid')
+    const newCouple = await pool.query(
+      'INSERT INTO couples (user1_id, invite_token) VALUES ($1, $2) RETURNING id',
+      [userId, uuidv4()]
+    )
+    coupleId = newCouple.rows[0].id
+  }
 
   try {
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])

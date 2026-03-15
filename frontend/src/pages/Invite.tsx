@@ -35,20 +35,20 @@ export default function Invite() {
     setSending(true)
     setError('')
     try {
-      // Timeout de 15 segundos
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 15000)
       const res = await authService.sendInvite(partnerEmail)
-      clearTimeout(timeout)
       setInviteLink(res.data.inviteLink)
       setSent(true)
       await refreshCouple()
     } catch (err: any) {
-      if (err?.name === 'AbortError' || err?.code === 'ECONNABORTED') {
-        setError('Tempo esgotado. Verifique sua conexão e tente novamente.')
+      const msg = err?.response?.data?.error || ''
+      if (err?.code === 'ECONNABORTED' || err?.message?.includes('timeout')) {
+        setError('Tempo esgotado. Tente pelo WhatsApp.')
+      } else if (err?.response?.status === 500) {
+        setError('Erro no servidor ao enviar email. Verifique as configurações no Render.')
+      } else if (msg) {
+        setError(msg)
       } else {
-        const msg = err?.response?.data?.error || ''
-        setError(msg || 'Erro ao enviar email. Tente pelo WhatsApp.')
+        setError('Erro ao enviar email. Tente pelo WhatsApp.')
       }
     } finally {
       setSending(false)

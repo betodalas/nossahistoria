@@ -38,7 +38,7 @@ export const authService = {
   updateCouple: (data: { weddingDate?: string; coupleName?: string; partnerName?: string }) =>
     api.put('/auth/couple', data),
   sendInvite: (partnerEmail: string) =>
-    api.post('/auth/invite', { partnerEmail }),
+    api.post('/auth/invite', { partnerEmail }, { timeout: 20000 }),
   acceptInvite: (token: string) =>
     api.post('/auth/invite/accept', { token }),
 }
