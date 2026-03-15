@@ -8,14 +8,28 @@ import MusicPlayer from '../components/MusicPlayer'
 export default function Timeline() {
   const [moments, setMoments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const { isPremium } = useAuth()
   const navigate = useNavigate()
   const FREE_LIMIT = 5
 
+  const loadMoments = () => {
+    setLoading(true)
+    setError('')
+    momentsService.getAll()
+      .then(res => setMoments(res.data))
+      .catch((err) => {
+        const msg = err?.response?.data?.error || ''
+        setError(msg || 'Erro ao carregar momentos.')
+        setMoments([])
+      })
+      .finally(() => setLoading(false))
+  }
+
   useEffect(() => {
-    momentsService.getAll().then(res => setMoments(res.data)).catch(() => setMoments([])).finally(() => setLoading(false))
+    loadMoments()
   }, [])
 
   const formatDate = (d: string) =>
@@ -50,6 +64,14 @@ export default function Timeline() {
       <div className="px-4 py-4">
         {loading ? (
           <div className="text-center py-12 text-sm" style={{color:'#C9A0B0'}}>Carregando...</div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-3">⚠️</div>
+            <p className="text-sm mb-3" style={{color:'#9B6B7A'}}>{error}</p>
+            <button onClick={loadMoments} className="btn-primary max-w-xs mx-auto text-sm">
+              Tentar novamente
+            </button>
+          </div>
         ) : moments.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">📖</div>
