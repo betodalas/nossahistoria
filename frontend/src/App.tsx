@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { useEffect } from 'react'
+import { App as CapApp } from '@capacitor/app'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -18,6 +20,23 @@ import GuestAlbum from './pages/GuestAlbum'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
+
+// Captura deep links nossahistoria://convite/TOKEN
+function DeepLinkHandler() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const handler = CapApp.addListener('appUrlOpen', (data) => {
+      const url = data.url
+      // nossahistoria://convite/TOKEN
+      const match = url.match(/nossahistoria:\/\/convite\/(.+)/)
+      if (match) {
+        navigate(`/convite/${match[1]}`)
+      }
+    })
+    return () => { handler.then(h => h.remove()) }
+  }, [])
+  return null
+}
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth()
@@ -47,6 +66,7 @@ function App() {
     <PayPalScriptProvider options={{ clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || 'test', currency: 'BRL' }}>
       <AuthProvider>
         <BrowserRouter>
+          <DeepLinkHandler />
           <Routes>
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />

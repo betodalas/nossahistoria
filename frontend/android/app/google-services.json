@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "263899434835",
+    "project_id": "nossahistoria-67c05",
+    "storage_bucket": "nossahistoria-67c05.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263899434835:android:fb5129b4f1e1828e475ba6",
+        "android_client_info": {
+          "package_name": "com.nossahistoria.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxPR70Hha11gcNVtb1DUUu3DTl9DViI-U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.nossahistoria.app',
   appName: 'Nossa História',
-  webDir: 'dist'
+  webDir: 'dist',
 };
 
 export default config;

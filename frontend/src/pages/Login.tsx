@@ -1,61 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-
-declare global {
-  interface Window {
-    google: any
-  }
-}
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login, loginWithGoogle } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    script.onload = () => initGoogle()
-    document.body.appendChild(script)
-    return () => { document.body.removeChild(script) }
-  }, [])
-
-  const initGoogle = () => {
-    if (!window.google) return
-    window.google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      callback: handleGoogleResponse,
-    })
-    window.google.accounts.id.renderButton(
-      document.getElementById('google-btn'),
-      {
-        theme: 'outline',
-        size: 'large',
-        width: '100%',
-        text: 'signin_with',
-        locale: 'pt-BR',
-      }
-    )
-  }
-
-  const handleGoogleResponse = async (response: any) => {
-    setError('')
-    setLoading(true)
-    try {
-      await loginWithGoogle(response.credential)
-      const pending = localStorage.getItem('pending_invite'); if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) } else { navigate('/dashboard') }
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Erro ao entrar com Google.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,7 +16,9 @@ export default function Login() {
     setLoading(true)
     try {
       await login(email, password)
-      const pending = localStorage.getItem('pending_invite'); if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) } else { navigate('/dashboard') }
+      const pending = localStorage.getItem('pending_invite')
+      if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) }
+      else navigate('/dashboard')
     } catch (err: any) {
       setError(err?.response?.data?.error || 'E-mail ou senha inválidos.')
     } finally {
@@ -75,7 +30,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FFF0F3' }}>
-      {/* Header */}
       <div className="flex flex-col items-center pt-16 pb-8 px-4">
         <div className="text-5xl mb-4">💍</div>
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#3D1A2A', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
@@ -94,19 +48,6 @@ export default function Login() {
           </div>
         )}
 
-        {/* Botão Google */}
-        <div className="mb-4">
-          <div id="google-btn" className="w-full flex justify-center"></div>
-        </div>
-
-        {/* Divisor */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px" style={{ background: '#E8C4CE' }}></div>
-          <span className="text-xs" style={{ color: '#C9A0B0' }}>ou entre com e-mail</span>
-          <div className="flex-1 h-px" style={{ background: '#E8C4CE' }}></div>
-        </div>
-
-        {/* Formulário email/senha */}
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label style={labelStyle}>E-mail</label>
@@ -118,7 +59,6 @@ export default function Login() {
             <input className="input-field" type="password" placeholder="sua senha"
               value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
-
           <button type="submit" disabled={loading} className="btn-primary mb-3 disabled:opacity-60">
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

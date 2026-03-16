@@ -13,7 +13,7 @@ export default function AcceptInvite() {
   useEffect(() => {
     if (!token) { setStatus('error'); setError('Link inválido'); return }
     if (!user) {
-      // Salva token para usar após login
+      // Salva token para usar após login/cadastro
       localStorage.setItem('pending_invite', token)
       navigate('/login')
       return
@@ -28,8 +28,15 @@ export default function AcceptInvite() {
       setStatus('success')
       setTimeout(() => navigate('/dashboard'), 2500)
     } catch (err: any) {
-      setStatus('error')
-      setError(err?.response?.data?.error || 'Erro ao aceitar convite')
+      const msg = err?.response?.data?.error || ''
+      // Se já faz parte do casal, não é erro
+      if (msg.includes('já faz parte')) {
+        setStatus('success')
+        setTimeout(() => navigate('/dashboard'), 2000)
+      } else {
+        setStatus('error')
+        setError(msg || 'Erro ao aceitar convite')
+      }
     }
   }
 
@@ -45,14 +52,16 @@ export default function AcceptInvite() {
         <>
           <div className="text-5xl mb-4">💑</div>
           <p className="text-lg font-bold text-white mb-2">Casal vinculado!</p>
-          <p className="text-sm text-white/50">Redirecionando...</p>
+          <p className="text-sm text-white/50">Redirecionando para o app...</p>
         </>
       )}
       {status === 'error' && (
         <>
           <div className="text-4xl mb-4">😔</div>
-          <p className="text-base text-white mb-2">{error}</p>
-          <button className="btn-primary mt-4" onClick={() => navigate('/dashboard')}>Ir para o início</button>
+          <p className="text-base text-white mb-4">{error}</p>
+          <button className="btn-primary mt-4" onClick={() => navigate('/dashboard')}>
+            Ir para o início
+          </button>
         </>
       )}
     </div>

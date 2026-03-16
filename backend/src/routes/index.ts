@@ -111,14 +111,16 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
       )
     }
     const couple = coupleResult.rows[0]
-    const inviteLink = `https://play.google.com/store/apps/details?id=com.nossahistoria.app&referrer=convite_${couple.invite_token}`
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.FRONTEND_URL || 'https://nossahistoria-xtjq.onrender.com/api'
+    const inviteLink = `${baseUrl}/convite/${couple.invite_token}`
 
-    // Retorna o link imediatamente — envia email em background sem bloquear
+    // Retorna o link imediatamente
     res.json({ success: true, inviteLink, emailSent: true })
 
-    // Envia email com link da Play Store + token de convite
-    const emailInviteLink = `${process.env.FRONTEND_URL || 'https://nossahistoria.app'}/convite/${couple.invite_token}`
-    sendInviteEmail({ toEmail: partnerEmail, fromName, coupleName: couple.couple_name || '', inviteLink: emailInviteLink })
+    // Envia email em background
+    sendInviteEmail({ toEmail: partnerEmail, fromName, coupleName: couple.couple_name || '', inviteLink })
+      .then(() => console.log(`[INVITE] Email enviado para ${partnerEmail}`))
+      .catch((err: any) => console.error('[INVITE] Email falhou:', err?.message))
       .then(() => console.log(`[INVITE] Email enviado para ${partnerEmail}`))
       .catch((err: any) => console.error('[INVITE] Email falhou:', err?.message))
   } catch (err: any) {
@@ -196,6 +198,46 @@ router.post('/family/share', authMiddleware, async (req: any, res) => {
   )
   const shareUrl = `${process.env.FRONTEND_URL}/familia/${token}`
   res.json({ shareUrl, token })
+})
+
+// Página de redirecionamento do convite — abre o app via deep link
+router.get('/convite/:token', (req, res) => {
+  const { token } = req.params
+  const deepLink = `nossahistoria://convite/${token}`
+  const playstoreLink = 'https://play.google.com/store/apps/details?id=com.nossahistoria.app'
+
+  res.send(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nossa História — Aceitar convite</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f0a1a; color: white; font-family: sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #c084fc; }
+    p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
+    .btn { display: block; background: linear-gradient(135deg,#7c3aed,#be185d); color: white; padding: 16px 32px; border-radius: 16px; text-decoration: none; font-weight: bold; font-size: 16px; margin-bottom: 16px; }
+    .btn-secondary { display: block; color: rgba(255,255,255,0.5); font-size: 13px; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="icon">💍</div>
+  <h1>Nossa História</h1>
+  <p>Você foi convidado(a) para compartilhar momentos especiais.<br>Abra o app para aceitar o convite.</p>
+  <a class="btn" href="${deepLink}" id="openApp">💌 Abrir no app</a>
+  <a class="btn-secondary" href="${playstoreLink}">Não tem o app? Baixar na Play Store</a>
+  <script>
+    // Tenta abrir o app automaticamente
+    window.location.href = "${deepLink}";
+    // Se não abrir em 2s, mostra o botão
+    setTimeout(() => {
+      document.getElementById('openApp').style.display = 'block';
+    }, 2000);
+  </script>
+</body>
+</html>`)
 })
 
 export default router
