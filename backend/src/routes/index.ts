@@ -170,24 +170,6 @@ router.get('/questions/current', authMiddleware, getWeeklyQuestion)
 router.post('/questions/answer', authMiddleware, answerQuestion)
 router.post('/questions/seed', seedQuestions)
 
-// Zera todas as respostas do casal (para recomeçar)
-router.delete('/questions/reset', authMiddleware, async (req: any, res) => {
-  const { pool } = await import('../utils/db')
-  const { userId } = req
-  let { coupleId } = req
-  try {
-    if (!coupleId) {
-      const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-      coupleId = row.rows[0]?.id
-    }
-    if (!coupleId) return res.status(404).json({ error: 'Casal não encontrado' })
-    const result = await pool.query('DELETE FROM question_answers WHERE couple_id = $1', [coupleId])
-    res.json({ success: true, deleted: result.rowCount })
-  } catch (err) {
-    res.status(500).json({ error: 'Erro ao zerar respostas' })
-  }
-})
-
 // Pagamento PayPal
 router.post('/payment/create-order', authMiddleware, createOrder)
 router.post('/payment/capture', authMiddleware, captureOrder)
@@ -256,6 +238,26 @@ router.get('/convite/:token', (req, res) => {
   </script>
 </body>
 </html>`)
+})
+
+// Desvincular parceiro do casal (para testes)
+router.delete('/auth/couple/unlink', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { userId } = req
+  try {
+    const row = await pool.query('SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    if (!row.rows[0]) return res.status(404).json({ error: 'Casal não encontrado' })
+    const couple = row.rows[0]
+    // Remove o parceiro (user2) e gera novo invite_token
+    const { v4: uuidv4 } = await import('uuid')
+    await pool.query(
+      'UPDATE couples SET user2_id = NULL, invite_token = $1 WHERE id = $2',
+      [uuidv4(), couple.id]
+    )
+    res.json({ success: true, message: 'Parceiro desvinculado' })
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao desvincular' })
+  }
 })
 
 export default router
