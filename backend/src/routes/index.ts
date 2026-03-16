@@ -111,7 +111,7 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
       )
     }
     const couple = coupleResult.rows[0]
-    const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.FRONTEND_URL || 'https://nossahistoria-xtjq.onrender.com/api'
+    const baseUrl = 'https://nossahistoria-xtjq.onrender.com/api'
     const inviteLink = `${baseUrl}/convite/${couple.invite_token}`
 
     // Retorna o link imediatamente
