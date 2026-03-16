@@ -53,29 +53,48 @@ export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
       })
     }
 
-    // Não respondeu hoje — busca pergunta do dia (determinística pela data)
-    const allQuestions = await pool.query(
-      `SELECT q.* FROM questions q
-       WHERE q.is_premium <= $1
-       AND q.id NOT IN (
-         SELECT DISTINCT question_id FROM question_answers
-         WHERE couple_id = $2 AND user_id = $3
-       )
-       ORDER BY q.id ASC`,
-      [isPremium, coupleId, userId]
+    // Não respondeu hoje — busca pergunta do dia para o CASAL (mesma para os dois)
+    // Verifica se o parceiro já tem uma pergunta designada hoje
+    const partnerAnsweredToday = await pool.query(
+      `SELECT qa.question_id, q.text AS question_text FROM question_answers qa
+       JOIN questions q ON q.id = qa.question_id
+       WHERE qa.couple_id = $1 AND qa.user_id != $2
+       AND DATE(qa.created_at AT TIME ZONE 'America/Sao_Paulo') = $3
+       LIMIT 1`,
+      [coupleId, userId, today]
     )
 
     let todayQuestion = null
-    if (!allQuestions.rows.length) {
-      // Zerou todas — recomeça do início
-      const first = await pool.query(
-        'SELECT * FROM questions WHERE is_premium <= $1 ORDER BY id ASC LIMIT 1',
-        [isPremium]
-      )
-      todayQuestion = first.rows[0]
+
+    if (partnerAnsweredToday.rows[0]) {
+      // Parceiro já respondeu hoje — usa a mesma pergunta
+      todayQuestion = {
+        id: partnerAnsweredToday.rows[0].question_id,
+        text: partnerAnsweredToday.rows[0].question_text,
+      }
     } else {
-      const dayIndex = Math.floor(new Date().getTime() / 86400000)
-      todayQuestion = allQuestions.rows[dayIndex % allQuestions.rows.length]
+      // Nenhum dos dois respondeu hoje — escolhe nova pergunta para o casal
+      const allQuestions = await pool.query(
+        `SELECT q.* FROM questions q
+         WHERE q.is_premium <= $1
+         AND q.id NOT IN (
+           SELECT DISTINCT question_id FROM question_answers
+           WHERE couple_id = $2
+         )
+         ORDER BY q.id ASC`,
+        [isPremium, coupleId]
+      )
+
+      if (!allQuestions.rows.length) {
+        const first = await pool.query(
+          'SELECT * FROM questions WHERE is_premium <= $1 ORDER BY id ASC LIMIT 1',
+          [isPremium]
+        )
+        todayQuestion = first.rows[0]
+      } else {
+        const dayIndex = Math.floor(new Date().getTime() / 86400000)
+        todayQuestion = allQuestions.rows[dayIndex % allQuestions.rows.length]
+      }
     }
 
     if (!todayQuestion) return res.json({ done: true })

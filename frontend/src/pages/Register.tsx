@@ -19,7 +19,10 @@ export default function Register() {
     try {
       await authService.register({ name, email, password })
       await login(email, password)
-      navigate('/dashboard')
+      // Verifica se tem convite pendente
+      const pending = localStorage.getItem('pending_invite')
+      if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) }
+      else navigate('/dashboard')
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erro ao criar conta.')
     } finally {
