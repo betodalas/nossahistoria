@@ -40,7 +40,7 @@ export default function Dashboard() {
             </button>
             <button onClick={logout}
               className="text-xs px-3 py-1.5 rounded-lg"
-              style={{background:'rgba(255,255,255,0.4)', color:'#9B6B7A'}}>
+              style={{background:'rgba(255,255,255,0.75)', color:'#9B6B7A'}}>
               Sair
             </button>
           </div>
@@ -65,7 +65,7 @@ export default function Dashboard() {
             style={{background:'white', border:'1.5px solid #E8C4CE'}}>
             <div className="text-5xl font-extrabold" style={{color:'#7C4D6B'}}>{daysLeft}</div>
             <div className="text-xs mt-1" style={{color:'#9B6B7A'}}>dias para o casamento</div>
-            <div className="text-xs mt-1" style={{color:'#C9A0B0'}}>
+            <div className="text-xs mt-1" style={{color:'#9B6B7A'}}>
               {new Date(couple?.wedding_date || "").toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function Dashboard() {
             onClick={() => navigate('/perfil')}>
             <div className="text-3xl mb-2">💍</div>
             <p className="text-sm font-medium" style={{color:'#7C4D6B'}}>Adicionar data do casamento</p>
-            <p className="text-xs mt-1" style={{color:'#C9A0B0'}}>Toque para configurar</p>
+            <p className="text-xs mt-1" style={{color:'#9B6B7A'}}>Toque para configurar</p>
           </div>
         )}
 
@@ -89,7 +89,7 @@ export default function Dashboard() {
             <div key={s.l} className="rounded-xl p-3 text-center"
               style={{background:'white', border:'1px solid #E8C4CE'}}>
               <div className="text-xl font-bold" style={{color:'#7C4D6B'}}>{s.n}</div>
-              <div className="text-xs mt-1" style={{color:'#C9A0B0'}}>{s.l}</div>
+              <div className="text-xs mt-1" style={{color:'#9B6B7A'}}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -108,7 +108,7 @@ export default function Dashboard() {
           <p className="text-sm font-medium leading-relaxed" style={{color:'#3D1A2A'}}>
             {todayQuestion || 'Qual foi o momento em que você soube que queria ficar com essa pessoa?'}
           </p>
-          <p className="text-xs mt-2" style={{color:'#C9A0B0'}}>Toque para responder</p>
+          <p className="text-xs mt-2" style={{color:'#9B6B7A'}}>Toque para responder</p>
         </div>
 
         {/* Premium CTA */}

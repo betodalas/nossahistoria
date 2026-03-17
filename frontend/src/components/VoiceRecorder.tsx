@@ -98,7 +98,7 @@ export default function VoiceRecorder({ onSave, existingAudio, existingDuration 
             style={{background:'linear-gradient(135deg,#7c3aed,#be185d)'}}>🎙️</div>
           <div className="text-left">
             <p className="text-sm font-semibold text-violet-300">Gravar mensagem de voz</p>
-            <p className="text-xs text-white/30">toque para gravar</p>
+            <p className="text-xs text-white/60">toque para gravar</p>
           </div>
         </button>
       )}
@@ -141,10 +141,10 @@ export default function VoiceRecorder({ onSave, existingAudio, existingDuration 
                   style={{width:`${playProgress}%`, background:'linear-gradient(90deg,#7c3aed,#be185d)'}} />
               </div>
             </div>
-            <span className="text-xs text-white/30">{fmtTime(duration)}</span>
+            <span className="text-xs text-white/60">{fmtTime(duration)}</span>
             <button onClick={deleteAudio}
               className="w-7 h-7 rounded-full flex items-center justify-center text-xs"
-              style={{background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.3)'}}>✕</button>
+              style={{background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.65)'}}>✕</button>
           </div>
           {state === 'playing' && (
             <div className="flex items-center gap-0.5 justify-center mt-1">

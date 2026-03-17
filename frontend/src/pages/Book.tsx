@@ -125,11 +125,11 @@ export default function Book() {
       {/* Modal escrever carta */}
       {writingLetter && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.85)'}}>
-          <div className="w-full max-w-md rounded-t-3xl p-6" style={{background:'#1a1030'}}>
+          <div className="w-full max-w-md rounded-t-3xl p-6" style={{background:'#F5E6EA'}}>
             <div className="text-center mb-4">
               <div className="text-3xl mb-2">{writingLetter.icon}</div>
-              <h2 className="text-base font-bold text-white">Carta para {writingLetter.label}</h2>
-              <p className="text-xs text-white/40 mt-1">Só abre em {fmt(writingLetter.date)}</p>
+              <h2 className="text-base font-bold text-gray-800">Carta para {writingLetter.label}</h2>
+              <p className="text-xs text-gray-600 mt-1">Só abre em {fmt(writingLetter.date)}</p>
               {deadline(writingLetter) && (
                 <p className="text-xs text-amber-400 mt-1">⏳ {deadline(writingLetter)}</p>
               )}
@@ -152,18 +152,18 @@ export default function Book() {
       {/* Modal abrir cápsula */}
       {openCapsule && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.85)'}}>
-          <div className="w-full max-w-md rounded-t-3xl p-6 overflow-y-auto" style={{background:'#1a1030', maxHeight:'85vh'}}>
+          <div className="w-full max-w-md rounded-t-3xl p-6 overflow-y-auto" style={{background:'#F5E6EA', maxHeight:'85vh'}}>
             <div className="text-center mb-5">
               <div className="text-4xl mb-2">{openCapsule.icon}</div>
-              <h2 className="text-lg font-bold text-white">{openCapsule.label}</h2>
-              <p className="text-xs text-white/40 mt-1">{fmt(openCapsule.date)}</p>
+              <h2 className="text-lg font-bold text-gray-800">{openCapsule.label}</h2>
+              <p className="text-xs text-gray-600 mt-1">{fmt(openCapsule.date)}</p>
             </div>
 
             {/* Carta de quem está lendo */}
             {myLetter(openCapsule.key) && (
               <div className="rounded-2xl p-4 mb-3" style={{background:'rgba(124,58,237,0.2)',border:'1px solid rgba(124,58,237,0.3)'}}>
-                <p className="text-xs font-bold text-violet-300 mb-2">💌 Sua carta</p>
-                <p className="text-sm text-purple-100 leading-relaxed">{myLetter(openCapsule.key)}</p>
+                <p className="text-xs font-bold text-violet-700 mb-2">💌 Sua carta</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{myLetter(openCapsule.key)}</p>
               </div>
             )}
 
@@ -172,17 +172,17 @@ export default function Book() {
               const partnerLetter = letters[`partner_${openCapsule.key}`]?.text
               return partnerLetter ? (
                 <div className="rounded-2xl p-4 mb-4" style={{background:'rgba(190,24,93,0.2)',border:'1px solid rgba(190,24,93,0.3)'}}>
-                  <p className="text-xs font-bold text-pink-300 mb-2">💌 Carta do(a) {couple?.partner_name || 'parceiro(a)'}</p>
-                  <p className="text-sm text-purple-100 leading-relaxed"
+                  <p className="text-xs font-bold text-pink-600 mb-2">💌 Carta do(a) {couple?.partner_name || 'parceiro(a)'}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed"
                     style={{filter:'blur(5px)', cursor:'pointer', transition:'filter 0.4s'}}
                     onClick={e => (e.currentTarget.style.filter='none')}>
                     {partnerLetter}
                   </p>
-                  <p className="text-xs text-white/30 text-center mt-2">toque para revelar</p>
+                  <p className="text-xs text-gray-600 text-center mt-2">toque para revelar</p>
                 </div>
               ) : (
                 <div className="rounded-2xl p-4 mb-4 text-center" style={{background:'rgba(255,255,255,0.04)',border:'1px dashed rgba(255,255,255,0.1)'}}>
-                  <p className="text-xs text-white/30">💌 {couple?.partner_name || 'Parceiro(a)'} ainda não escreveu a carta para este momento</p>
+                  <p className="text-xs text-gray-600">💌 {couple?.partner_name || 'Parceiro(a)'} ainda não escreveu a carta para este momento</p>
                 </div>
               )
             })()}
@@ -194,21 +194,21 @@ export default function Book() {
                 : moments
               return periodMoments.length > 0 ? (
                 <>
-                  <p className="text-xs font-bold text-violet-300 tracking-widest uppercase mb-3">
+                  <p className="text-xs font-bold text-violet-700 tracking-widest uppercase mb-3">
                     📖 Momentos {openCapsule.prevDate ? 'deste ano' : 'de vocês'}
                   </p>
                   {periodMoments.map((m: any, i: number) => (
-                    <div key={i} className="mb-3 pb-3 border-b border-white/10">
-                      <p className="text-xs text-white/30">{new Date(m.moment_date).toLocaleDateString('pt-BR')}</p>
-                      <p className="text-sm font-semibold text-purple-100 mt-0.5">{m.title}</p>
-                      {m.description && <p className="text-xs text-white/50 mt-1">{m.description}</p>}
+                    <div key={i} className="mb-3 pb-3 border-b border-gray-200">
+                      <p className="text-xs text-gray-600">{new Date(m.moment_date).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-sm font-semibold text-gray-700 mt-0.5">{m.title}</p>
+                      {m.description && <p className="text-xs text-gray-500 mt-1">{m.description}</p>}
                       {m.photo_url && <img src={m.photo_url} className="w-full rounded-xl mt-2 object-contain" style={{maxHeight:'160px'}} />}
-                      {m.music_name && <p className="text-xs text-violet-300 mt-1">♪ {m.music_name}</p>}
+                      {m.music_name && <p className="text-xs text-violet-700 mt-1">♪ {m.music_name}</p>}
                     </div>
                   ))}
                 </>
               ) : (
-                <p className="text-xs text-white/30 text-center py-4">Nenhum momento registrado neste período</p>
+                <p className="text-xs text-gray-600 text-center py-4">Nenhum momento registrado neste período</p>
               )
             })()}
 
@@ -220,7 +220,7 @@ export default function Book() {
       {/* Header */}
       <div className="rounded-b-3xl px-4 pt-5 pb-5 mb-4" style={{background:'linear-gradient(135deg,#2d1060,#6b21a8)'}}>
         <h2 className="text-base font-bold text-white text-center">Nosso livro</h2>
-        <p className="text-xs text-white/60 text-center mt-1">sua história para sempre</p>
+        <p className="text-xs text-gray-600 text-center mt-1">sua história para sempre</p>
       </div>
 
       <div className="px-4 pb-6">
@@ -231,9 +231,9 @@ export default function Book() {
             { n: answers.length, l: 'perguntas' },
             { n: wedding ? Math.max(0, daysUntil(wedding)) : '?', l: 'dias' }
           ].map(s => (
-            <div key={s.l} className="border border-white/10 rounded-xl p-3 text-center" style={{background:'#1a1030'}}>
-              <div className="text-xl font-bold text-violet-300">{s.n}</div>
-              <div className="text-xs text-white/40 mt-1">{s.l}</div>
+            <div key={s.l} className="border border-gray-200 rounded-xl p-3 text-center" style={{background:'#F5E6EA'}}>
+              <div className="text-xl font-bold text-violet-700">{s.n}</div>
+              <div className="text-xs text-gray-600 mt-1">{s.l}</div>
             </div>
           ))}
         </div>
@@ -246,8 +246,8 @@ export default function Book() {
         {!isPremium ? (
           <div className="rounded-2xl border border-violet-500/25 overflow-hidden mt-2" style={{background:'rgba(124,58,237,0.08)'}}>
             <div className="p-4 text-center">
-              <p className="text-sm font-bold text-violet-300 mb-1">👑 4º ao 10º aniversário</p>
-              <p className="text-xs text-white/40 mb-3">Cartas + momentos de cada ano · disponível no premium</p>
+              <p className="text-sm font-bold text-violet-700 mb-1">👑 4º ao 10º aniversário</p>
+              <p className="text-xs text-gray-600 mb-3">Cartas + momentos de cada ano · disponível no premium</p>
               <div className="flex flex-wrap gap-2 justify-center mb-4">
                 {premiumItems.map(d => (
                   <span key={d.key} className="text-lg">{d.icon}</span>
@@ -286,7 +286,7 @@ export default function Book() {
           onClick={() => open ? setOpenCapsule(d) : null}>
           <span className="text-2xl">{d.icon}</span>
           <div className="flex-1">
-            <p className="text-sm font-medium text-purple-100">{d.label}</p>
+            <p className="text-sm font-medium text-gray-700">{d.label}</p>
             <p className="text-xs text-white/35 mt-0.5">
               {fmt(d.date)}{daysUntil(d.date) > 0 ? ` · em ${daysUntil(d.date)} dias` : ' · hoje!'}
             </p>

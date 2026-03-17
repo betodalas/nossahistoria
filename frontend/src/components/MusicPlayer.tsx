@@ -26,7 +26,7 @@ export default function MusicPlayer({ musicName }: Props) {
           <span className="text-lg">🎵</span>
           <div className="flex-1">
             <p className="text-xs text-violet-300 font-medium">{musicName}</p>
-            <p className="text-xs text-white/30">toque para ouvir</p>
+            <p className="text-xs text-white/60">toque para ouvir</p>
           </div>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
             style={{background:'linear-gradient(135deg,#7c3aed,#be185d)'}}>

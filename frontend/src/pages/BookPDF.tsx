@@ -215,7 +215,7 @@ export default function BookPDF() {
 
         {/* Preview do conteúdo */}
         <div className="rounded-2xl p-4 mb-5 border border-violet-500/20" style={{background:'#1a1030'}}>
-          <p className="text-xs text-white/40 uppercase tracking-widest mb-3">O que vai no PDF</p>
+          <p className="text-xs text-white/70 uppercase tracking-widest mb-3">O que vai no PDF</p>
           {[
             { icon:'💍', label:'Capa personalizada', sub: couple?.couple_name || 'com nome do casal' },
             { icon:'📸', label:`${moments.length} momentos`, sub: 'com fotos e descrições' },
@@ -227,7 +227,7 @@ export default function BookPDF() {
               <span className="text-xl w-8">{item.icon}</span>
               <div>
                 <p className="text-sm text-purple-100">{item.label}</p>
-                <p className="text-xs text-white/30">{item.sub}</p>
+                <p className="text-xs text-white/60">{item.sub}</p>
               </div>
             </div>
           ))}

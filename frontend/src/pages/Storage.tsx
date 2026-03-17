@@ -24,7 +24,7 @@ export default function Storage() {
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="text-5xl mb-4">🔒</div>
         <p className="text-base font-bold text-white mb-2">Disponível no premium</p>
-        <p className="text-sm text-white/40 mb-6">Faça upgrade para gerenciar armazenamento</p>
+        <p className="text-sm text-white/70 mb-6">Faça upgrade para gerenciar armazenamento</p>
         <button className="btn-primary max-w-xs" onClick={() => navigate('/premium')}>Ver premium</button>
       </div>
     </Layout>
@@ -51,14 +51,14 @@ export default function Storage() {
 
       <div className="p-4 pb-8">
         {loading ? (
-          <div className="text-center py-12 text-white/30 text-sm">Carregando...</div>
+          <div className="text-center py-12 text-white/60 text-sm">Carregando...</div>
         ) : info && (
           <>
             {/* Card de uso atual */}
             <div className="rounded-2xl p-5 mb-4 border border-white/10" style={{background:'#1a1030'}}>
               <div className="flex justify-between items-center mb-3">
                 <p className="text-sm font-semibold text-white">Uso atual</p>
-                <p className="text-xs text-white/40">{info.usedMB} MB / {info.totalMB} MB</p>
+                <p className="text-xs text-white/70">{info.usedMB} MB / {info.totalMB} MB</p>
               </div>
 
               {/* Barra de progresso */}
@@ -80,7 +80,7 @@ export default function Storage() {
                 ].map(s => (
                   <div key={s.label} className="text-center p-2 rounded-xl" style={{background:'rgba(255,255,255,0.05)'}}>
                     <p className="text-sm font-bold text-violet-300">{s.value}</p>
-                    <p className="text-xs text-white/30 mt-0.5">{s.label}</p>
+                    <p className="text-xs text-white/60 mt-0.5">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -137,7 +137,7 @@ export default function Storage() {
             {/* Histórico de compras */}
             {info.extraMB > 0 && (
               <div className="rounded-2xl p-4 border border-white/8" style={{background:'#1a1030'}}>
-                <p className="text-xs text-white/40 mb-2">Espaço extra adquirido</p>
+                <p className="text-xs text-white/70 mb-2">Espaço extra adquirido</p>
                 <p className="text-sm text-violet-300 font-semibold">+{info.extraMB} MB no total</p>
               </div>
             )}

@@ -112,10 +112,10 @@ export default function Profile() {
         </div>
 
         <div className="mb-4 p-3 rounded-xl" style={{background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.2)'}}>
-          <p className="text-xs text-violet-300 mb-1">💡 Conectar parceiro(a)</p>
-          <p className="text-xs text-white/50 mb-2">Vincule seu parceiro(a) para compartilhar momentos e perguntas</p>
-          <button type="button" className="text-xs text-violet-300 underline" onClick={() => navigate('/convidar')}>
-            Ir para Convidar parceiro(a) →
+          <p className="text-xs font-bold text-violet-300 mb-2">💡 Conectar parceiro(a)</p>
+          <p className="text-xs mb-3" style={{color:'rgba(255,255,255,0.7)'}}>Vincule seu parceiro(a) para compartilhar momentos e perguntas</p>
+          <button type="button" className="btn-primary" onClick={() => navigate('/convidar')}>
+            💌 Convidar parceiro(a)
           </button>
         </div>
 

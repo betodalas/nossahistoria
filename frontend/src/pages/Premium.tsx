@@ -45,7 +45,7 @@ export default function Premium() {
         <div className="rounded-2xl p-4 mb-4" style={{background:'white', border:'1px solid #E8C4CE'}}>
           {features.map(f => (
             <div key={f} className="flex items-center gap-3 py-2" style={{borderBottom:'1px solid #F5E6EA'}}>
-              <span style={{color:'#C9A0B0', fontSize:'14px'}}>♥</span>
+              <span style={{color:'#9B6B7A', fontSize:'14px'}}>♥</span>
               <span className="text-sm" style={{color:'#3D1A2A'}}>{f}</span>
             </div>
           ))}

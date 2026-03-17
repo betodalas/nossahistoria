@@ -81,7 +81,7 @@ export default function GuestAlbum() {
             className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
             style={{
               background: tab === t ? 'linear-gradient(135deg,#7c3aed,#be185d)' : '#1a1030',
-              color: tab === t ? 'white' : 'rgba(255,255,255,0.4)',
+              color: tab === t ? 'white' : 'rgba(255,255,255,0.75)',
               border: tab === t ? 'none' : '1px solid rgba(255,255,255,0.08)'
             }}>
             {t === 'album' ? `📸 Álbum (${posts.length})` : '💌 Convidar família'}
@@ -97,7 +97,7 @@ export default function GuestAlbum() {
             {posts.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">📸</div>
-                <p className="text-sm text-white/30">Nenhuma mensagem ainda</p>
+                <p className="text-sm text-white/60">Nenhuma mensagem ainda</p>
                 <p className="text-xs text-white/20 mt-1">Convide a família para deixar uma mensagem!</p>
                 <button className="btn-primary mt-6 max-w-xs mx-auto" onClick={() => setTab('convidar')}>
                   Convidar agora 💌
@@ -132,7 +132,7 @@ export default function GuestAlbum() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-white">{p.name}</p>
-                        <p className="text-xs text-white/30">
+                        <p className="text-xs text-white/60">
                           {new Date(p.date).toLocaleDateString('pt-BR', {day:'numeric',month:'long'})}
                         </p>
                       </div>
@@ -179,19 +179,19 @@ export default function GuestAlbum() {
             </button>
 
             <div className="border-t border-white/10 pt-5">
-              <p className="text-xs text-white/40 text-center mb-4">Ou adicione uma mensagem agora</p>
+              <p className="text-xs text-white/70 text-center mb-4">Ou adicione uma mensagem agora</p>
               <div className="mb-3">
-                <label className="text-xs text-white/40 block mb-1">Seu nome</label>
+                <label className="text-xs text-white/70 block mb-1">Seu nome</label>
                 <input className="input-field" placeholder="Ex: Vó Maria" value={name} onChange={e => setName(e.target.value)} />
               </div>
               <div className="mb-3">
-                <label className="text-xs text-white/40 block mb-1">Mensagem para o casal</label>
+                <label className="text-xs text-white/70 block mb-1">Mensagem para o casal</label>
                 <textarea className="input-field resize-none" style={{height:'100px'}}
                   placeholder="Escreva uma mensagem especial..."
                   value={message} onChange={e => setMessage(e.target.value)} />
               </div>
               <div className="mb-4">
-                <label className="text-xs text-white/40 block mb-2">Foto (opcional)</label>
+                <label className="text-xs text-white/70 block mb-2">Foto (opcional)</label>
                 {photo ? (
                   <div className="relative">
                     <img src={photo} className="w-full rounded-xl object-contain" style={{maxHeight:'180px'}} />
@@ -201,7 +201,7 @@ export default function GuestAlbum() {
                   </div>
                 ) : (
                   <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl cursor-pointer text-sm"
-                    style={{background:'rgba(255,255,255,0.05)',border:'2px dashed rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.3)'}}>
+                    style={{background:'rgba(255,255,255,0.05)',border:'2px dashed rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.65)'}}>
                     📷 Adicionar foto
                     <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                   </label>

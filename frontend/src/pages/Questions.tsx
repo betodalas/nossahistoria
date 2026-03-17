@@ -45,7 +45,8 @@ export default function Questions() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const saved = !!currentQuestion?.myAnswer || currentQuestion?.answeredToday
+  const [savedToday, setSavedToday] = useState(false)
+  const saved = savedToday || !!currentQuestion?.myAnswer || currentQuestion?.answeredToday
   const partnerAnswer = currentQuestion?.partnerAnswer || null
   const todayQuestion = currentQuestion?.question || ''
 
@@ -86,6 +87,7 @@ export default function Questions() {
     setError('')
     try {
       await questionsService.answer(currentQuestion.id, answer)
+      setSavedToday(true)
       const res = await questionsService.getCurrent()
       const mapped = mapResponse(res.data, user?.id)
       setCurrentQuestion(mapped)
@@ -102,7 +104,7 @@ export default function Questions() {
     <Layout>
       <div className="rounded-b-3xl px-4 pt-5 pb-5 mb-4" style={{background:'linear-gradient(135deg,#2d1060,#6b21a8)'}}>
         <h2 className="text-base font-bold text-white text-center">Perguntas do casal</h2>
-        <p className="text-xs text-white/60 text-center mt-1">uma pergunta nova todo dia 💜</p>
+        <p className="text-xs text-gray-600 text-center mt-1">uma pergunta nova todo dia 💜</p>
       </div>
 
       <div className="flex px-4 mb-4 gap-2">
@@ -110,9 +112,9 @@ export default function Questions() {
           <button key={t} onClick={() => setTab(t)}
             className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
             style={{
-              background: tab === t ? 'linear-gradient(135deg,#7c3aed,#be185d)' : '#1a1030',
-              color: tab === t ? 'white' : 'rgba(255,255,255,0.4)',
-              border: tab === t ? 'none' : '1px solid rgba(255,255,255,0.08)'
+              background: tab === t ? 'linear-gradient(135deg,#7c3aed,#be185d)' : '#F5E6EA',
+              color: tab === t ? 'white' : '#7C4D6B',
+              border: tab === t ? 'none' : '1px solid #E8C4CE'
             }}>
             {t === 'hoje' ? '✨ Hoje' : `📖 Histórico (${history.length})`}
           </button>
@@ -124,7 +126,7 @@ export default function Questions() {
           <div className="mb-4 px-3 py-2 rounded-xl text-sm text-center"
             style={{background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#fca5a5'}}>
             {error}
-            <button onClick={loadQuestion} className="block mx-auto mt-2 text-xs underline text-white/60">Tentar novamente</button>
+            <button onClick={loadQuestion} className="block mx-auto mt-2 text-xs underline text-gray-600">Tentar novamente</button>
           </div>
         )}
 
@@ -134,81 +136,81 @@ export default function Questions() {
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🔥</span>
                 <div>
-                  <p className="text-sm font-bold text-white">{history.length} dias respondidos</p>
-                  <p className="text-xs text-white/60">continue respondendo!</p>
+                  <p className="text-sm font-bold text-gray-800">{history.length} dias respondidos</p>
+                  <p className="text-xs text-gray-600">continue respondendo!</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-white/60">{new Date().toLocaleDateString('pt-BR', {weekday:'long'})}</p>
-                <p className="text-xs text-white/50">{new Date().toLocaleDateString('pt-BR')}</p>
+                <p className="text-xs text-gray-600">{new Date().toLocaleDateString('pt-BR', {weekday:'long'})}</p>
+                <p className="text-xs text-gray-500">{new Date().toLocaleDateString('pt-BR')}</p>
               </div>
             </div>
 
             {loading ? (
-              <div className="text-center py-8 text-white/40 text-sm">Carregando pergunta...</div>
+              <div className="text-center py-8 text-gray-600 text-sm">Carregando pergunta...</div>
             ) : !currentQuestion?.question ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">💬</div>
-                <p className="text-sm text-white/50">Carregando perguntas...</p>
+                <p className="text-sm text-gray-500">Carregando perguntas...</p>
               </div>
             ) : (
               <>
                 <div className="rounded-2xl p-5 mb-4 border border-violet-500/30"
-                  style={{background:'rgba(124,58,237,0.15)'}}>
+                  style={{background:'rgba(124,58,237,0.1)'}}>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-lg">💬</span>
-                    <span className="text-xs font-bold text-violet-300 uppercase tracking-widest">Pergunta de hoje</span>
+                    <span className="text-xs font-bold text-violet-700 uppercase tracking-widest">Pergunta de hoje</span>
                   </div>
-                  <p className="text-base text-white font-medium leading-relaxed">{todayQuestion}</p>
+                  <p className="text-base text-gray-800 font-medium leading-relaxed">{todayQuestion}</p>
                 </div>
 
                 {saved ? (
                   <>
                     {/* Resposta já salva */}
-                    <div className="rounded-xl p-4 mb-4" style={{background:'rgba(124,58,237,0.15)', border:'1px solid rgba(124,58,237,0.3)'}}>
-                      <p className="text-xs text-violet-300 font-bold mb-1">💜 Sua resposta</p>
-                      <p className="text-sm text-purple-100">{currentQuestion.myAnswer}</p>
+                    <div className="rounded-xl p-4 mb-4" style={{background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.3)'}}>
+                      <p className="text-xs text-violet-700 font-bold mb-1">💜 Sua resposta</p>
+                      <p className="text-sm text-gray-700">{currentQuestion.myAnswer}</p>
                     </div>
 
                     {/* Resposta do parceiro */}
                     {partnerAnswer ? (
                       <div className="rounded-2xl p-4 border border-pink-500/25"
-                        style={{background:'rgba(190,24,93,0.15)'}}>
-                        <p className="text-xs font-bold text-pink-300 mb-2">
+                        style={{background:'rgba(190,24,93,0.08)'}}>
+                        <p className="text-xs font-bold text-pink-600 mb-2">
                           💜 {couple?.partner_name || 'Parceiro(a)'} respondeu
                         </p>
                         {!revealed ? (
                           <div className="cursor-pointer py-1" onClick={() => setRevealed(true)}>
-                            <p className="text-sm text-purple-100 leading-relaxed select-none"
+                            <p className="text-sm text-gray-700 leading-relaxed select-none"
                               style={{filter:'blur(6px)'}}>
                               {partnerAnswer}
                             </p>
-                            <p className="text-xs text-white/60 mt-2 text-center">👆 toque para revelar</p>
+                            <p className="text-xs text-gray-600 mt-2 text-center">👆 toque para revelar</p>
                           </div>
                         ) : (
-                          <p className="text-sm text-purple-100 leading-relaxed">{partnerAnswer}</p>
+                          <p className="text-sm text-gray-700 leading-relaxed">{partnerAnswer}</p>
                         )}
                       </div>
                     ) : (
-                      <div className="rounded-2xl p-4 border border-white/10 text-center"
-                        style={{background:'rgba(255,255,255,0.05)'}}>
+                      <div className="rounded-2xl p-4 border border-gray-200 text-center"
+                        style={{background:'rgba(0,0,0,0.04)'}}>
                         <span className="text-2xl block mb-2">⏳</span>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-gray-500">
                           {couple?.partner_name || 'Parceiro(a)'} ainda não respondeu hoje
                         </p>
-                        <p className="text-xs text-white/40 mt-1">Volte mais tarde para ver 💜</p>
+                        <p className="text-xs text-gray-600 mt-1">Volte mais tarde para ver 💜</p>
                       </div>
                     )}
 
                     {/* Aviso próxima pergunta */}
                     <div className="mt-4 text-center">
-                      <p className="text-xs text-white/30">Nova pergunta amanhã 🌙</p>
+                      <p className="text-xs text-gray-600">Nova pergunta amanhã 🌙</p>
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="mb-4">
-                      <label className="text-xs text-white/60 block mb-2">Sua resposta</label>
+                      <label className="text-xs text-gray-600 block mb-2">Sua resposta</label>
                       <textarea
                         className="input-field resize-none"
                         style={{height:'120px'}}
@@ -221,7 +223,7 @@ export default function Questions() {
                       className="btn-primary disabled:opacity-40 mb-4">
                       {saving ? '💌 Salvando...' : '💌 Salvar resposta'}
                     </button>
-                    <p className="text-xs text-white/50 text-center">
+                    <p className="text-xs text-gray-500 text-center">
                       Responda primeiro para ver o que {couple?.partner_name || 'o(a) parceiro(a)'} disse 💜
                     </p>
                   </>
@@ -236,27 +238,27 @@ export default function Questions() {
             {history.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">📖</div>
-                <p className="text-sm text-white/50">Nenhuma resposta ainda</p>
+                <p className="text-sm text-gray-500">Nenhuma resposta ainda</p>
                 <button className="btn-primary mt-6 max-w-xs mx-auto" onClick={() => setTab('hoje')}>
                   Responder agora ✨
                 </button>
               </div>
             ) : (
               history.map((item: any, i: number) => (
-                <div key={i} className="rounded-2xl p-4 mb-3 border border-white/8"
-                  style={{background:'#1a1030'}}>
-                  <span className="text-xs text-white/50">
+                <div key={i} className="rounded-2xl p-4 mb-3 border border-gray-200"
+                  style={{background:'#F5E6EA'}}>
+                  <span className="text-xs text-gray-500">
                     {new Date(item.date).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}
                   </span>
-                  <p className="text-xs text-violet-300 italic my-2">"{item.question}"</p>
-                  <div className="rounded-xl p-3" style={{background:'rgba(124,58,237,0.15)'}}>
-                    <p className="text-xs text-white/60 mb-1">Você</p>
-                    <p className="text-sm text-purple-100">{item.answer || item.myAnswer}</p>
+                  <p className="text-xs text-violet-700 italic my-2">"{item.question}"</p>
+                  <div className="rounded-xl p-3" style={{background:'rgba(124,58,237,0.1)'}}>
+                    <p className="text-xs text-gray-600 mb-1">Você</p>
+                    <p className="text-sm text-gray-700">{item.answer || item.myAnswer}</p>
                   </div>
                   {item.partnerAnswer && (
-                    <div className="rounded-xl p-3 mt-2" style={{background:'rgba(190,24,93,0.15)'}}>
-                      <p className="text-xs text-white/60 mb-1">{couple?.partner_name || 'Parceiro(a)'}</p>
-                      <p className="text-sm text-purple-100">{item.partnerAnswer}</p>
+                    <div className="rounded-xl p-3 mt-2" style={{background:'rgba(190,24,93,0.08)'}}>
+                      <p className="text-xs text-gray-600 mb-1">{couple?.partner_name || 'Parceiro(a)'}</p>
+                      <p className="text-sm text-gray-700">{item.partnerAnswer}</p>
                     </div>
                   )}
                 </div>

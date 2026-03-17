@@ -22,7 +22,7 @@ export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
       `SELECT qa.*, q.text AS question_text FROM question_answers qa
        JOIN questions q ON q.id = qa.question_id
        WHERE qa.couple_id = $1 AND qa.user_id = $2
-       AND DATE(qa.created_at AT TIME ZONE 'America/Sao_Paulo') = $3
+       AND DATE(qa.created_at) = $3::date
        LIMIT 1`,
       [coupleId, userId, today]
     )
@@ -59,7 +59,7 @@ export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
       `SELECT qa.question_id, q.text AS question_text FROM question_answers qa
        JOIN questions q ON q.id = qa.question_id
        WHERE qa.couple_id = $1 AND qa.user_id != $2
-       AND DATE(qa.created_at AT TIME ZONE 'America/Sao_Paulo') = $3
+       AND DATE(qa.created_at) = $3::date
        LIMIT 1`,
       [coupleId, userId, today]
     )
@@ -127,11 +127,11 @@ export const answerQuestion = async (req: AuthRequest, res: Response) => {
 
     const today = new Date().toISOString().split('T')[0]
 
-    // Bloqueia se já respondeu hoje (pergunta diferente)
+    // Bloqueia se já respondeu hoje
     const alreadyAnswered = await pool.query(
       `SELECT id FROM question_answers
        WHERE couple_id = $1 AND user_id = $2
-       AND DATE(created_at AT TIME ZONE 'America/Sao_Paulo') = $3`,
+       AND DATE(created_at) = $3::date`,
       [coupleId, userId, today]
     )
     if (alreadyAnswered.rows.length > 0) {

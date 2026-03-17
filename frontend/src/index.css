@@ -30,15 +30,15 @@
     background: #FADADD;
     border: 1px solid #E8C4CE;
   }
-  .card:hover { border-color: #C9A0B0; }
+  .card:hover { border-color: #9B6B7A; }
   .input-field {
     @apply w-full px-3 py-2.5 rounded-xl text-sm outline-none;
     background: white;
     border: 1.5px solid #E8C4CE;
     color: #3D1A2A;
   }
-  .input-field:focus { border-color: #C9A0B0; }
-  .input-field::placeholder { color: #C9A0B0; }
+  .input-field:focus { border-color: #9B6B7A; }
+  .input-field::placeholder { color: #9B6B7A; }
   .pill-purple {
     @apply text-xs font-semibold px-2 py-0.5 rounded-full;
     background: #E8C4CE;
@@ -57,6 +57,6 @@
   }
   .section-label {
     @apply text-xs font-bold tracking-widest uppercase mb-3;
-    color: #C9A0B0;
+    color: #9B6B7A;
   }
 }

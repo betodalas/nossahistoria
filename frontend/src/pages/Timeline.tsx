@@ -52,7 +52,7 @@ export default function Timeline() {
           style={{background:'rgba(61,26,42,0.85)'}} onClick={() => setLightbox(null)}>
           <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" />
           <button className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-xl"
-            style={{background:'rgba(255,255,255,0.2)', color:'white'}} onClick={() => setLightbox(null)}>×</button>
+            style={{background:'rgba(255,255,255,0.2)', color:'#3D1A2A'}} onClick={() => setLightbox(null)}>×</button>
         </div>
       )}
 
@@ -63,7 +63,7 @@ export default function Timeline() {
 
       <div className="px-4 py-4">
         {loading ? (
-          <div className="text-center py-12 text-sm" style={{color:'#C9A0B0'}}>Carregando...</div>
+          <div className="text-center py-12 text-sm" style={{color:'#9B6B7A'}}>Carregando...</div>
         ) : error ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">⚠️</div>
@@ -76,7 +76,7 @@ export default function Timeline() {
           <div className="text-center py-12">
             <div className="text-4xl mb-3">📖</div>
             <p className="text-sm" style={{color:'#9B6B7A'}}>Nenhum momento ainda</p>
-            <p className="text-xs mt-1" style={{color:'#C9A0B0'}}>Adicione o primeiro momento de vocês!</p>
+            <p className="text-xs mt-1" style={{color:'#9B6B7A'}}>Adicione o primeiro momento de vocês!</p>
           </div>
         ) : (
           <div className="relative pl-7">
@@ -88,7 +88,7 @@ export default function Timeline() {
                 <div className="absolute -left-7 top-2 w-4 h-4 rounded-full"
                   style={{background:'linear-gradient(135deg,#E8C4CE,#C9A0B0)', border:'2px solid #FFF0F3'}} />
                 <div className="rounded-2xl p-4" style={{background:'white', border:'1px solid #E8C4CE'}}>
-                  <p className="text-xs" style={{color:'#C9A0B0'}}>{formatDate(m.moment_date)}</p>
+                  <p className="text-xs" style={{color:'#9B6B7A'}}>{formatDate(m.moment_date)}</p>
                   <p className="text-sm font-semibold mt-1" style={{color:'#3D1A2A'}}>{m.title}</p>
                   {m.description && <p className="text-xs mt-1" style={{color:'#9B6B7A'}}>{m.description}</p>}
 
@@ -103,12 +103,12 @@ export default function Timeline() {
                       style={{background:'#FADADD', border:'1px solid #E8C4CE'}}>
                       <button onClick={() => playVoice(m.id, m.voice_url)}
                         className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0"
-                        style={{background:'linear-gradient(135deg,#C9A0B0,#7C4D6B)', color:'white'}}>
+                        style={{background:'linear-gradient(135deg,#C9A0B0,#7C4D6B)', color:'#3D1A2A'}}>
                         {playingVoice === m.id ? '⏸' : '🎙️'}
                       </button>
                       <div className="flex-1">
                         <p className="text-xs font-semibold" style={{color:'#7C4D6B'}}>Mensagem de voz</p>
-                        {m.voice_duration > 0 && <span className="text-xs" style={{color:'#C9A0B0'}}>{fmtTime(m.voice_duration)}</span>}
+                        {m.voice_duration > 0 && <span className="text-xs" style={{color:'#9B6B7A'}}>{fmtTime(m.voice_duration)}</span>}
                       </div>
                     </div>
                   )}
