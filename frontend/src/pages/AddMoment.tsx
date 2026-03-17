@@ -68,7 +68,7 @@ export default function AddMoment() {
       if (status === 401) {
         setError('Sessão expirada. Faça login novamente.')
       } else if (status === 403) {
-        setError('Você precisa estar vinculado a um casal para salvar momentos.')
+        setError(msg || 'Você atingiu o limite do plano gratuito. Faça upgrade para premium!')
       } else if (status === 400) {
         setError(msg || 'Dados inválidos. Verifique os campos.')
       } else if (msg) {

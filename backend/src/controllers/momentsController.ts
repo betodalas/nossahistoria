@@ -54,10 +54,10 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
   const { title, description, moment_date, music_name, music_link, voice_duration } = req.body
 
   try {
-    if (!coupleId) {
-      const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-      coupleId = row.rows[0]?.id
-    }
+    // Sempre busca o casal pelo userId no banco — o coupleId do token pode estar desatualizado
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    coupleId = row.rows[0]?.id
+
     // Auto-cria casal solo se não tiver nenhum
     if (!coupleId) {
       const { v4: uuidv4 } = await import('uuid')
