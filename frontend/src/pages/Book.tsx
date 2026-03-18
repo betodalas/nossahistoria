@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNow } from '../hooks/useNow'
+import { momentsService } from '../services/api'
 import Layout from '../components/Layout'
 
 export default function Book() {
@@ -17,9 +18,14 @@ export default function Book() {
   const daysUntil = (d: Date) => Math.ceil((d.getTime() - now) / 86400000)
   const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  const moments = JSON.parse(localStorage.getItem('moments') || '[]')
-  const answers = JSON.parse(localStorage.getItem('answers') || '[]')
+  const [moments, setMoments] = useState<any[]>([])
+  const [answers, setAnswers] = useState<any[]>([])
   const letters = JSON.parse(localStorage.getItem('letters') || '{}')
+
+  // Busca momentos reais da API
+  useEffect(() => {
+    momentsService.getAll().then(res => setMoments(res.data)).catch(() => {})
+  }, [])
 
   const saveLetter = () => {
     if (!letterText.trim()) return
@@ -220,7 +226,7 @@ export default function Book() {
       {/* Header */}
       <div className="rounded-b-3xl px-4 pt-5 pb-5 mb-4" style={{background:'linear-gradient(135deg,#2d1060,#6b21a8)'}}>
         <h2 className="text-base font-bold text-white text-center">Nosso livro</h2>
-        <p className="text-xs text-gray-600 text-center mt-1">sua história para sempre</p>
+        <p className="text-xs text-purple-200 text-center mt-1">sua história para sempre</p>
       </div>
 
       <div className="px-4 pb-6">
@@ -279,18 +285,18 @@ export default function Book() {
     return (
       <div key={d.key} className="rounded-2xl mb-2 border overflow-hidden"
         style={{
-          background: open ? 'rgba(52,211,153,0.08)' : '#1a1030',
-          borderColor: open ? 'rgba(52,211,153,0.35)' : 'rgba(255,255,255,0.08)'
+          background: open ? 'rgba(52,211,153,0.08)' : '#F0E6EF',
+          borderColor: open ? 'rgba(52,211,153,0.35)' : '#D8B4C8'
         }}>
         <div className="flex items-center gap-3 p-3 cursor-pointer"
           onClick={() => open ? setOpenCapsule(d) : null}>
           <span className="text-2xl">{d.icon}</span>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-700">{d.label}</p>
-            <p className="text-xs text-white/35 mt-0.5">
+            <p className="text-xs mt-0.5" style={{color:'#9B6B7A'}}>
               {fmt(d.date)}{daysUntil(d.date) > 0 ? ` · em ${daysUntil(d.date)} dias` : ' · hoje!'}
             </p>
-            <p className="text-xs text-white/25 mt-0.5">{d.description}</p>
+            <p className="text-xs mt-0.5" style={{color:'#B08898'}}>{d.description}</p>
           </div>
           {open ? <span className="pill-green">abrir 👆</span>
             : write ? <span className="pill-green">escrever ✏️</span>
@@ -317,8 +323,8 @@ export default function Book() {
             </>
           ) : !open && (
             <div className="py-2 px-3 rounded-xl text-center"
-              style={{background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.05)'}}>
-              <p className="text-xs text-white/20">{writeHint(d)}</p>
+              style={{background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)'}}>
+              <p className="text-xs" style={{color:'#9B6B7A'}}>{writeHint(d)}</p>
             </div>
           )}
         </div>
