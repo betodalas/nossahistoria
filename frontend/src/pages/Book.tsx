@@ -13,7 +13,10 @@ export default function Book() {
   const [letterText, setLetterText] = useState('')
   const [letterSaved, setLetterSaved] = useState(false)
 
-  const wedding = couple?.wedding_date ? new Date(couple.wedding_date) : null
+  // Parse robusto — evita problema de fuso horário (ex: '2026-04-09' virando dia anterior)
+  const wedding = couple?.wedding_date
+    ? (() => { const [y,m,d] = couple.wedding_date.split('T')[0].split('-').map(Number); return new Date(y, m-1, d) })()
+    : null
   const now = useNow()
   const daysUntil = (d: Date) => Math.ceil((d.getTime() - now) / 86400000)
   const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -165,8 +168,28 @@ export default function Book() {
               <p className="text-xs text-gray-600 mt-1">{fmt(openCapsule.date)}</p>
             </div>
 
+            {/* Botão escrever carta se ainda não escreveu */}
+            {!myLetter(openCapsule.key) && !isOpen(openCapsule) && (
+              <button
+                className="w-full py-3 rounded-2xl text-sm font-semibold mb-4"
+                style={{background:'rgba(124,58,237,0.15)', color:'#7c3aed', border:'1px solid rgba(124,58,237,0.3)'}}
+                onClick={() => { setOpenCapsule(null); setWritingLetter(openCapsule); setLetterText('') }}
+              >
+                💌 Escrever minha carta secreta
+              </button>
+            )}
+            {myLetter(openCapsule.key) && !isOpen(openCapsule) && (
+              <button
+                className="w-full py-2 rounded-2xl text-xs font-semibold mb-3"
+                style={{background:'rgba(52,211,153,0.15)', color:'#059669', border:'1px solid rgba(52,211,153,0.3)'}}
+                onClick={() => { setOpenCapsule(null); setWritingLetter(openCapsule); setLetterText(myLetter(openCapsule.key) || '') }}
+              >
+                ✅ Carta escrita · toque para editar
+              </button>
+            )}
+
             {/* Carta de quem está lendo */}
-            {myLetter(openCapsule.key) && (
+            {myLetter(openCapsule.key) && isOpen(openCapsule) && (
               <div className="rounded-2xl p-4 mb-3" style={{background:'rgba(124,58,237,0.2)',border:'1px solid rgba(124,58,237,0.3)'}}>
                 <p className="text-xs font-bold text-violet-700 mb-2">💌 Sua carta</p>
                 <p className="text-sm text-gray-700 leading-relaxed">{myLetter(openCapsule.key)}</p>
@@ -289,7 +312,10 @@ export default function Book() {
           borderColor: open ? 'rgba(52,211,153,0.35)' : '#D8B4C8'
         }}>
         <div className="flex items-center gap-3 p-3 cursor-pointer"
-          onClick={() => open ? setOpenCapsule(d) : null}>
+          onClick={() => {
+            if (open) setOpenCapsule(d)
+            else if (write) { setWritingLetter(d); setLetterText(myLetter(d.key) || '') }
+          }}>
           <span className="text-2xl">{d.icon}</span>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-700">{d.label}</p>
