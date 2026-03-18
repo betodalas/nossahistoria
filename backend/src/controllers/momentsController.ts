@@ -26,23 +26,22 @@ const uploadToCloudinary = (buffer: Buffer, options: object): Promise<any> =>
 
 export const getMoments = async (req: AuthRequest, res: Response) => {
   const { userId } = req
-  let { coupleId } = req
-  // Sempre busca no banco — coupleId do token pode estar desatualizado
-  const rowC = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-  coupleId = rowC.rows[0]?.id
-  if (!coupleId) return res.json([])
   try {
+    // Sempre busca no banco — coupleId do token pode estar desatualizado
+    const rowC = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    const coupleId = rowC.rows[0]?.id
+    if (!coupleId) return res.json([])
+
     const result = await pool.query(
-      `SELECT m.*, 
-        json_agg(json_build_object('userId', p.user_id, 'text', p.text)) FILTER (WHERE p.id IS NOT NULL) as perspectives
+      `SELECT m.*
        FROM moments m
-       LEFT JOIN perspectives p ON p.moment_id = m.id
        WHERE m.couple_id = $1
        ORDER BY m.moment_date ASC`,
       [coupleId]
     )
     res.json(result.rows)
   } catch (err) {
+    console.error('[getMoments]', err)
     res.status(500).json({ error: 'Erro ao buscar momentos' })
   }
 }
