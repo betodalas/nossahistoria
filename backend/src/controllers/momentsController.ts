@@ -27,10 +27,9 @@ const uploadToCloudinary = (buffer: Buffer, options: object): Promise<any> =>
 export const getMoments = async (req: AuthRequest, res: Response) => {
   const { userId } = req
   let { coupleId } = req
-  if (!coupleId) {
-    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-    coupleId = row.rows[0]?.id
-  }
+  // Sempre busca no banco — coupleId do token pode estar desatualizado
+  const rowC = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+  coupleId = rowC.rows[0]?.id
   if (!coupleId) return res.json([])
   try {
     const result = await pool.query(
