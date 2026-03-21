@@ -101,42 +101,49 @@ export default function AddMoment() {
         )}
 
         <div className="mb-4">
-          <label className="text-xs text-white/60 block mb-1">Título *</label>
+          <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Título *</label>
           <input className="input-field" placeholder="Ex: Nosso primeiro jantar" value={title} onChange={e => setTitle(e.target.value)} />
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-white/60 block mb-1">Data</label>
+          <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Data</label>
           <input className="input-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-white/60 block mb-1">Descrição</label>
+          <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Descrição</label>
           <textarea className="input-field resize-none" style={{height:'90px'}}
             placeholder="Conte o que aconteceu..."
             value={description} onChange={e => setDescription(e.target.value)} />
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-white/60 block mb-2">Foto</label>
+          <label className="text-xs block mb-2" style={{color:'#7C4D6B'}}>Foto</label>
           {photoPreview ? (
             <div className="relative">
-              <img src={photoPreview} className="w-full rounded-xl object-contain" style={{maxHeight:'200px', background:'#0f0a1a'}} />
+              <img src={photoPreview} className="w-full rounded-xl object-contain" style={{maxHeight:'200px', background:'#F5E6EA'}} />
               <button onClick={() => { setPhotoPreview(null); setPhotoFile(null) }}
                 className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-sm"
                 style={{background:'rgba(0,0,0,0.7)', color:'white'}}>×</button>
             </div>
           ) : (
-            <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl cursor-pointer text-sm"
-              style={{background:'rgba(255,255,255,0.05)', border:'2px dashed rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.5)'}}>
-              📷 Adicionar foto
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-            </label>
+            <div className="flex gap-2">
+              <label className="flex flex-col items-center justify-center gap-1 flex-1 py-4 rounded-xl cursor-pointer text-xs font-medium"
+                style={{background:'#F5E6EA', border:'2px dashed #C9A0B0', color:'#7C4D6B'}}>
+                🖼️ Galeria
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+              </label>
+              <label className="flex flex-col items-center justify-center gap-1 flex-1 py-4 rounded-xl cursor-pointer text-xs font-medium"
+                style={{background:'#F5E6EA', border:'2px dashed #C9A0B0', color:'#7C4D6B'}}>
+                📷 Câmera
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
+              </label>
+            </div>
           )}
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-white/60 block mb-2">Mensagem de voz</label>
+          <label className="text-xs block mb-2" style={{color:'#7C4D6B'}}>Mensagem de voz</label>
           <VoiceRecorder
             onSave={handleVoiceSave}
             existingAudio={voiceAudioB64 || undefined}
@@ -145,7 +152,7 @@ export default function AddMoment() {
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-white/60 block mb-1">Música do momento</label>
+          <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Música do momento</label>
           <input className="input-field mb-2" placeholder="Nome da música · Ex: Perfect - Ed Sheeran"
             value={musicName} onChange={e => setMusicName(e.target.value)} />
           <input className="input-field" placeholder="Link do Spotify (opcional)"
