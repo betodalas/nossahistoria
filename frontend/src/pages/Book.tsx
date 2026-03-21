@@ -41,12 +41,17 @@ export default function Book() {
   const saveLetter = async () => {
     if (!letterText.trim()) return
     setLetterSaved(true)
+    const key = writingLetter.key
+    const text = letterText
     try {
-      await lettersService.save(writingLetter.key, letterText)
-      const updated = { ...letters, [writingLetter.key]: { text: letterText } }
-      setLetters(updated)
+      await lettersService.save(key, text)
+      setLetters(prev => ({ ...prev, [key]: { text } }))
     } catch {}
-    setTimeout(() => { setLetterSaved(false); setWritingLetter(null); setLetterText('') }, 1500)
+    setTimeout(() => {
+      setLetterSaved(false)
+      setWritingLetter(null)
+      setLetterText('')
+    }, 1500)
   }
 
   const myLetter = (key: string) => letters[key]?.text
