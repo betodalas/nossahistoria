@@ -12,6 +12,7 @@ export default function Book() {
   const [writingLetter, setWritingLetter] = useState<any>(null)
   const [letterText, setLetterText] = useState('')
   const [letterSaved, setLetterSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   // Parse robusto — evita problema de fuso horário (ex: '2026-04-09' virando dia anterior)
   const wedding = couple?.wedding_date
@@ -40,18 +41,22 @@ export default function Book() {
 
   const saveLetter = async () => {
     if (!letterText.trim()) return
-    setLetterSaved(true)
+    setSaveError('')
+    setLetterSaved(false)
     const key = writingLetter.key
     const text = letterText
     try {
       await lettersService.save(key, text)
       setLetters(prev => ({ ...prev, [key]: { text } }))
-    } catch {}
-    setTimeout(() => {
-      setLetterSaved(false)
-      setWritingLetter(null)
-      setLetterText('')
-    }, 1500)
+      setLetterSaved(true)
+      setTimeout(() => {
+        setLetterSaved(false)
+        setWritingLetter(null)
+        setLetterText('')
+      }, 1500)
+    } catch (err: any) {
+      setSaveError('Erro ao salvar. Verifique sua conexão.')
+    }
   }
 
   const myLetter = (key: string) => letters[key]?.text
@@ -166,10 +171,11 @@ export default function Book() {
               value={letterText}
               onChange={e => setLetterText(e.target.value)}
             />
+            {saveError && <p className="text-xs text-red-400 text-center mb-2">{saveError}</p>}
             <button onClick={saveLetter} disabled={!letterText.trim()} className="btn-primary mb-3 disabled:opacity-40">
               {letterSaved ? '✅ Carta salva!' : '💌 Salvar carta secreta'}
             </button>
-            <button onClick={() => { setWritingLetter(null); setLetterText('') }} className="btn-secondary">Cancelar</button>
+            <button onClick={() => { setWritingLetter(null); setLetterText(''); setSaveError('') }} className="btn-secondary">Cancelar</button>
           </div>
         </div>
       )}
