@@ -79,6 +79,34 @@ const migrate = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS letters (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        capsule_key VARCHAR(50) NOT NULL,
+        text TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(couple_id, user_id, capsule_key)
+      );
+
+      CREATE TABLE IF NOT EXISTS guest_posts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        photo_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS storage_purchases (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        extra_mb INTEGER NOT NULL DEFAULT 0,
+        paypal_order_id VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS family_shares (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,

@@ -84,4 +84,17 @@ export const storageService = {
   capture: (orderId: string) => api.post('/storage/capture', { orderId }),
 }
 
+
+// Cartas das cápsulas
+export const lettersService = {
+  getAll: () => api.get('/letters'),
+  save: (capsule_key: string, text: string) => api.post('/letters', { capsule_key, text }),
+}
+
+// Álbum de convidados
+export const guestService = {
+  getAll: () => api.get('/guest-posts'),
+  create: (data: { name: string; message: string; photo?: string | null }) => api.post('/guest-posts', data),
+}
+
 export default api

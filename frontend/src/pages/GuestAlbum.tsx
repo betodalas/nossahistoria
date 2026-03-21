@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
+import { guestService } from '../services/api'
 
 export default function GuestAlbum() {
   const { couple } = useAuth()
@@ -16,7 +17,7 @@ export default function GuestAlbum() {
   const [lightbox, setLightbox] = useState<string | null>(null)
 
   useEffect(() => {
-    setPosts(JSON.parse(localStorage.getItem('guest_posts') || '[]'))
+    guestService.getAll().then(res => setPosts(res.data)).catch(() => {})
   }, [])
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,24 +28,17 @@ export default function GuestAlbum() {
     reader.readAsDataURL(file)
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!name.trim() || !message.trim()) return
     setSending(true)
-    setTimeout(() => {
-      const newPost = {
-        id: Date.now(),
-        name,
-        message,
-        photo,
-        date: new Date().toISOString(),
-      }
-      const updated = [newPost, ...posts]
-      localStorage.setItem('guest_posts', JSON.stringify(updated))
-      setPosts(updated)
+    try {
+      const res = await guestService.create({ name, message, photo })
+      setPosts([res.data, ...posts])
       setName(''); setMessage(''); setPhoto(null)
-      setSending(false); setSent(true)
+      setSent(true)
       setTimeout(() => { setSent(false); setTab('album') }, 2000)
-    }, 800)
+    } catch {}
+    setSending(false)
   }
 
   const albumLink = `${window.location.origin}/album-convidados?casal=${encodeURIComponent(couple?.couple_name || '')}`

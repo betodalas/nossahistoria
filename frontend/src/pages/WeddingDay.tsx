@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { momentsService, lettersService } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -9,9 +10,16 @@ export default function WeddingDay() {
   const [revealedLetter, setRevealedLetter] = useState(false)
   const [currentMoment, setCurrentMoment] = useState(0)
 
-  const moments = JSON.parse(localStorage.getItem('moments') || '[]')
-  const letters = JSON.parse(localStorage.getItem('letters') || '{}')
-  const myLetter = letters['wedding']?.text
+  const [moments, setMoments] = useState<any[]>([])
+  const [myLetter, setMyLetter] = useState<string | null>(null)
+
+  useEffect(() => {
+    momentsService.getAll().then(res => setMoments(res.data)).catch(() => {})
+    lettersService.getAll().then(res => {
+      const w = res.data.find((l: any) => l.capsule_key === 'wedding')
+      if (w) setMyLetter(w.text)
+    }).catch(() => {})
+  }, [])
   const coupleName = couple?.couple_name || 'Vocês dois'
   const weddingDate = couple?.wedding_date
     ? new Date(couple.wedding_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })

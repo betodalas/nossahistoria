@@ -260,6 +260,89 @@ router.delete('/auth/couple/unlink', authMiddleware, async (req: any, res) => {
   }
 })
 
+
+// Cartas das cápsulas
+router.get('/letters', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  try {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
+    const coupleId = row.rows[0]?.id
+    if (!coupleId) return res.json([])
+    const result = await pool.query(
+      'SELECT * FROM letters WHERE couple_id = $1',
+      [coupleId]
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar cartas' })
+  }
+})
+
+router.post('/letters', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { capsule_key, text } = req.body
+  if (!capsule_key || !text) return res.status(400).json({ error: 'Dados obrigatórios' })
+  try {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
+    const coupleId = row.rows[0]?.id
+    if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
+    const result = await pool.query(
+      `INSERT INTO letters (couple_id, user_id, capsule_key, text, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (couple_id, user_id, capsule_key)
+       DO UPDATE SET text = $4, updated_at = NOW()
+       RETURNING *`,
+      [coupleId, req.userId, capsule_key, text]
+    )
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar carta' })
+  }
+})
+
+// Álbum de convidados
+router.get('/guest-posts', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  try {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
+    const coupleId = row.rows[0]?.id
+    if (!coupleId) return res.json([])
+    const result = await pool.query(
+      'SELECT * FROM guest_posts WHERE couple_id = $1 ORDER BY created_at DESC',
+      [coupleId]
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar posts' })
+  }
+})
+
+router.post('/guest-posts', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { v2: cloudinary } = await import('cloudinary')
+  const { name, message, photo } = req.body
+  if (!name || !message) return res.status(400).json({ error: 'Nome e mensagem obrigatórios' })
+  try {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
+    const coupleId = row.rows[0]?.id
+    if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
+    let photo_url = null
+    if (photo) {
+      try {
+        const result = await cloudinary.uploader.upload(photo, { folder: 'nossa-historia/guest' })
+        photo_url = result.secure_url
+      } catch {}
+    }
+    const result = await pool.query(
+      'INSERT INTO guest_posts (couple_id, name, message, photo_url) VALUES ($1, $2, $3, $4) RETURNING *',
+      [coupleId, name, message, photo_url]
+    )
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar mensagem' })
+  }
+})
+
 export default router
 
 // Armazenamento extra

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { momentsService, lettersService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function BookPDF() {
@@ -8,10 +9,19 @@ export default function BookPDF() {
   const [generating, setGenerating] = useState(false)
   const [done, setDone] = useState(false)
 
-  const moments = JSON.parse(localStorage.getItem('moments') || '[]')
-  const allAnswers: Record<string, any> = JSON.parse(localStorage.getItem('daily_answers') || '{}')
-  const guestPosts = JSON.parse(localStorage.getItem('guest_posts') || '[]')
-  const letters = JSON.parse(localStorage.getItem('letters') || '{}')
+  const [moments, setMoments] = useState<any[]>([])
+  const [letters, setLetters] = useState<Record<string,any>>({})
+  const allAnswers: Record<string, any> = {}
+  const guestPosts: any[] = []
+
+  useEffect(() => {
+    momentsService.getAll().then(res => setMoments(res.data)).catch(() => {})
+    lettersService.getAll().then(res => {
+      const map: Record<string,any> = {}
+      res.data.forEach((l: any) => { map[l.capsule_key] = { text: l.text } })
+      setLetters(map)
+    }).catch(() => {})
+  }, [])
 
   const answers = Object.values(allAnswers)
 

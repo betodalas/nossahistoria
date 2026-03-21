@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNow } from '../hooks/useNow'
-import { momentsService } from '../services/api'
+import { momentsService, lettersService } from '../services/api'
 import Layout from '../components/Layout'
 
 export default function Book() {
@@ -23,18 +23,29 @@ export default function Book() {
 
   const [moments, setMoments] = useState<any[]>([])
   const [answers, setAnswers] = useState<any[]>([])
-  const letters = JSON.parse(localStorage.getItem('letters') || '{}')
+  const [letters, setLetters] = useState<Record<string,any>>({})
+
+  useEffect(() => {
+    lettersService.getAll().then(res => {
+      const map: Record<string,any> = {}
+      res.data.forEach((l: any) => { map[l.capsule_key] = { text: l.text } })
+      setLetters(map)
+    }).catch(() => {})
+  }, [])
 
   // Busca momentos reais da API
   useEffect(() => {
     momentsService.getAll().then(res => setMoments(res.data)).catch(() => {})
   }, [])
 
-  const saveLetter = () => {
+  const saveLetter = async () => {
     if (!letterText.trim()) return
-    const updated = { ...letters, [writingLetter.key]: { text: letterText, date: new Date().toISOString() } }
-    localStorage.setItem('letters', JSON.stringify(updated))
     setLetterSaved(true)
+    try {
+      await lettersService.save(writingLetter.key, letterText)
+      const updated = { ...letters, [writingLetter.key]: { text: letterText } }
+      setLetters(updated)
+    } catch {}
     setTimeout(() => { setLetterSaved(false); setWritingLetter(null); setLetterText('') }, 1500)
   }
 
