@@ -28,11 +28,18 @@ export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
     )
 
     const historyResult = await pool.query(
-      `SELECT q.text AS question, qa.answer, qa.user_id, qa.created_at AS date
+      `SELECT
+        q.text AS question,
+        MAX(CASE WHEN qa.user_id = $2 THEN qa.answer END) AS answer,
+        MAX(CASE WHEN qa.user_id != $2 THEN qa.answer END) AS "partnerAnswer",
+        MAX(qa.created_at) AS date,
+        qa.question_id
        FROM question_answers qa
        JOIN questions q ON q.id = qa.question_id
-       WHERE qa.couple_id = $1 AND qa.user_id = $2
-       ORDER BY qa.created_at DESC LIMIT 50`,
+       WHERE qa.couple_id = $1
+       GROUP BY qa.question_id, q.text
+       HAVING MAX(CASE WHEN qa.user_id = $2 THEN qa.answer END) IS NOT NULL
+       ORDER BY date DESC LIMIT 50`,
       [coupleId, userId]
     )
 
