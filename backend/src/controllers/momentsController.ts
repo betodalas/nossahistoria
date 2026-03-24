@@ -179,6 +179,49 @@ export const addPerspective = async (req: AuthRequest, res: Response) => {
   }
 }
 
+
+export const updateMoment = async (req: AuthRequest, res: Response) => {
+  const { userId } = req
+  const { id } = req.params
+  const { title, description, moment_date, music_name, music_link } = req.body
+  try {
+    const rowC = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    const coupleId = rowC.rows[0]?.id
+    if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
+
+    const files = (req as any).files || {}
+    let photo_url = undefined
+
+    if (files.photo?.[0]) {
+      const result = await uploadToCloudinary(files.photo[0].buffer, {
+        folder: 'nossa-historia/photos',
+        resource_type: 'image'
+      })
+      photo_url = result?.secure_url
+    }
+
+    const result = await pool.query(
+      `UPDATE moments SET
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        moment_date = COALESCE($3, moment_date),
+        music_name = COALESCE($4, music_name),
+        music_link = COALESCE($5, music_link)
+        ${photo_url ? ', photo_url = $7' : ''}
+       WHERE id = $6 AND couple_id = ${'$8' if photo_url else '$7'}
+       RETURNING *`,
+      photo_url
+        ? [title, description, moment_date, music_name, music_link, id, photo_url, coupleId]
+        : [title, description, moment_date, music_name, music_link, id, coupleId]
+    )
+    if (!result.rows[0]) return res.status(404).json({ error: 'Momento não encontrado' })
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao atualizar momento' })
+  }
+}
+
 export const deleteMoment = async (req: AuthRequest, res: Response) => {
   const { coupleId } = req
   const { id } = req.params

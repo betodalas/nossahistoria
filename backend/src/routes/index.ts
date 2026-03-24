@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { register, login, googleLogin, createCouple } from '../controllers/authController'
-import { getMoments, createMoment, addPerspective, deleteMoment } from '../controllers/momentsController'
+import { getMoments, createMoment, addPerspective, deleteMoment, updateMoment } from '../controllers/momentsController'
 import { getWeeklyQuestion, answerQuestion, seedQuestions } from '../controllers/questionsController'
 import { createOrder, captureOrder } from '../controllers/paymentController'
 import { authMiddleware } from '../middleware/auth'
@@ -163,6 +163,9 @@ router.post('/moments', authMiddleware, upload.fields([
   { name: 'audio', maxCount: 1 }
 ]), createMoment)
 router.post('/moments/:momentId/perspective', authMiddleware, addPerspective)
+router.put('/moments/:id', authMiddleware, upload.fields([
+  { name: 'photo', maxCount: 1 }
+]), updateMoment)
 router.delete('/moments/:id', authMiddleware, deleteMoment)
 
 // Perguntas

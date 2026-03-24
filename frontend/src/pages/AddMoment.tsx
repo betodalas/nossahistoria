@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { momentsService } from '../services/api'
 import Layout from '../components/Layout'
@@ -8,13 +8,17 @@ import VoiceRecorder from '../components/VoiceRecorder'
 export default function AddMoment() {
   const { isPremium } = useAuth()
   const navigate = useNavigate()
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const location = useLocation()
+  const editMoment = (location.state as any)?.moment || null
+  const isEditing = !!editMoment
+
+  const [title, setTitle] = useState(editMoment?.title || '')
+  const [description, setDescription] = useState(editMoment?.description || '')
+  const [date, setDate] = useState(editMoment?.moment_date?.split('T')[0] || new Date().toISOString().split('T')[0])
+  const [photoPreview, setPhotoPreview] = useState<string | null>(editMoment?.photo_url || null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [musicName, setMusicName] = useState('')
-  const [musicLink, setMusicLink] = useState('')
+  const [musicName, setMusicName] = useState(editMoment?.music_name || '')
+  const [musicLink, setMusicLink] = useState(editMoment?.music_link || '')
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null)
   const [voiceAudioB64, setVoiceAudioB64] = useState('')
   const [voiceDuration, setVoiceDuration] = useState(0)
@@ -59,12 +63,15 @@ export default function AddMoment() {
       if (voiceBlob) formData.append('audio', voiceBlob, 'voice.webm')
       if (voiceDuration) formData.append('voice_duration', String(voiceDuration))
 
-      await momentsService.create(formData)
-      navigate('/dashboard')
+      if (isEditing) {
+        await momentsService.update(editMoment.id, formData)
+      } else {
+        await momentsService.create(formData)
+      }
+      navigate('/timeline')
     } catch (err: any) {
       const status = err?.response?.status
       const msg = err?.response?.data?.message || err?.response?.data?.error || ''
-
       if (status === 401) {
         setError('Sessão expirada. Faça login novamente.')
       } else if (status === 403) {
@@ -81,21 +88,20 @@ export default function AddMoment() {
     }
   }
 
-  // Limite FREE — busca do backend via isPremium, sem depender de contagem local
-  const atLimit = false // o backend retorna 403 com msg quando atingir limite
-
   return (
     <Layout>
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10">
-        <button onClick={() => navigate(-1)} className="text-violet-300 px-3 py-1.5 rounded-lg text-sm"
-          style={{background:'#1e1035'}}>←</button>
-        <h2 className="text-base font-semibold text-white">Novo momento</h2>
+      <div className="flex items-center gap-3 px-4 py-4" style={{borderBottom:'1px solid #E8C4CE'}}>
+        <button onClick={() => navigate(-1)} className="px-3 py-1.5 rounded-lg text-sm"
+          style={{background:'#F5E6EA', color:'#7C4D6B'}}>←</button>
+        <h2 className="text-base font-semibold" style={{color:'#3D1A2A'}}>
+          {isEditing ? 'Editar momento' : 'Novo momento'}
+        </h2>
       </div>
 
       <div className="p-4 pb-8">
         {error && (
           <div className="mb-4 px-3 py-2 rounded-xl text-sm text-center"
-            style={{background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#fca5a5'}}>
+            style={{background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#e53e3e'}}>
             {error}
           </div>
         )}
@@ -161,7 +167,7 @@ export default function AddMoment() {
 
         <button onClick={handleSave} disabled={!title.trim() || saving}
           className="btn-primary disabled:opacity-40 py-4 text-base mt-2">
-          {saving ? '⏳ Salvando na nuvem...' : '💾 Salvar momento'}
+          {saving ? '⏳ Salvando...' : isEditing ? '💾 Salvar alterações' : '💾 Salvar momento'}
         </button>
       </div>
     </Layout>
