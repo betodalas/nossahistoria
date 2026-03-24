@@ -69,7 +69,10 @@ export default function Dashboard() {
             <div className="text-5xl font-extrabold" style={{color:'#7C4D6B'}}>{daysLeft}</div>
             <div className="text-xs mt-1" style={{color:'#9B6B7A'}}>dias para o casamento</div>
             <div className="text-xs mt-1" style={{color:'#9B6B7A'}}>
-              {new Date(couple?.wedding_date || "").toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})}
+              {couple?.wedding_date ? (() => {
+                const [y,m,d] = couple.wedding_date.split('T')[0].split('-').map(Number)
+                return new Date(y, m-1, d).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'})
+              })() : ''}
             </div>
           </div>
         ) : daysLeft === null && (
