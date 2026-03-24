@@ -81,7 +81,6 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: 'Foto muito grande. Máximo permitido: 5 MB.' })
       }
 
-      // Verifica armazenamento total do casal
       const storageUsed = await pool.query(
         'SELECT COALESCE(SUM(photo_size + audio_size), 0) as total FROM moments WHERE couple_id = $1',
         [coupleId]
@@ -150,6 +149,29 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Erro ao criar momento' })
+  }
+}
+
+export const updateMoment = async (req: AuthRequest, res: Response) => {
+  const { coupleId } = req
+  const { id } = req.params
+  const { title, description, moment_date, music_name, music_link } = req.body
+
+  try {
+    const result = await pool.query(
+      `UPDATE moments 
+       SET title = $1, description = $2, moment_date = $3, music_name = $4, music_link = $5
+       WHERE id = $6 AND couple_id = $7
+       RETURNING *`,
+      [title, description, moment_date, music_name, music_link, id, coupleId]
+    )
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Momento não encontrado.' })
+    }
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao atualizar momento' })
   }
 }
 
