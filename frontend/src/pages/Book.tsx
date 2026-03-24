@@ -19,7 +19,12 @@ export default function Book() {
     ? (() => { const [y,m,d] = couple.wedding_date.split('T')[0].split('-').map(Number); return new Date(y, m-1, d) })()
     : null
   const now = useNow()
-  const daysUntil = (d: Date) => Math.ceil((d.getTime() - now) / 86400000)
+  const daysUntil = (d: Date) => {
+    const today = new Date()
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    const targetMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    return Math.round((targetMidnight - todayMidnight) / 86400000)
+  }
   const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   const [moments, setMoments] = useState<any[]>([])

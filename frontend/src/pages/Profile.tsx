@@ -57,7 +57,12 @@ export default function Profile() {
   }
 
   const daysLeft = weddingDate
-    ? Math.ceil((new Date(weddingDate).getTime() - Date.now()) / 86400000)
+    ? (() => {
+      const [y,m,d] = weddingDate.split('T')[0].split('-').map(Number)
+      const target = new Date(y, m-1, d).getTime()
+      const today = new Date(); const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+      return Math.round((target - todayMs) / 86400000)
+    })()
     : null
 
   return (

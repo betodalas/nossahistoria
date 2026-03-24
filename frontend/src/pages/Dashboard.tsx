@@ -15,9 +15,12 @@ export default function Dashboard() {
     questionsService.getCurrent().then(res => setTodayQuestion(res.data?.question?.text || null)).catch(() => {})
   }, [])
 
-  const daysLeft = couple?.wedding_date
-    ? Math.ceil((new Date(couple.wedding_date).getTime() - Date.now()) / 86400000)
-    : null
+  const daysLeft = couple?.wedding_date ? (() => {
+    const [y,m,d] = couple.wedding_date.split('T')[0].split('-').map(Number)
+    const target = new Date(y, m-1, d).getTime()
+    const today = new Date(); const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    return Math.round((target - todayMs) / 86400000)
+  })() : null
   const weddingPassed = daysLeft !== null && daysLeft <= 0
 
   return (
