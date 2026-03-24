@@ -9,7 +9,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-const FREE_MOMENTS_LIMIT = 10
+const FREE_MOMENTS_LIMIT = 5
 const PREMIUM_MOMENTS_LIMIT = 50
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024       // 5 MB
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024      // 10 MB (~2 min webm)
@@ -25,46 +25,31 @@ const uploadToCloudinary = (buffer: Buffer, options: object): Promise<any> =>
   })
 
 export const getMoments = async (req: AuthRequest, res: Response) => {
-  const { userId } = req
+  const { coupleId } = req
+  if (!coupleId) return res.json([])
   try {
-    // Sempre busca no banco — coupleId do token pode estar desatualizado
-    const rowC = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-    const coupleId = rowC.rows[0]?.id
-    if (!coupleId) return res.json([])
-
     const result = await pool.query(
-      `SELECT m.*
+      `SELECT m.*, 
+        json_agg(json_build_object('userId', p.user_id, 'text', p.text)) FILTER (WHERE p.id IS NOT NULL) as perspectives
        FROM moments m
+       LEFT JOIN perspectives p ON p.moment_id = m.id
        WHERE m.couple_id = $1
        ORDER BY m.moment_date ASC`,
       [coupleId]
     )
     res.json(result.rows)
   } catch (err) {
-    console.error('[getMoments]', err)
     res.status(500).json({ error: 'Erro ao buscar momentos' })
   }
 }
 
 export const createMoment = async (req: AuthRequest, res: Response) => {
-  const { userId } = req
-  let { coupleId } = req
+  const { coupleId, userId } = req
   const { title, description, moment_date, music_name, music_link, voice_duration } = req.body
 
-  try {
-    // Sempre busca o casal pelo userId no banco — o coupleId do token pode estar desatualizado
-    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-    coupleId = row.rows[0]?.id
+  if (!coupleId) return res.status(400).json({ error: 'Você precisa vincular um casal antes de adicionar momentos.' })
 
-    // Auto-cria casal solo se não tiver nenhum
-    if (!coupleId) {
-      const { v4: uuidv4 } = await import('uuid')
-      const newCouple = await pool.query(
-        'INSERT INTO couples (user1_id, invite_token) VALUES ($1, $2) RETURNING id',
-        [userId, uuidv4()]
-      )
-      coupleId = newCouple.rows[0].id
-    }
+  try {
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])
     const isPremium = coupleResult.rows[0]?.is_premium
 
@@ -87,12 +72,16 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
     let voice_url = null
     const audioDuration = parseInt(voice_duration || '0')
 
-    // Validação de foto — permitido para todos, só limita tamanho
+    // Validação de foto
     if (files.photo?.[0]) {
+      if (!isPremium) {
+        return res.status(403).json({ error: 'Upload de fotos é exclusivo do plano premium.', isPremium: false })
+      }
       if (files.photo[0].size > MAX_PHOTO_BYTES) {
         return res.status(400).json({ error: 'Foto muito grande. Máximo permitido: 5 MB.' })
       }
 
+      // Verifica armazenamento total do casal
       const storageUsed = await pool.query(
         'SELECT COALESCE(SUM(photo_size + audio_size), 0) as total FROM moments WHERE couple_id = $1',
         [coupleId]
@@ -115,8 +104,11 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
       photo_url = result?.secure_url || null
     }
 
-    // Validação de áudio — permitido para todos, só limita tamanho/duração
+    // Validação de áudio
     if (files.audio?.[0]) {
+      if (!isPremium) {
+        return res.status(403).json({ error: 'Mensagens de voz são exclusivas do plano premium.', isPremium: false })
+      }
       if (files.audio[0].size > MAX_AUDIO_BYTES) {
         return res.status(400).json({ error: 'Áudio muito grande. Máximo: 10 MB.' })
       }
@@ -179,49 +171,6 @@ export const addPerspective = async (req: AuthRequest, res: Response) => {
   }
 }
 
-
-export const updateMoment = async (req: AuthRequest, res: Response) => {
-  const { userId } = req
-  const { id } = req.params
-  const { title, description, moment_date, music_name, music_link } = req.body
-  try {
-    const rowC = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-    const coupleId = rowC.rows[0]?.id
-    if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
-
-    const files = (req as any).files || {}
-    let photo_url = undefined
-
-    if (files.photo?.[0]) {
-      const result = await uploadToCloudinary(files.photo[0].buffer, {
-        folder: 'nossa-historia/photos',
-        resource_type: 'image'
-      })
-      photo_url = result?.secure_url
-    }
-
-    const result = await pool.query(
-      `UPDATE moments SET
-        title = COALESCE($1, title),
-        description = COALESCE($2, description),
-        moment_date = COALESCE($3, moment_date),
-        music_name = COALESCE($4, music_name),
-        music_link = COALESCE($5, music_link)
-        ${photo_url ? ', photo_url = $7' : ''}
-       WHERE id = $6 AND couple_id = ${'$8' if photo_url else '$7'}
-       RETURNING *`,
-      photo_url
-        ? [title, description, moment_date, music_name, music_link, id, photo_url, coupleId]
-        : [title, description, moment_date, music_name, music_link, id, coupleId]
-    )
-    if (!result.rows[0]) return res.status(404).json({ error: 'Momento não encontrado' })
-    res.json(result.rows[0])
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Erro ao atualizar momento' })
-  }
-}
-
 export const deleteMoment = async (req: AuthRequest, res: Response) => {
   const { coupleId } = req
   const { id } = req.params
@@ -232,4 +181,3 @@ export const deleteMoment = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Erro ao deletar momento' })
   }
 }
-
