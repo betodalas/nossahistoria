@@ -48,8 +48,14 @@ const runMigrations = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(user1_id, user2_id)
       );
-      -- Adiciona coluna se já existir tabela sem ela
+      -- Adiciona colunas se já existir tabela sem elas
       ALTER TABLE couples ADD COLUMN IF NOT EXISTS partner_name_manual VARCHAR(100);
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS photo_size INTEGER DEFAULT 0;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS audio_size INTEGER DEFAULT 0;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS music_link TEXT;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_url TEXT;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_duration INTEGER DEFAULT 0;
 
       CREATE TABLE IF NOT EXISTS moments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

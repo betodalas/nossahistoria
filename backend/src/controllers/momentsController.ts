@@ -39,6 +39,7 @@ export const getMoments = async (req: AuthRequest, res: Response) => {
     )
     res.json(result.rows)
   } catch (err) {
+    console.error('[getMoments] Erro ao buscar momentos:', err)
     res.status(500).json({ error: 'Erro ao buscar momentos' })
   }
 }
