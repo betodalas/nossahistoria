@@ -13,6 +13,12 @@ export default function Timeline() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editingMoment, setEditingMoment] = useState<any | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editMusicName, setEditMusicName] = useState('')
+  const [saving, setSaving] = useState(false)
   const { isPremium } = useAuth()
   const navigate = useNavigate()
   const FREE_LIMIT = 5
@@ -48,7 +54,6 @@ export default function Timeline() {
   const handleDelete = async (id: string) => {
     if (!confirm('Apagar este momento? Esta ação não pode ser desfeita.')) return
     setDeleting(id)
-    setMenuOpen(null)
     try {
       await momentsService.delete(id)
       setMoments(prev => prev.filter(m => m.id !== id))
@@ -56,12 +61,36 @@ export default function Timeline() {
       alert('Erro ao apagar momento.')
     } finally {
       setDeleting(null)
+      setMenuOpen(null)
     }
   }
 
-  const handleEdit = (m: any) => {
+  const openEdit = (m: any) => {
+    setEditingMoment(m)
+    setEditTitle(m.title)
+    setEditDescription(m.description || '')
+    setEditDate(m.moment_date?.split('T')[0] || '')
+    setEditMusicName(m.music_name || '')
     setMenuOpen(null)
-    navigate('/novo-momento', { state: { moment: m } })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim() || !editingMoment) return
+    setSaving(true)
+    try {
+      const res = await momentsService.update(editingMoment.id, {
+        title: editTitle,
+        description: editDescription,
+        moment_date: editDate,
+        music_name: editMusicName,
+      })
+      setMoments(prev => prev.map(m => m.id === editingMoment.id ? { ...m, ...res.data } : m))
+      setEditingMoment(null)
+    } catch {
+      alert('Erro ao salvar edição.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -76,9 +105,43 @@ export default function Timeline() {
         </div>
       )}
 
-      {/* Menu overlay */}
+      {/* Modal editar */}
+      {editingMoment && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.6)'}}>
+          <div className="w-full max-w-md rounded-t-3xl p-6" style={{background:'#FFF0F3'}}>
+            <h3 className="text-base font-bold mb-4" style={{color:'#3D1A2A'}}>✏️ Editar momento</h3>
+
+            <div className="mb-3">
+              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Título *</label>
+              <input className="input-field" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Data</label>
+              <input className="input-field" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Descrição</label>
+              <textarea className="input-field resize-none" style={{height:'80px'}}
+                value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+            </div>
+            <div className="mb-4">
+              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Música</label>
+              <input className="input-field" placeholder="Nome da música"
+                value={editMusicName} onChange={e => setEditMusicName(e.target.value)} />
+            </div>
+
+            <button onClick={handleSaveEdit} disabled={!editTitle.trim() || saving}
+              className="btn-primary mb-3 disabled:opacity-40">
+              {saving ? '⏳ Salvando...' : '💾 Salvar alterações'}
+            </button>
+            <button onClick={() => setEditingMoment(null)} className="btn-secondary">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay fechar menu */}
       {menuOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(null)} />
+        <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(null)} />
       )}
 
       <div className="flex items-center justify-between px-4 py-4" style={{borderBottom:'1px solid #E8C4CE'}}>
@@ -93,7 +156,9 @@ export default function Timeline() {
           <div className="text-center py-12">
             <div className="text-4xl mb-3">⚠️</div>
             <p className="text-sm mb-3" style={{color:'#9B6B7A'}}>{error}</p>
-            <button onClick={loadMoments} className="btn-primary max-w-xs mx-auto text-sm">Tentar novamente</button>
+            <button onClick={loadMoments} className="btn-primary max-w-xs mx-auto text-sm">
+              Tentar novamente
+            </button>
           </div>
         ) : moments.length === 0 ? (
           <div className="text-center py-12">
@@ -110,8 +175,7 @@ export default function Timeline() {
               <div key={m.id} className="relative mb-4">
                 <div className="absolute -left-7 top-2 w-4 h-4 rounded-full"
                   style={{background:'linear-gradient(135deg,#E8C4CE,#C9A0B0)', border:'2px solid #FFF0F3'}} />
-                <div className="rounded-2xl p-4" style={{background:'white', border:'1px solid #E8C4CE',
-                  opacity: deleting === m.id ? 0.4 : 1}}>
+                <div className="rounded-2xl p-4" style={{background:'white', border:'1px solid #E8C4CE'}}>
 
                   {/* Header com menu */}
                   <div className="flex items-start justify-between">
@@ -119,23 +183,26 @@ export default function Timeline() {
                       <p className="text-xs" style={{color:'#9B6B7A'}}>{formatDate(m.moment_date)}</p>
                       <p className="text-sm font-semibold mt-1" style={{color:'#3D1A2A'}}>{m.title}</p>
                     </div>
-                    <div className="relative">
+                    <div className="relative z-40">
                       <button
                         onClick={() => setMenuOpen(menuOpen === m.id ? null : m.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-full text-lg"
-                        style={{color:'#C9A0B0'}}>⋯</button>
+                        className="w-8 h-8 flex items-center justify-center rounded-full ml-2"
+                        style={{color:'#C9A0B0', fontSize:'18px', lineHeight:1}}>
+                        ⋯
+                      </button>
                       {menuOpen === m.id && (
-                        <div className="absolute right-0 top-9 z-50 rounded-xl shadow-lg overflow-hidden"
+                        <div className="absolute right-0 top-9 rounded-xl shadow-lg overflow-hidden z-50"
                           style={{background:'white', border:'1px solid #E8C4CE', minWidth:'140px'}}>
-                          <button onClick={() => handleEdit(m)}
-                            className="w-full px-4 py-3 text-left text-sm flex items-center gap-2"
-                            style={{color:'#3D1A2A', borderBottom:'1px solid #F5E6EA'}}>
+                          <button onClick={() => openEdit(m)}
+                            className="w-full text-left px-4 py-3 text-sm flex items-center gap-2"
+                            style={{color:'#3D1A2A'}}>
                             ✏️ Editar
                           </button>
                           <button onClick={() => handleDelete(m.id)}
-                            className="w-full px-4 py-3 text-left text-sm flex items-center gap-2"
-                            style={{color:'#e53e3e'}}>
-                            🗑️ Apagar
+                            disabled={deleting === m.id}
+                            className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 border-t"
+                            style={{color:'#e11d48', borderColor:'#E8C4CE'}}>
+                            {deleting === m.id ? '⏳ Apagando...' : '🗑️ Apagar'}
                           </button>
                         </div>
                       )}

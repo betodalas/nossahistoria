@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { register, login, googleLogin, createCouple } from '../controllers/authController'
-import { getMoments, createMoment, addPerspective, deleteMoment, updateMoment } from '../controllers/momentsController'
+import { getMoments, createMoment, addPerspective, deleteMoment } from '../controllers/momentsController'
 import { getWeeklyQuestion, answerQuestion, seedQuestions } from '../controllers/questionsController'
 import { createOrder, captureOrder } from '../controllers/paymentController'
 import { authMiddleware } from '../middleware/auth'
@@ -163,9 +163,32 @@ router.post('/moments', authMiddleware, upload.fields([
   { name: 'audio', maxCount: 1 }
 ]), createMoment)
 router.post('/moments/:momentId/perspective', authMiddleware, addPerspective)
-router.put('/moments/:id', authMiddleware, upload.fields([
-  { name: 'photo', maxCount: 1 }
-]), updateMoment)
+router.put('/moments/:id', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { id } = req.params
+  const { title, description, moment_date, music_name, music_link } = req.body
+  const userId = req.userId
+  try {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    const coupleId = row.rows[0]?.id
+    if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
+    const result = await pool.query(
+      `UPDATE moments SET
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        moment_date = COALESCE($3::date, moment_date),
+        music_name = $4,
+        music_link = $5
+       WHERE id = $6 AND couple_id = $7 RETURNING *`,
+      [title, description, moment_date, music_name || null, music_link || null, id, coupleId]
+    )
+    if (!result.rows[0]) return res.status(404).json({ error: 'Momento não encontrado' })
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Erro ao editar momento' })
+  }
+})
 router.delete('/moments/:id', authMiddleware, deleteMoment)
 
 // Perguntas
