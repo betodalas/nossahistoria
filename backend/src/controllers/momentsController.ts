@@ -34,6 +34,7 @@ export const getMoments = async (req: AuthRequest, res: Response) => {
        FROM moments m
        LEFT JOIN perspectives p ON p.moment_id = m.id
        WHERE m.couple_id = $1
+       GROUP BY m.id
        ORDER BY m.moment_date ASC`,
       [coupleId]
     )
