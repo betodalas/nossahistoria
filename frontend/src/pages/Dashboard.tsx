@@ -89,7 +89,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           {[
             { n: momentCount, l: 'momentos' },
-            { n: isPremium ? '∞' : `${momentCount}/5`, l: isPremium ? 'premium ✨' : 'grátis' },
+            { n: isPremium ? '∞' : `${momentCount}/10`, l: isPremium ? 'premium ✨' : 'grátis' },
             { n: '💜', l: 'juntos' }
           ].map(s => (
             <div key={s.l} className="rounded-xl p-3 text-center"
