@@ -13,12 +13,6 @@ export default function Timeline() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [editingMoment, setEditingMoment] = useState<any | null>(null)
-  const [editTitle, setEditTitle] = useState('')
-  const [editDescription, setEditDescription] = useState('')
-  const [editDate, setEditDate] = useState('')
-  const [editMusicName, setEditMusicName] = useState('')
-  const [saving, setSaving] = useState(false)
   const { isPremium } = useAuth()
   const navigate = useNavigate()
   const FREE_LIMIT = 5
@@ -66,31 +60,8 @@ export default function Timeline() {
   }
 
   const openEdit = (m: any) => {
-    setEditingMoment(m)
-    setEditTitle(m.title)
-    setEditDescription(m.description || '')
-    setEditDate(m.moment_date?.split('T')[0] || '')
-    setEditMusicName(m.music_name || '')
     setMenuOpen(null)
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editTitle.trim() || !editingMoment) return
-    setSaving(true)
-    try {
-      const res = await momentsService.update(editingMoment.id, {
-        title: editTitle,
-        description: editDescription,
-        moment_date: editDate,
-        music_name: editMusicName,
-      })
-      setMoments(prev => prev.map(m => m.id === editingMoment.id ? { ...m, ...res.data } : m))
-      setEditingMoment(null)
-    } catch {
-      alert('Erro ao salvar edição.')
-    } finally {
-      setSaving(false)
-    }
+    navigate('/novo-momento', { state: { moment: m } })
   }
 
   return (
@@ -102,40 +73,6 @@ export default function Timeline() {
           <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" />
           <button className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-xl"
             style={{background:'rgba(255,255,255,0.2)', color:'#3D1A2A'}} onClick={() => setLightbox(null)}>×</button>
-        </div>
-      )}
-
-      {/* Modal editar */}
-      {editingMoment && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.6)'}}>
-          <div className="w-full max-w-md rounded-t-3xl p-6" style={{background:'#FFF0F3'}}>
-            <h3 className="text-base font-bold mb-4" style={{color:'#3D1A2A'}}>✏️ Editar momento</h3>
-
-            <div className="mb-3">
-              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Título *</label>
-              <input className="input-field" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
-            </div>
-            <div className="mb-3">
-              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Data</label>
-              <input className="input-field" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
-            </div>
-            <div className="mb-3">
-              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Descrição</label>
-              <textarea className="input-field resize-none" style={{height:'80px'}}
-                value={editDescription} onChange={e => setEditDescription(e.target.value)} />
-            </div>
-            <div className="mb-4">
-              <label className="text-xs block mb-1" style={{color:'#7C4D6B'}}>Música</label>
-              <input className="input-field" placeholder="Nome da música"
-                value={editMusicName} onChange={e => setEditMusicName(e.target.value)} />
-            </div>
-
-            <button onClick={handleSaveEdit} disabled={!editTitle.trim() || saving}
-              className="btn-primary mb-3 disabled:opacity-40">
-              {saving ? '⏳ Salvando...' : '💾 Salvar alterações'}
-            </button>
-            <button onClick={() => setEditingMoment(null)} className="btn-secondary">Cancelar</button>
-          </div>
         </div>
       )}
 

@@ -52,7 +52,9 @@ export const momentsService = {
   addPerspective: (momentId: string, text: string) =>
     api.post(`/moments/${momentId}/perspective`, { text }),
   delete: (id: string) => api.delete(`/moments/${id}`),
-  update: (id: string, data: any) => api.put(`/moments/${id}`, data),
+  update: (id: string, data: FormData) => api.put(`/moments/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 }
 
 // Perguntas

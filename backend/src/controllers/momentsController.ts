@@ -157,22 +157,83 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
 export const updateMoment = async (req: AuthRequest, res: Response) => {
   const { coupleId } = req
   const { id } = req.params
-  const { title, description, moment_date, music_name, music_link } = req.body
+  const { title, description, moment_date, music_name, music_link, voice_duration } = req.body
 
   try {
-    const result = await pool.query(
-      `UPDATE moments 
-       SET title = $1, description = $2, moment_date = $3, music_name = $4, music_link = $5
-       WHERE id = $6 AND couple_id = $7
-       RETURNING *`,
-      [title, description, moment_date, music_name, music_link, id, coupleId]
+    // Verifica se o momento pertence ao casal
+    const existing = await pool.query(
+      'SELECT * FROM moments WHERE id = $1 AND couple_id = $2',
+      [id, coupleId]
     )
-    if (result.rows.length === 0) {
+    if (existing.rows.length === 0) {
       return res.status(404).json({ error: 'Momento não encontrado.' })
     }
+    const moment = existing.rows[0]
+
+    const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])
+    const isPremium = coupleResult.rows[0]?.is_premium
+
+    const files = (req as any).files || {}
+    let photo_url = moment.photo_url
+    let voice_url = moment.voice_url
+    const audioDuration = parseInt(voice_duration || String(moment.voice_duration || 0))
+
+    // Troca de foto
+    if (files.photo?.[0]) {
+      if (!isPremium) {
+        return res.status(403).json({ error: 'Upload de fotos é exclusivo do plano premium.', isPremium: false })
+      }
+      if (files.photo[0].size > MAX_PHOTO_BYTES) {
+        return res.status(400).json({ error: 'Foto muito grande. Máximo permitido: 5 MB.' })
+      }
+      const result = await uploadToCloudinary(files.photo[0].buffer, {
+        folder: 'nossa-historia/photos',
+        resource_type: 'image'
+      })
+      photo_url = result?.secure_url || photo_url
+    }
+
+    // Troca de áudio
+    if (files.audio?.[0]) {
+      if (!isPremium) {
+        return res.status(403).json({ error: 'Mensagens de voz são exclusivas do plano premium.', isPremium: false })
+      }
+      if (files.audio[0].size > MAX_AUDIO_BYTES) {
+        return res.status(400).json({ error: 'Áudio muito grande. Máximo: 10 MB.' })
+      }
+      if (audioDuration > MAX_AUDIO_DURATION) {
+        return res.status(400).json({ error: 'Áudio muito longo. Máximo: 2 minutos.' })
+      }
+      const result = await uploadToCloudinary(files.audio[0].buffer, {
+        folder: 'nossa-historia/audios',
+        resource_type: 'video'
+      })
+      voice_url = result?.secure_url || voice_url
+    }
+
+    const photoSize = files.photo?.[0]?.size || moment.photo_size || 0
+    const audioSize = files.audio?.[0]?.size || moment.audio_size || 0
+
+    const result = await pool.query(
+      `UPDATE moments 
+       SET title = COALESCE($1, title),
+           description = COALESCE($2, description),
+           moment_date = COALESCE($3::date, moment_date),
+           music_name = $4,
+           music_link = $5,
+           photo_url = $6,
+           voice_url = $7,
+           voice_duration = $8,
+           photo_size = $9,
+           audio_size = $10
+       WHERE id = $11 AND couple_id = $12
+       RETURNING *`,
+      [title, description, moment_date, music_name || null, music_link || null,
+       photo_url, voice_url, audioDuration, photoSize, audioSize, id, coupleId]
+    )
     res.json(result.rows[0])
   } catch (err) {
-    console.error(err)
+    console.error('[updateMoment]', err)
     res.status(500).json({ error: 'Erro ao atualizar momento' })
   }
 }
