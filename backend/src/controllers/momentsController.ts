@@ -9,8 +9,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-const FREE_MOMENTS_LIMIT = 5
-const PREMIUM_MOMENTS_LIMIT = 50
+const FREE_MOMENTS_LIMIT = 10
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024       // 5 MB
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024      // 10 MB (~2 min webm)
 const MAX_AUDIO_DURATION = 120                 // 2 minutos em segundos
@@ -55,16 +54,13 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
     const coupleResult = await pool.query('SELECT is_premium FROM couples WHERE id = $1', [coupleId])
     const isPremium = coupleResult.rows[0]?.is_premium
 
-    // Limite de momentos
+    // Limite de momentos (só para free)
     const count = await pool.query('SELECT COUNT(*) FROM moments WHERE couple_id = $1', [coupleId])
     const momentCount = parseInt(count.rows[0].count)
-    const limit = isPremium ? PREMIUM_MOMENTS_LIMIT : FREE_MOMENTS_LIMIT
 
-    if (momentCount >= limit) {
+    if (!isPremium && momentCount >= FREE_MOMENTS_LIMIT) {
       return res.status(403).json({
-        error: isPremium
-          ? `Limite de ${PREMIUM_MOMENTS_LIMIT} momentos atingido.`
-          : `Plano gratuito permite até ${FREE_MOMENTS_LIMIT} momentos. Faça upgrade para premium!`,
+        error: `Plano gratuito permite até ${FREE_MOMENTS_LIMIT} momentos. Faça upgrade para premium!`,
         isPremium
       })
     }
@@ -74,11 +70,8 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
     let voice_url = null
     const audioDuration = parseInt(voice_duration || '0')
 
-    // Validação de foto
+    // Validação de foto (disponível para free e premium)
     if (files.photo?.[0]) {
-      if (!isPremium) {
-        return res.status(403).json({ error: 'Upload de fotos é exclusivo do plano premium.', isPremium: false })
-      }
       if (files.photo[0].size > MAX_PHOTO_BYTES) {
         return res.status(400).json({ error: 'Foto muito grande. Máximo permitido: 5 MB.' })
       }
@@ -178,11 +171,8 @@ export const updateMoment = async (req: AuthRequest, res: Response) => {
     let voice_url = moment.voice_url
     const audioDuration = parseInt(voice_duration || String(moment.voice_duration || 0))
 
-    // Troca de foto
+    // Troca de foto (disponível para free e premium)
     if (files.photo?.[0]) {
-      if (!isPremium) {
-        return res.status(403).json({ error: 'Upload de fotos é exclusivo do plano premium.', isPremium: false })
-      }
       if (files.photo[0].size > MAX_PHOTO_BYTES) {
         return res.status(400).json({ error: 'Foto muito grande. Máximo permitido: 5 MB.' })
       }
