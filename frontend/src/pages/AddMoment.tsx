@@ -6,7 +6,8 @@ import Layout from '../components/Layout'
 import VoiceRecorder from '../components/VoiceRecorder'
 
 export default function AddMoment() {
-  const { isPremium } = useAuth()
+  const { isPremium, couple } = useAuth()
+  const bothRegistered = !!(couple?.user1_id && couple?.user2_id)
   const navigate = useNavigate()
   const location = useLocation()
   const editMoment = (location.state as any)?.moment || null
@@ -99,6 +100,12 @@ export default function AddMoment() {
       </div>
 
       <div className="p-4 pb-8">
+        {!bothRegistered && (
+          <div className="mb-4 px-4 py-3 rounded-xl text-sm text-center"
+            style={{background:"rgba(124,58,237,0.08)", border:"1px solid rgba(124,58,237,0.25)", color:"#7c3aed"}}>
+            💑 Os dois precisam estar cadastrados para postar na timeline
+          </div>
+        )}
         {error && (
           <div className="mb-4 px-3 py-2 rounded-xl text-sm text-center"
             style={{background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#e53e3e'}}>
@@ -165,7 +172,7 @@ export default function AddMoment() {
             value={musicLink} onChange={e => setMusicLink(e.target.value)} />
         </div>
 
-        <button onClick={handleSave} disabled={!title.trim() || saving}
+        <button onClick={handleSave} disabled={!title.trim() || saving || !bothRegistered}
           className="btn-primary disabled:opacity-40 py-4 text-base mt-2">
           {saving ? '⏳ Salvando...' : isEditing ? '💾 Salvar alterações' : '💾 Salvar momento'}
         </button>

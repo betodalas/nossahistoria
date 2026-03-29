@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/api'
 
 export default function Register() {
@@ -9,7 +8,7 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [pendingEmail, setPendingEmail] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,12 +16,13 @@ export default function Register() {
     setError('')
     setLoading(true)
     try {
-      await authService.register({ name, email, password })
-      await login(email, password)
-      // Verifica se tem convite pendente
-      const pending = localStorage.getItem('pending_invite')
-      if (pending) { localStorage.removeItem('pending_invite'); navigate(`/convite/${pending}`) }
-      else navigate('/dashboard')
+      const res = await authService.register({ name, email, password })
+      if (res.data?.requiresVerification) {
+        setPendingEmail(email)
+      } else {
+        // fallback caso o backend não exija verificação
+        navigate('/dashboard')
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Erro ao criar conta.')
     } finally {
@@ -31,6 +31,31 @@ export default function Register() {
   }
 
   const labelStyle = { fontSize: '12px', color: '#9B6B7A', display: 'block', marginBottom: '4px' }
+
+  // Tela de "confirme seu email"
+  if (pendingEmail) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#FFF0F3' }}>
+        <div className="w-full max-w-sm text-center">
+          <div className="text-6xl mb-4">📬</div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: '#3D1A2A' }}>Confirme seu e-mail</h2>
+          <p className="text-sm mb-1" style={{ color: '#7C4D6B' }}>
+            Enviamos um link de confirmação para:
+          </p>
+          <p className="text-sm font-semibold mb-4" style={{ color: '#3D1A2A' }}>{pendingEmail}</p>
+          <p className="text-xs mb-6" style={{ color: '#9B6B7A' }}>
+            Clique no link do e-mail para ativar sua conta e então faça login no app.
+          </p>
+          <Link to="/login">
+            <button className="btn-primary mb-3">Ir para o login</button>
+          </Link>
+          <p className="text-xs" style={{ color: '#9B6B7A' }}>
+            Não recebeu? Verifique sua pasta de spam.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FFF0F3' }}>

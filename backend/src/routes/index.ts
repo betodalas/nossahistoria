@@ -156,6 +156,34 @@ router.post('/auth/invite/accept', authMiddleware, async (req: any, res) => {
   }
 })
 
+
+// Confirmação de e-mail
+router.get('/auth/verify-email', async (req, res) => {
+  const { pool } = await import('../utils/db')
+  const { token } = req.query
+  if (!token) return res.status(400).send('Token inválido.')
+  try {
+    const result = await pool.query(
+      `UPDATE users SET email_verified = TRUE, email_verify_token = NULL
+       WHERE email_verify_token = $1 AND email_verified = FALSE
+       RETURNING name, email`,
+      [token]
+    )
+    if (!result.rows[0]) {
+      return res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Nossa História</title>
+        <style>body{background:#0f0a1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{color:#f87171}p{color:#9ca3af;margin-top:8px}</style></head>
+        <body><div><div style="font-size:48px">⚠️</div><h1>Link inválido ou já utilizado</h1><p>Este link de confirmação não é mais válido.</p></div></body></html>`)
+    }
+    const { name } = result.rows[0]
+    res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Nossa História</title>
+      <style>body{background:#0f0a1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{color:#c084fc}p{color:#9ca3af;margin-top:8px}.btn{display:inline-block;margin-top:24px;background:linear-gradient(135deg,#7c3aed,#be185d);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold}</style></head>
+      <body><div><div style="font-size:48px">✅</div><h1>E-mail confirmado!</h1><p>Olá, ${name}! Sua conta está ativa.<br>Agora é só entrar no app e começar a sua história.</p><a class="btn" href="nossahistoria://login">Abrir o app</a></div></body></html>`)
+  } catch (err) {
+    console.error(err)
+    res.status(500).send('Erro ao confirmar e-mail.')
+  }
+})
+
 // Momentos — aceita foto e áudio
 router.get('/moments', authMiddleware, getMoments)
 router.post('/moments', authMiddleware, upload.fields([

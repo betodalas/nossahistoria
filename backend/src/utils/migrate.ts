@@ -12,6 +12,8 @@ const migrate = async () => {
         email VARCHAR(150) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         avatar_url TEXT,
+        email_verified BOOLEAN DEFAULT TRUE,
+        email_verify_token VARCHAR(100),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
@@ -117,6 +119,12 @@ const migrate = async () => {
       );
     `)
 
+
+    // Adiciona colunas de verificação de email se não existirem
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(100);
+    `).catch(() => {})
     await client.query('COMMIT')
     console.log('✅ Migrations executadas com sucesso!')
   } catch (err) {
