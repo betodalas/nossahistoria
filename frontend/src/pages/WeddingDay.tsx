@@ -22,7 +22,11 @@ export default function WeddingDay() {
   }, [])
   const coupleName = couple?.couple_name || 'Vocês dois'
   const weddingDate = couple?.wedding_date
-    ? new Date(couple.wedding_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? (() => {
+        const [y, m, d] = couple.wedding_date.split('T')[0].split('-').map(Number)
+        return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+      })()
+    : null
     : 'hoje'
 
   return (

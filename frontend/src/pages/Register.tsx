@@ -6,6 +6,7 @@ export default function Register() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [pendingEmail, setPendingEmail] = useState('')
@@ -14,6 +15,10 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.')
+      return
+    }
     setLoading(true)
     try {
       const res = await authService.register({ name, email, password })
@@ -82,9 +87,13 @@ export default function Register() {
           <label style={labelStyle}>E-mail *</label>
           <input className="input-field" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
         </div>
-        <div className="mb-6">
+        <div className="mb-3">
           <label style={labelStyle}>Senha *</label>
           <input className="input-field" type="password" placeholder="mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+        </div>
+        <div className="mb-6">
+          <label style={labelStyle}>Confirmar senha *</label>
+          <input className="input-field" type="password" placeholder="repita a senha" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={6} />
         </div>
 
         <button type="submit" disabled={loading} className="btn-primary mb-3 disabled:opacity-60">

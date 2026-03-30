@@ -22,7 +22,10 @@ export default function Splash() {
 
   const coupleName = couple?.couple_name || null
   const weddingDate = couple?.wedding_date
-    ? new Date(couple.wedding_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? (() => {
+        const [y, m, d] = couple.wedding_date.split('T')[0].split('-').map(Number)
+        return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      })()
     : null
 
   return (
