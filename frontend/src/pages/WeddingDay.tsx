@@ -27,7 +27,6 @@ export default function WeddingDay() {
         return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
       })()
     : null
-    : 'hoje'
 
   return (
     <div className="min-h-screen flex flex-col" style={{background:'linear-gradient(160deg,#0f0a1a,#1a0535,#2d1060)'}}>
