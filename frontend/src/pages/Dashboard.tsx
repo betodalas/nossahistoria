@@ -30,7 +30,7 @@ export default function Dashboard() {
         style={{background:'linear-gradient(135deg, #FADADD, #E8C4CE)'}}>
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs mb-0.5" style={{color:'#9B6B7A'}}>Bem-vinda,</p>
+            <p className="text-xs mb-0.5" style={{color:'#9B6B7A'}}>Bem-vindos,</p>
             <h1 className="text-lg font-bold" style={{color:'#3D1A2A'}}>
               {couple?.couple_name || user?.name} 💍
             </h1>

@@ -62,6 +62,7 @@ export const questionsService = {
   getCurrent: () => api.get('/questions/current'),
   answer: (questionId: string, answer: string) =>
     api.post('/questions/answer', { questionId, answer }),
+  getAnswerCount: () => api.get('/questions/answer-count'),
 }
 
 // Pagamento

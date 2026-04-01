@@ -198,6 +198,24 @@ router.put('/moments/:id', authMiddleware, upload.fields([
 router.delete('/moments/:id', authMiddleware, deleteMoment)
 
 // Perguntas
+
+// Conta quantas perguntas o usuário já respondeu
+router.get('/questions/answer-count', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  try {
+    const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
+    const coupleId = row.rows[0]?.id
+    if (!coupleId) return res.json({ count: 0 })
+    const result = await pool.query(
+      'SELECT COUNT(*) FROM question_answers WHERE couple_id = $1 AND user_id = $2',
+      [coupleId, req.userId]
+    )
+    res.json({ count: parseInt(result.rows[0].count) })
+  } catch (err) {
+    res.status(500).json({ count: 0 })
+  }
+})
+
 router.get('/questions/current', authMiddleware, getWeeklyQuestion)
 router.post('/questions/answer', authMiddleware, answerQuestion)
 router.post('/questions/seed', seedQuestions)

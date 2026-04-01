@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNow } from '../hooks/useNow'
-import { momentsService, lettersService } from '../services/api'
+import { momentsService, lettersService, questionsService } from '../services/api'
 import Layout from '../components/Layout'
 
 export default function Book() {
@@ -42,6 +42,7 @@ export default function Book() {
   // Busca momentos reais da API
   useEffect(() => {
     momentsService.getAll().then(res => setMoments(res.data)).catch(() => {})
+    questionsService.getAnswerCount().then(res => setAnswers(Array(res.data.count).fill(null))).catch(() => {})
   }, [])
 
   const saveLetter = async () => {
