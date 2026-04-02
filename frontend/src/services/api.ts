@@ -25,6 +25,7 @@ api.interceptors.response.use(
 
 // Auth
 export const authService = {
+  deleteAccount: () => api.delete('/auth/account'),
   register: (data: { name: string; email: string; password: string }) =>
     api.post('/auth/register', data),
   login: (data: { email: string; password: string }) =>

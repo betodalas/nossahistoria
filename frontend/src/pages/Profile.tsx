@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/api'
 
 export default function Profile() {
-  const { user, couple, saveCouple, refreshCouple } = useAuth()
+  const { user, couple, saveCouple, refreshCouple, logout } = useAuth()
   const navigate = useNavigate()
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
@@ -14,6 +14,9 @@ export default function Profile() {
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +56,19 @@ export default function Profile() {
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await authService.deleteAccount()
+      logout()
+      navigate('/login')
+    } catch (err: any) {
+      setDeleteError(err?.response?.data?.error || 'Erro ao cancelar conta. Tente novamente.')
+      setDeleting(false)
     }
   }
 
@@ -129,7 +145,53 @@ export default function Profile() {
           {saving ? 'Salvando...' : '✅ Salvar e voltar'}
         </button>
 
+        <div className="mt-6 pt-6" style={{borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="w-full py-3 rounded-2xl text-sm font-semibold"
+            style={{background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', color:'#f87171'}}
+          >
+            🗑️ Cancelar minha conta
+          </button>
+        </div>
+
       </form>
+
+      {/* Modal de confirmação de cancelamento */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{background:'rgba(0,0,0,0.85)'}}>
+          <div className="w-full max-w-sm rounded-3xl p-6 text-center" style={{background:'#1a1030', border:'1px solid rgba(239,68,68,0.3)'}}>
+            <div className="text-5xl mb-4">⚠️</div>
+            <h2 className="text-lg font-bold text-white mb-2">Cancelar conta</h2>
+            <p className="text-sm mb-1" style={{color:'rgba(255,255,255,0.6)'}}>
+              Isso vai apagar permanentemente:
+            </p>
+            <p className="text-xs mb-5" style={{color:'rgba(255,255,255,0.4)'}}>
+              todos os seus momentos, cartas, respostas e dados do casal. Esta ação não pode ser desfeita.
+            </p>
+            {deleteError && (
+              <p className="text-xs text-red-400 mb-3">{deleteError}</p>
+            )}
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="w-full py-3 rounded-2xl text-sm font-bold mb-3 disabled:opacity-50"
+              style={{background:'linear-gradient(135deg,#dc2626,#b91c1c)', color:'white'}}
+            >
+              {deleting ? 'Cancelando...' : '🗑️ Sim, cancelar minha conta'}
+            </button>
+            <button
+              onClick={() => { setShowDeleteModal(false); setDeleteError('') }}
+              className="w-full py-2 rounded-2xl text-sm"
+              style={{background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.6)'}}
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

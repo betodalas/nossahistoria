@@ -1,0 +1,75 @@
+{
+    "nodegroup": {
+        "nodegroupName": "cluster-prod-addons-arm",
+        "nodegroupArn": "arn:aws:eks:sa-east-1:954892448664:nodegroup/cluster-prod/cluster-prod-addons-arm/42c7e327-f7f5-b0f9-a55a-0c14869e3dda",
+        "clusterName": "cluster-prod",
+        "version": "1.34",
+        "releaseVersion": "1.55.0-d93bb1b1",
+        "createdAt": "2024-05-29T18:44:42.428000-03:00",
+        "modifiedAt": "2026-04-01T17:45:34.274000-03:00",
+        "status": "ACTIVE",
+        "capacityType": "ON_DEMAND",
+        "scalingConfig": {
+            "minSize": 3,
+            "maxSize": 3,
+            "desiredSize": 3
+        },
+        "instanceTypes": [
+            "m6g.large"
+        ],
+        "subnets": [
+            "subnet-0b21d364a23edc32a",
+            "subnet-05639199aa95fb6a2",
+            "subnet-0ed087657346a47f2"
+        ],
+        "amiType": "BOTTLEROCKET_ARM_64",
+        "nodeRole": "arn:aws:iam::954892448664:role/eks-cluster-prod-node-karpenter",
+        "labels": {
+            "lifecycle": "ondemand",
+            "environment": "prod",
+            "nodegroup": "addons"
+        },
+        "taints": [
+            {
+                "key": "CriticalAddonsOnly",
+                "effect": "NO_SCHEDULE"
+            }
+        ],
+        "resources": {
+            "autoScalingGroups": [
+                {
+                    "name": "eks-cluster-prod-addons-arm-42c7e327-f7f5-b0f9-a55a-0c14869e3dda"
+                }
+            ]
+        },
+        "health": {
+            "issues": []
+        },
+        "updateConfig": {
+            "maxUnavailablePercentage": 33
+        },
+        "launchTemplate": {
+            "name": "cluster-prod-addons-arm-eks-node-group-20240529214438332700000003",
+            "version": "2",
+            "id": "lt-0f6250ca6caaf304a"
+        },
+        "tags": {
+            "managed_by": "terraform",
+            "runtime": "eks",
+            "iac": "terraform",
+            "sensitive": "no",
+            "repository": "recargapay-platform",
+            "Name": "cluster-prod-addons-arm",
+            "lifecycle": "on_demand",
+            "data_classification": "internal",
+            "environment": "prod",
+            "squad": "org_tribe_infrastructure_squad_platform",
+            "compliance": "no",
+            "service": "eks",
+            "tribe": "org_tribe_infrastructure",
+            "GithubPath": "live/prod/services/eks/cluster-core",
+            "account": "recargapay-core",
+            "runtime_type": "eks"
+        }
+    }
+}
