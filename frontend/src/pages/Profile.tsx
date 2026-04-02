@@ -164,12 +164,25 @@ export default function Profile() {
           <div className="w-full max-w-sm rounded-3xl p-6 text-center" style={{background:'#1a1030', border:'1px solid rgba(239,68,68,0.3)'}}>
             <div className="text-5xl mb-4">⚠️</div>
             <h2 className="text-lg font-bold text-white mb-2">Cancelar conta</h2>
-            <p className="text-sm mb-1" style={{color:'rgba(255,255,255,0.6)'}}>
-              Isso vai apagar permanentemente:
-            </p>
-            <p className="text-xs mb-5" style={{color:'rgba(255,255,255,0.4)'}}>
-              todos os seus momentos, cartas, respostas e dados do casal. Esta ação não pode ser desfeita.
-            </p>
+            {user && couple?.user1_id === user.id ? (
+              <>
+                <p className="text-sm mb-1" style={{color:'rgba(255,255,255,0.6)'}}>
+                  Você é o criador do casal. Isso vai apagar permanentemente:
+                </p>
+                <p className="text-xs mb-5" style={{color:'rgba(255,255,255,0.4)'}}>
+                  todos os momentos, cartas, perguntas e dados do casal — para você e seu parceiro(a). Esta ação não pode ser desfeita.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm mb-1" style={{color:'rgba(255,255,255,0.6)'}}>
+                  Você vai sair do casal. Isso vai apagar:
+                </p>
+                <p className="text-xs mb-5" style={{color:'rgba(255,255,255,0.4)'}}>
+                  apenas a sua conta. Os momentos e a história do casal continuam intactos para seu parceiro(a).
+                </p>
+              </>
+            )}
             {deleteError && (
               <p className="text-xs text-red-400 mb-3">{deleteError}</p>
             )}
