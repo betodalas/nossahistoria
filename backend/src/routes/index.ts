@@ -190,8 +190,6 @@ router.delete('/auth/account', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const userId = req.userId
   try {
-    // Remove o casal se o usuário for user1 (criador)
-    // Se for user2, apenas desvincula
     const coupleRow = await pool.query(
       'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
       [userId]
@@ -199,14 +197,24 @@ router.delete('/auth/account', authMiddleware, async (req: any, res) => {
     const couple = coupleRow.rows[0]
     if (couple) {
       if (couple.user1_id === userId) {
-        // Criador do casal — deleta tudo em cascata
+        // Criador — deleta o casal inteiro (momentos somem em cascata)
         await pool.query('DELETE FROM couples WHERE id = $1', [couple.id])
       } else {
-        // Parceiro — só desvincula
-        await pool.query('UPDATE couples SET user2_id = NULL WHERE id = $1', [couple.id])
+        // Convidado — apenas desvincula do casal, momentos e histórico ficam intactos
+        // Usa SET NULL para não disparar cascade no user2_id
+        await pool.query(
+          'UPDATE couples SET user2_id = NULL WHERE id = $1',
+          [couple.id]
+        )
+        // Mantém os momentos criados por ele (apenas desassocia o autor)
+        await pool.query(
+          'UPDATE moments SET created_by = NULL WHERE created_by = $1',
+          [userId]
+        )
       }
     }
-    // Deleta o usuário
+    // Deleta o usuário — user2_id já foi removido do casal,
+    // então o CASCADE em couples não dispara
     await pool.query('DELETE FROM users WHERE id = $1', [userId])
     res.json({ success: true })
   } catch (err) {

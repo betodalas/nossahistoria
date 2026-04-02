@@ -20,7 +20,7 @@ const migrate = async () => {
       CREATE TABLE IF NOT EXISTS couples (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user1_id UUID REFERENCES users(id) ON DELETE CASCADE,
-        user2_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        user2_id UUID REFERENCES users(id) ON DELETE SET NULL,
         wedding_date DATE,
         couple_name VARCHAR(100),
         is_premium BOOLEAN DEFAULT FALSE,
@@ -124,6 +124,13 @@ const migrate = async () => {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(100);
+    `).catch(() => {})
+
+    // Corrige FK do user2_id para SET NULL (convidado pode sair sem apagar o casal)
+    await client.query(`
+      ALTER TABLE couples DROP CONSTRAINT IF EXISTS couples_user2_id_fkey;
+      ALTER TABLE couples ADD CONSTRAINT couples_user2_id_fkey
+        FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE SET NULL;
     `).catch(() => {})
     await client.query('COMMIT')
     console.log('✅ Migrations executadas com sucesso!')
