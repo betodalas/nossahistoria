@@ -9,8 +9,20 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3001
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean) as string[]
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error(`CORS bloqueado: ${origin}`))
+    }
+  },
   credentials: true
 }))
 app.use(express.json())
@@ -161,6 +173,8 @@ const runMigrations = async () => {
     client.release()
   }
 }
+
+
 
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`)
