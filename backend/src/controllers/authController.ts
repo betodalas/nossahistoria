@@ -201,7 +201,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
         [user.id, token, expiresAt]
       )
 
-      const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
+      const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria-xtjq.onrender.com'
       const resetLink = `${frontendUrl}/redefinir-senha?token=${token}`
 
       console.log('[RESET EMAIL] Tentando enviar para:', email)

@@ -1,6 +1,0 @@
-{
-    "clusters": [
-        "cluster-prod",
-        "cluster-staging"
-    ]
-}
