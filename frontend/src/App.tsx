@@ -5,6 +5,8 @@ import { useEffect } from 'react'
 import { App as CapApp } from '@capacitor/app'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Timeline from './pages/Timeline'
 import AddMoment from './pages/AddMoment'
@@ -21,17 +23,12 @@ import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
 
-// Captura deep links nossahistoria://convite/TOKEN
 function DeepLinkHandler() {
   const navigate = useNavigate()
   useEffect(() => {
     const handler = CapApp.addListener('appUrlOpen', (data) => {
-      const url = data.url
-      // nossahistoria://convite/TOKEN
-      const match = url.match(/nossahistoria:\/\/convite\/(.+)/)
-      if (match) {
-        navigate(`/convite/${match[1]}`)
-      }
+      const match = data.url.match(/nossahistoria:\/\/convite\/(.+)/)
+      if (match) navigate(`/convite/${match[1]}`)
     })
     return () => { handler.then(h => h.remove()) }
   }, [])
@@ -41,23 +38,18 @@ function DeepLinkHandler() {
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{background:'#0f0a1a'}}>
-      <div className="text-white/40 text-sm">Carregando...</div>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFF0F3' }}>
+      <div style={{ color: '#C9A0B0', fontSize: '14px' }}>Carregando...</div>
     </div>
   )
   return user ? children : <Navigate to="/login" />
 }
 
-// Rota raiz: sempre mostra Splash primeiro, que depois redireciona
 const RootRoute = () => {
   const { user, loading } = useAuth()
-  // Enquanto carrega, mostra Splash
   if (loading) return <Splash />
-  // Se já passou pela splash nesta sessão, vai direto
   const splashShown = sessionStorage.getItem('splash_shown')
-  if (splashShown) {
-    return user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
-  }
+  if (splashShown) return user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
   return <Splash />
 }
 
@@ -71,6 +63,8 @@ function App() {
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
+            <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/linha-do-tempo" element={<PrivateRoute><Timeline /></PrivateRoute>} />
             <Route path="/novo-momento" element={<PrivateRoute><AddMoment /></PrivateRoute>} />

@@ -42,20 +42,28 @@ export const authService = {
     api.post('/auth/invite', { partnerEmail }, { timeout: 30000 }),
   acceptInvite: (token: string) =>
     api.post('/auth/invite/accept', { token }),
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) =>
+    api.post('/auth/reset-password', { token, password }),
 }
 
 // Momentos
 export const momentsService = {
   getAll: () => api.get('/moments'),
-  create: (data: FormData) => api.post('/moments', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  create: (data: FormData, onUploadProgress?: (e: any) => void) =>
+    api.post('/moments', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress,
+    }),
   addPerspective: (momentId: string, text: string) =>
     api.post(`/moments/${momentId}/perspective`, { text }),
   delete: (id: string) => api.delete(`/moments/${id}`),
-  update: (id: string, data: FormData) => api.put(`/moments/${id}`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  update: (id: string, data: FormData, onUploadProgress?: (e: any) => void) =>
+    api.put(`/moments/${id}`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress,
+    }),
 }
 
 // Perguntas
@@ -88,7 +96,6 @@ export const storageService = {
   createOrder: () => api.post('/storage/create-order'),
   capture: (orderId: string) => api.post('/storage/capture', { orderId }),
 }
-
 
 // Cartas das cápsulas
 export const lettersService = {

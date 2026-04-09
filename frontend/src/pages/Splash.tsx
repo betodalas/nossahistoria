@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { parseDate } from '../utils/dateUtils'
+
+const MIN_SPLASH_MS = 1200
 
 export default function Splash() {
   const { user, couple, loading } = useAuth()
@@ -8,24 +11,27 @@ export default function Splash() {
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
+    const startMs = Date.now()
+
     if (loading) return
+
+    const elapsed = Date.now() - startMs
+    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed)
+
     const timer = setTimeout(() => {
       setVisible(false)
       setTimeout(() => {
         sessionStorage.setItem('splash_shown', '1')
-        if (user) navigate('/dashboard')
-        else navigate('/login')
-      }, 600)
-    }, 2800)
+        navigate(user ? '/dashboard' : '/login')
+      }, 400)
+    }, remaining)
+
     return () => clearTimeout(timer)
   }, [loading, user])
 
   const coupleName = couple?.couple_name || null
   const weddingDate = couple?.wedding_date
-    ? (() => {
-        const [y, m, d] = couple.wedding_date.split('T')[0].split('-').map(Number)
-        return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      })()
+    ? parseDate(couple.wedding_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : null
 
   return (
@@ -33,21 +39,18 @@ export default function Splash() {
       position: 'fixed', inset: 0, zIndex: 9999,
       background: 'linear-gradient(160deg, #FFF0F3 0%, #FADADD 40%, #F2C8D4 100%)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      transition: 'opacity 0.6s ease',
+      transition: 'opacity 0.4s ease',
       opacity: visible ? 1 : 0,
       pointerEvents: visible ? 'all' : 'none',
     }}>
-      {/* Pétalas */}
       <Petals />
 
-      {/* Alianças */}
       <div style={{ position: 'relative', width: 180, height: 120, marginBottom: 8, animation: 'fadeUp 0.9s ease both' }}>
         <Heart />
         <Ring side="left" />
         <Ring side="right" />
       </div>
 
-      {/* Título */}
       <h1 style={{
         fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 300,
         fontSize: 40, color: '#3D1A2A', margin: '0 0 6px 0', letterSpacing: '0.02em',
@@ -66,7 +69,6 @@ export default function Splash() {
         cada momento importa
       </p>
 
-      {/* Loading dots */}
       <div style={{ display: 'flex', gap: 8, animation: 'fadeUp 0.9s 0.8s ease both', opacity: 0, animationFillMode: 'forwards' }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{
@@ -76,7 +78,6 @@ export default function Splash() {
         ))}
       </div>
 
-      {/* Nome do casal dinâmico */}
       {coupleName && (
         <p style={{
           position: 'absolute', bottom: 48,

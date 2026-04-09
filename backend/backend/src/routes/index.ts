@@ -1,12 +1,5 @@
 import { Router } from 'express'
-import {
-  register,
-  login,
-  googleLogin,
-  createCouple,
-  forgotPassword,
-  resetPassword,
-} from '../controllers/authController'
+import { register, login, googleLogin, createCouple } from '../controllers/authController'
 import { getMoments, createMoment, addPerspective, deleteMoment, updateMoment } from '../controllers/momentsController'
 import { getWeeklyQuestion, answerQuestion, seedQuestions } from '../controllers/questionsController'
 import { createOrder, captureOrder } from '../controllers/paymentController'
@@ -16,14 +9,13 @@ import multer from 'multer'
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage() })
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// Auth
 router.post('/auth/register', register)
 router.post('/auth/login', login)
 router.post('/auth/google', googleLogin)
-router.post('/auth/forgot-password', forgotPassword)
-router.post('/auth/reset-password', resetPassword)
 router.post('/auth/couple', authMiddleware, createCouple)
 
+// Atualiza dados do casal existente (nome, data casamento)
 router.put('/auth/couple', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const { v4: uuidv4 } = await import('uuid')
@@ -34,6 +26,7 @@ router.put('/auth/couple', authMiddleware, async (req: any, res) => {
       'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1',
       [userId]
     )
+    // Se não tem casal, cria um solo (sem parceiro) para salvar os dados
     if (!coupleResult.rows[0]) {
       const inviteToken = uuidv4()
       coupleResult = await pool.query(
@@ -52,6 +45,7 @@ router.put('/auth/couple', authMiddleware, async (req: any, res) => {
        WHERE id = $3 RETURNING *`,
       [weddingDate || null, coupleName || null, couple.id, partnerName || null]
     )
+    // Se tem parceiro real, atualiza o nome dele também
     if (partnerName) {
       const partnerId = couple.user1_id === userId ? couple.user2_id : couple.user1_id
       if (partnerId) {
@@ -72,6 +66,7 @@ router.get('/auth/me', authMiddleware, async (req: any, res) => {
       'SELECT id, name, email, avatar_url FROM users WHERE id = $1',
       [req.userId]
     )
+    // Busca casal pelo userId — não depende do coupleId no token
     const coupleResult = await pool.query(
       `SELECT c.*,
         COALESCE(
@@ -92,6 +87,7 @@ router.get('/auth/me', authMiddleware, async (req: any, res) => {
   }
 })
 
+// Envia convite por email para o parceiro
 router.post('/auth/invite', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const { v4: uuidv4 } = await import('uuid')
@@ -102,6 +98,7 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
     const userResult = await pool.query('SELECT name FROM users WHERE id = $1', [req.userId])
     const fromName = userResult.rows[0]?.name || 'Seu amor'
 
+    // Busca ou cria casal para pegar o invite_token
     let coupleResult = await pool.query(
       'SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
       [req.userId]
@@ -114,12 +111,16 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
       )
     }
     const couple = coupleResult.rows[0]
-    const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
-    const inviteLink = `${frontendUrl}/convite/${couple.invite_token}`
+    const baseUrl = 'https://nossahistoria-xtjq.onrender.com/api'
+    const inviteLink = `${baseUrl}/convite/${couple.invite_token}`
 
+    // Retorna o link imediatamente
     res.json({ success: true, inviteLink, emailSent: true })
 
+    // Envia email em background
     sendInviteEmail({ toEmail: partnerEmail, fromName, coupleName: couple.couple_name || '', inviteLink })
+      .then(() => console.log(`[INVITE] Email enviado para ${partnerEmail}`))
+      .catch((err: any) => console.error('[INVITE] Email falhou:', err?.message))
       .then(() => console.log(`[INVITE] Email enviado para ${partnerEmail}`))
       .catch((err: any) => console.error('[INVITE] Email falhou:', err?.message))
   } catch (err: any) {
@@ -128,6 +129,7 @@ router.post('/auth/invite', authMiddleware, async (req: any, res) => {
   }
 })
 
+// Aceitar convite pelo token
 router.post('/auth/invite/accept', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const { token } = req.body
@@ -142,6 +144,7 @@ router.post('/auth/invite/accept', authMiddleware, async (req: any, res) => {
     if (couple.user1_id === req.userId || couple.user2_id === req.userId) {
       return res.status(400).json({ error: 'Você já faz parte deste casal' })
     }
+    // Vincula o segundo usuário ao casal
     const updated = await pool.query(
       'UPDATE couples SET user2_id = $1 WHERE id = $2 AND user2_id IS NULL RETURNING *',
       [req.userId, couple.id]
@@ -153,6 +156,8 @@ router.post('/auth/invite/accept', authMiddleware, async (req: any, res) => {
   }
 })
 
+
+// Confirmação de e-mail
 router.get('/auth/verify-email', async (req, res) => {
   const { pool } = await import('../utils/db')
   const { token } = req.query
@@ -166,20 +171,21 @@ router.get('/auth/verify-email', async (req, res) => {
     )
     if (!result.rows[0]) {
       return res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Nossa História</title>
-        <style>body{background:#FFF0F3;color:#3D1A2A;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{color:#e53e3e}p{color:#9B6B7A;margin-top:8px}</style></head>
+        <style>body{background:#0f0a1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{color:#f87171}p{color:#9ca3af;margin-top:8px}</style></head>
         <body><div><div style="font-size:48px">⚠️</div><h1>Link inválido ou já utilizado</h1><p>Este link de confirmação não é mais válido.</p></div></body></html>`)
     }
     const { name } = result.rows[0]
-    const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
     res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Nossa História</title>
-      <style>body{background:#FFF0F3;color:#3D1A2A;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{color:#7C4D6B}p{color:#9B6B7A;margin-top:8px}.btn{display:inline-block;margin-top:24px;background:linear-gradient(135deg,#C9A0B0,#7C4D6B);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold}</style></head>
-      <body><div><div style="font-size:48px">✅</div><h1>E-mail confirmado!</h1><p>Olá, ${name}! Sua conta está ativa.<br>Agora é só entrar no app e começar a sua história.</p><a class="btn" href="${frontendUrl}/login">Abrir o app</a></div></body></html>`)
+      <style>body{background:#0f0a1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px}h1{color:#c084fc}p{color:#9ca3af;margin-top:8px}.btn{display:inline-block;margin-top:24px;background:linear-gradient(135deg,#7c3aed,#be185d);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:bold}</style></head>
+      <body><div><div style="font-size:48px">✅</div><h1>E-mail confirmado!</h1><p>Olá, ${name}! Sua conta está ativa.<br>Agora é só entrar no app e começar a sua história.</p><a class="btn" href="nossahistoria://login">Abrir o app</a></div></body></html>`)
   } catch (err) {
     console.error(err)
     res.status(500).send('Erro ao confirmar e-mail.')
   }
 })
 
+
+// Cancelar/deletar conta do usuário
 router.delete('/auth/account', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const userId = req.userId
@@ -191,12 +197,24 @@ router.delete('/auth/account', authMiddleware, async (req: any, res) => {
     const couple = coupleRow.rows[0]
     if (couple) {
       if (couple.user1_id === userId) {
+        // Criador — deleta o casal inteiro (momentos somem em cascata)
         await pool.query('DELETE FROM couples WHERE id = $1', [couple.id])
       } else {
-        await pool.query('UPDATE couples SET user2_id = NULL WHERE id = $1', [couple.id])
-        await pool.query('UPDATE moments SET created_by = NULL WHERE created_by = $1', [userId])
+        // Convidado — apenas desvincula do casal, momentos e histórico ficam intactos
+        // Usa SET NULL para não disparar cascade no user2_id
+        await pool.query(
+          'UPDATE couples SET user2_id = NULL WHERE id = $1',
+          [couple.id]
+        )
+        // Mantém os momentos criados por ele (apenas desassocia o autor)
+        await pool.query(
+          'UPDATE moments SET created_by = NULL WHERE created_by = $1',
+          [userId]
+        )
       }
     }
+    // Deleta o usuário — user2_id já foi removido do casal,
+    // então o CASCADE em couples não dispara
     await pool.query('DELETE FROM users WHERE id = $1', [userId])
     res.json({ success: true })
   } catch (err) {
@@ -205,38 +223,22 @@ router.delete('/auth/account', authMiddleware, async (req: any, res) => {
   }
 })
 
-router.delete('/auth/couple/unlink', authMiddleware, async (req: any, res) => {
-  const { pool } = await import('../utils/db')
-  const { userId } = req
-  try {
-    const row = await pool.query('SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
-    if (!row.rows[0]) return res.status(404).json({ error: 'Casal não encontrado' })
-    const couple = row.rows[0]
-    const { v4: uuidv4 } = await import('uuid')
-    await pool.query(
-      'UPDATE couples SET user2_id = NULL, invite_token = $1 WHERE id = $2',
-      [uuidv4(), couple.id]
-    )
-    res.json({ success: true, message: 'Parceiro desvinculado' })
-  } catch (err) {
-    res.status(500).json({ error: 'Erro ao desvincular' })
-  }
-})
-
-// ─── Momentos ─────────────────────────────────────────────────────────────────
+// Momentos — aceita foto e áudio
 router.get('/moments', authMiddleware, getMoments)
 router.post('/moments', authMiddleware, upload.fields([
   { name: 'photo', maxCount: 1 },
-  { name: 'audio', maxCount: 1 },
+  { name: 'audio', maxCount: 1 }
 ]), createMoment)
 router.post('/moments/:momentId/perspective', authMiddleware, addPerspective)
 router.put('/moments/:id', authMiddleware, upload.fields([
   { name: 'photo', maxCount: 1 },
-  { name: 'audio', maxCount: 1 },
+  { name: 'audio', maxCount: 1 }
 ]), updateMoment)
 router.delete('/moments/:id', authMiddleware, deleteMoment)
 
-// ─── Perguntas ────────────────────────────────────────────────────────────────
+// Perguntas
+
+// Conta quantas perguntas o usuário já respondeu
 router.get('/questions/answer-count', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   try {
@@ -255,21 +257,13 @@ router.get('/questions/answer-count', authMiddleware, async (req: any, res) => {
 
 router.get('/questions/current', authMiddleware, getWeeklyQuestion)
 router.post('/questions/answer', authMiddleware, answerQuestion)
+router.post('/questions/seed', seedQuestions)
 
-// Seed protegido — apenas admins via ADMIN_SECRET no header
-router.post('/questions/seed', async (req, res) => {
-  const secret = req.headers['x-admin-secret']
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Acesso negado' })
-  }
-  return seedQuestions(req as any, res)
-})
-
-// ─── Pagamento ────────────────────────────────────────────────────────────────
+// Pagamento PayPal
 router.post('/payment/create-order', authMiddleware, createOrder)
 router.post('/payment/capture', authMiddleware, captureOrder)
 
-// ─── Unlock dates ─────────────────────────────────────────────────────────────
+// Unlock dates
 router.get('/unlock-dates', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const result = await pool.query(
@@ -279,7 +273,7 @@ router.get('/unlock-dates', authMiddleware, async (req: any, res) => {
   res.json(result.rows)
 })
 
-// ─── Família ──────────────────────────────────────────────────────────────────
+// Compartilhar com família
 router.post('/family/share', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const { v4: uuidv4 } = await import('uuid')
@@ -291,15 +285,13 @@ router.post('/family/share', authMiddleware, async (req: any, res) => {
     'INSERT INTO family_shares (couple_id, email, token, expires_at) VALUES ($1, $2, $3, $4)',
     [req.coupleId, email, token, expires]
   )
-  const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
-  const shareUrl = `${frontendUrl}/familia/${token}`
+  const shareUrl = `${process.env.FRONTEND_URL}/familia/${token}`
   res.json({ shareUrl, token })
 })
 
-// ─── Deep link convite ────────────────────────────────────────────────────────
+// Página de redirecionamento do convite — abre o app via deep link
 router.get('/convite/:token', (req, res) => {
   const { token } = req.params
-  const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
   const deepLink = `nossahistoria://convite/${token}`
   const playstoreLink = 'https://play.google.com/store/apps/details?id=com.nossahistoria.app'
 
@@ -311,12 +303,12 @@ router.get('/convite/:token', (req, res) => {
   <title>Nossa História — Aceitar convite</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #FFF0F3; color: #3D1A2A; font-family: sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+    body { background: #0f0a1a; color: white; font-family: sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
     .icon { font-size: 64px; margin-bottom: 16px; }
-    h1 { font-size: 24px; margin-bottom: 8px; color: #7C4D6B; }
-    p { color: #9B6B7A; font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
-    .btn { display: block; background: linear-gradient(135deg,#C9A0B0,#7C4D6B); color: white; padding: 16px 32px; border-radius: 16px; text-decoration: none; font-weight: bold; font-size: 16px; margin-bottom: 16px; }
-    .btn-secondary { display: block; color: #9B6B7A; font-size: 13px; text-decoration: underline; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #c084fc; }
+    p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
+    .btn { display: block; background: linear-gradient(135deg,#7c3aed,#be185d); color: white; padding: 16px 32px; border-radius: 16px; text-decoration: none; font-weight: bold; font-size: 16px; margin-bottom: 16px; }
+    .btn-secondary { display: block; color: rgba(255,255,255,0.5); font-size: 13px; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -326,20 +318,49 @@ router.get('/convite/:token', (req, res) => {
   <a class="btn" href="${deepLink}" id="openApp">💌 Abrir no app</a>
   <a class="btn-secondary" href="${playstoreLink}">Não tem o app? Baixar na Play Store</a>
   <script>
+    // Tenta abrir o app automaticamente
     window.location.href = "${deepLink}";
+    // Se não abrir em 2s, mostra o botão
+    setTimeout(() => {
+      document.getElementById('openApp').style.display = 'block';
+    }, 2000);
   </script>
 </body>
 </html>`)
 })
 
-// ─── Cartas ───────────────────────────────────────────────────────────────────
+// Desvincular parceiro do casal (para testes)
+router.delete('/auth/couple/unlink', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { userId } = req
+  try {
+    const row = await pool.query('SELECT * FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [userId])
+    if (!row.rows[0]) return res.status(404).json({ error: 'Casal não encontrado' })
+    const couple = row.rows[0]
+    // Remove o parceiro (user2) e gera novo invite_token
+    const { v4: uuidv4 } = await import('uuid')
+    await pool.query(
+      'UPDATE couples SET user2_id = NULL, invite_token = $1 WHERE id = $2',
+      [uuidv4(), couple.id]
+    )
+    res.json({ success: true, message: 'Parceiro desvinculado' })
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao desvincular' })
+  }
+})
+
+
+// Cartas das cápsulas
 router.get('/letters', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   try {
     const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
     const coupleId = row.rows[0]?.id
     if (!coupleId) return res.json([])
-    const result = await pool.query('SELECT * FROM letters WHERE couple_id = $1', [coupleId])
+    const result = await pool.query(
+      'SELECT * FROM letters WHERE couple_id = $1',
+      [coupleId]
+    )
     res.json(result.rows)
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar cartas' })
@@ -368,7 +389,7 @@ router.post('/letters', authMiddleware, async (req: any, res) => {
   }
 })
 
-// ─── Álbum de convidados ──────────────────────────────────────────────────────
+// Álbum de convidados
 router.get('/guest-posts', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   try {
@@ -411,10 +432,10 @@ router.post('/guest-posts', authMiddleware, async (req: any, res) => {
   }
 })
 
-// ─── Armazenamento ────────────────────────────────────────────────────────────
+export default router
+
+// Armazenamento extra
 import { getStorageInfo, createStorageOrder, captureStorageOrder } from '../controllers/storageController'
 router.get('/storage', authMiddleware, getStorageInfo)
 router.post('/storage/create-order', authMiddleware, createStorageOrder)
 router.post('/storage/capture', authMiddleware, captureStorageOrder)
-
-export default router

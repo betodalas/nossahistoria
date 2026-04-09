@@ -1,1 +1,8 @@
 android/app/release/
+
+# Arquivos de infraestrutura (nunca commitar)
+ec2_instances.txt
+eks_nodes.json
+eks_clusters.json
+k8s_resources.txt
+*.bak

@@ -117,28 +117,21 @@ const migrate = async () => {
         expires_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-
-      CREATE TABLE IF NOT EXISTS password_reset_tokens (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-        token VARCHAR(100) UNIQUE NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        used BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
     `)
 
+
+    // Adiciona colunas de verificação de email se não existirem
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(100);
     `).catch(() => {})
 
+    // Corrige FK do user2_id para SET NULL (convidado pode sair sem apagar o casal)
     await client.query(`
       ALTER TABLE couples DROP CONSTRAINT IF EXISTS couples_user2_id_fkey;
       ALTER TABLE couples ADD CONSTRAINT couples_user2_id_fkey
         FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE SET NULL;
     `).catch(() => {})
-
     await client.query('COMMIT')
     console.log('✅ Migrations executadas com sucesso!')
   } catch (err) {

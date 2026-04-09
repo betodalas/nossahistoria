@@ -54,11 +54,18 @@ export default function Login() {
             <input className="input-field" type="email" placeholder="seu@email.com"
               value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
-          <div className="mb-5">
+          <div className="mb-1">
             <label style={labelStyle}>Senha</label>
             <input className="input-field" type="password" placeholder="sua senha"
               value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
+
+          <div className="flex justify-end mb-5">
+            <Link to="/esqueci-senha" className="text-xs" style={{ color: '#9B6B7A', textDecoration: 'underline' }}>
+              Esqueci minha senha
+            </Link>
+          </div>
+
           <button type="submit" disabled={loading} className="btn-primary mb-3 disabled:opacity-60">
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
