@@ -10,29 +10,30 @@ const app = express()
 const PORT = process.env.PORT || 3001
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://localhost',
+  'capacitor://localhost',
+  'http://localhost',
+  'https://nossahistoria-olive.vercel.app',
+  process.env.FRONTEND_URL,
 ].filter(Boolean) as string[]
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      callback(new Error(`CORS bloqueado: ${origin}`))
-    }
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    if (origin.endsWith('.vercel.app')) return callback(null, true)
+    callback(new Error(`CORS bloqueado: ${origin}`))
   },
-  credentials: true
+  credentials: true,
 }))
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-
 app.use('/api', routes)
-
 app.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date() }))
 
-// Roda migration automaticamente ao iniciar
 const runMigrations = async () => {
   const client = await pool.connect()
   try {
@@ -43,13 +44,14 @@ const runMigrations = async () => {
         email VARCHAR(150) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         avatar_url TEXT,
+        email_verified BOOLEAN DEFAULT TRUE,
+        email_verify_token VARCHAR(100),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-
       CREATE TABLE IF NOT EXISTS couples (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user1_id UUID REFERENCES users(id) ON DELETE CASCADE,
-        user2_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        user2_id UUID REFERENCES users(id) ON DELETE SET NULL,
         wedding_date DATE,
         couple_name VARCHAR(100),
         partner_name_manual VARCHAR(100),
@@ -60,15 +62,6 @@ const runMigrations = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(user1_id, user2_id)
       );
-      -- Adiciona colunas se já existir tabela sem elas
-      ALTER TABLE couples ADD COLUMN IF NOT EXISTS partner_name_manual VARCHAR(100);
-      ALTER TABLE moments ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
-      ALTER TABLE moments ADD COLUMN IF NOT EXISTS photo_size INTEGER DEFAULT 0;
-      ALTER TABLE moments ADD COLUMN IF NOT EXISTS audio_size INTEGER DEFAULT 0;
-      ALTER TABLE moments ADD COLUMN IF NOT EXISTS music_link TEXT;
-      ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_url TEXT;
-      ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_duration INTEGER DEFAULT 0;
-
       CREATE TABLE IF NOT EXISTS moments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
@@ -76,16 +69,15 @@ const runMigrations = async () => {
         description TEXT,
         moment_date DATE NOT NULL,
         music_name VARCHAR(150),
+        music_link TEXT,
         photo_url TEXT,
         voice_url TEXT,
         voice_duration INTEGER DEFAULT 0,
         photo_size INTEGER DEFAULT 0,
         audio_size INTEGER DEFAULT 0,
-        music_link TEXT,
         created_by UUID REFERENCES users(id),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-
       CREATE TABLE IF NOT EXISTS perspectives (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         moment_id UUID REFERENCES moments(id) ON DELETE CASCADE,
@@ -94,7 +86,6 @@ const runMigrations = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(moment_id, user_id)
       );
-
       CREATE TABLE IF NOT EXISTS questions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         text TEXT NOT NULL,
@@ -102,7 +93,6 @@ const runMigrations = async () => {
         is_premium BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-
       CREATE TABLE IF NOT EXISTS question_answers (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         question_id UUID REFERENCES questions(id) ON DELETE CASCADE,
@@ -113,7 +103,6 @@ const runMigrations = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(question_id, user_id)
       );
-
       CREATE TABLE IF NOT EXISTS unlock_dates (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
@@ -123,16 +112,31 @@ const runMigrations = async () => {
         is_unlocked BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-
+      CREATE TABLE IF NOT EXISTS letters (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        capsule_key VARCHAR(50) NOT NULL,
+        text TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(couple_id, user_id, capsule_key)
+      );
+      CREATE TABLE IF NOT EXISTS guest_posts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        photo_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
       CREATE TABLE IF NOT EXISTS storage_purchases (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
-        extra_mb INTEGER NOT NULL,
-        paypal_order_id VARCHAR(255) UNIQUE,
-        price_paid DECIMAL(10,2),
+        extra_mb INTEGER NOT NULL DEFAULT 0,
+        paypal_order_id VARCHAR(255),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-
       CREATE TABLE IF NOT EXISTS family_shares (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
@@ -141,10 +145,35 @@ const runMigrations = async () => {
         expires_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        token VARCHAR(100) UNIQUE NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `)
+
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(100);
+      ALTER TABLE couples ADD COLUMN IF NOT EXISTS partner_name_manual VARCHAR(100);
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS photo_size INTEGER DEFAULT 0;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS audio_size INTEGER DEFAULT 0;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS music_link TEXT;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_url TEXT;
+      ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_duration INTEGER DEFAULT 0;
+    `).catch(() => {})
+
+    // Libera todos os usuários existentes para logar
+    await client.query(`
+      UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE;
+    `).catch(() => {})
+
     console.log('✅ Migrations OK')
 
-    // Seed de perguntas
     const { rows } = await client.query('SELECT COUNT(*) FROM questions')
     if (parseInt(rows[0].count) === 0) {
       const questions = [
@@ -160,10 +189,7 @@ const runMigrations = async () => {
         { text: 'Qual foi a coisa mais corajosa que você fez por amor?', premium: true },
       ]
       for (const q of questions) {
-        await client.query(
-          'INSERT INTO questions (text, is_premium) VALUES ($1, $2)',
-          [q.text, q.premium]
-        )
+        await client.query('INSERT INTO questions (text, is_premium) VALUES ($1, $2)', [q.text, q.premium])
       }
       console.log('✅ Perguntas inseridas')
     }
@@ -174,11 +200,8 @@ const runMigrations = async () => {
   }
 }
 
-
-
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`)
-  console.log(`📡 Ambiente: ${process.env.NODE_ENV || 'development'}`)
   await runMigrations()
 })
 
