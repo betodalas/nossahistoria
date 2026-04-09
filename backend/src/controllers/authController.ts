@@ -182,36 +182,44 @@ export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body
   if (!email) return res.status(400).json({ error: 'E-mail obrigatório' })
 
-  // Sempre responde com sucesso para não vazar se o e-mail existe
-  res.json({ success: true, message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' })
-
   try {
     const result = await pool.query('SELECT id, name FROM users WHERE email = $1', [email])
     const user = result.rows[0]
-    if (!user) return // resposta já enviada, apenas não envia e-mail
 
-    // Invalida tokens anteriores do usuário
-    await pool.query(
-      'UPDATE password_reset_tokens SET used = TRUE WHERE user_id = $1 AND used = FALSE',
-      [user.id]
-    )
+    if (user) {
+      // Invalida tokens anteriores do usuário
+      await pool.query(
+        'UPDATE password_reset_tokens SET used = TRUE WHERE user_id = $1 AND used = FALSE',
+        [user.id]
+      )
 
-    const token = uuidv4()
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+      const token = uuidv4()
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
 
-    await pool.query(
-      'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
-      [user.id, token, expiresAt]
-    )
+      await pool.query(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+        [user.id, token, expiresAt]
+      )
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
-    const resetLink = `${frontendUrl}/redefinir-senha?token=${token}`
+      const frontendUrl = process.env.FRONTEND_URL || 'https://nossahistoria.vercel.app'
+      const resetLink = `${frontendUrl}/redefinir-senha?token=${token}`
 
-    sendPasswordResetEmail({ toEmail: email, name: user.name, resetLink })
-      .catch((err: any) => console.error('[RESET EMAIL] Falhou:', err?.message))
+      console.log('[RESET EMAIL] Tentando enviar para:', email)
+      try {
+        await sendPasswordResetEmail({ toEmail: email, name: user.name, resetLink })
+        console.log('[RESET EMAIL] Enviado com sucesso para:', email)
+      } catch (emailErr: any) {
+        console.error('[RESET EMAIL] Falhou ao chamar Resend:', emailErr?.message)
+      }
+    } else {
+      console.log('[FORGOT PASSWORD] E-mail não encontrado na base:', email)
+    }
   } catch (err) {
-    console.error('[FORGOT PASSWORD]', err)
+    console.error('[FORGOT PASSWORD] Erro interno:', err)
   }
+
+  // Sempre responde com sucesso para não vazar se o e-mail existe
+  res.json({ success: true, message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' })
 }
 
 export const resetPassword = async (req: Request, res: Response) => {
