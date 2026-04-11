@@ -15,7 +15,6 @@ import Book from './pages/Book'
 import Premium from './pages/Premium'
 import PaymentSuccess from './pages/PaymentSuccess'
 import Profile from './pages/Profile'
-import WeddingDay from './pages/WeddingDay'
 import Invite from './pages/Invite'
 import AcceptInvite from './pages/AcceptInvite'
 import GuestAlbum from './pages/GuestAlbum'
@@ -77,7 +76,6 @@ function App() {
             <Route path="/album-convidados" element={<PrivateRoute><GuestAlbum /></PrivateRoute>} />
             <Route path="/armazenamento" element={<PrivateRoute><Storage /></PrivateRoute>} />
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />
-            <Route path="/dia-do-casamento" element={<PrivateRoute><WeddingDay /></PrivateRoute>} />
             <Route path="/pagamento/sucesso" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
             <Route path="/splash" element={<Splash />} />
             <Route path="*" element={<Navigate to="/" />} />

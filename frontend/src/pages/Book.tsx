@@ -5,16 +5,18 @@ import { useNow } from '../hooks/useNow'
 import { momentsService, lettersService, questionsService } from '../services/api'
 import Layout from '../components/Layout'
 
+type Section = 'main' | 'cartas'
+
 export default function Book() {
   const { isPremium, couple } = useAuth()
   const navigate = useNavigate()
+  const [section, setSection] = useState<Section>('main')
   const [openCapsule, setOpenCapsule] = useState<any>(null)
   const [writingLetter, setWritingLetter] = useState<any>(null)
   const [letterText, setLetterText] = useState('')
   const [letterSaved, setLetterSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  // Parse robusto — evita problema de fuso horário (ex: '2026-04-09' virando dia anterior)
   const wedding = couple?.wedding_date
     ? (() => { const [y,m,d] = couple.wedding_date.split('T')[0].split('-').map(Number); return new Date(y, m-1, d) })()
     : null
@@ -39,7 +41,6 @@ export default function Book() {
     }).catch(() => {})
   }, [])
 
-  // Busca momentos reais da API
   useEffect(() => {
     momentsService.getAll().then(res => setMoments(res.data)).catch(() => {})
     questionsService.getAnswerCount().then(res => setAnswers(Array(res.data.count).fill(null))).catch(() => {})
@@ -67,20 +68,26 @@ export default function Book() {
 
   const myLetter = (key: string) => letters[key]?.text
 
-  // Filtra momentos de um determinado ano
-  const momentsByYear = (fromDate: Date, toDate: Date) =>
+  // Momentos antes do casamento (para cápsula do dia do casamento)
+  const momentsBeforeWedding = () => {
+    if (!wedding) return moments
+    return moments.filter((m: any) => {
+      const [y,mo,d] = m.moment_date.split('T')[0].split('-').map(Number)
+      return new Date(y, mo-1, d).getTime() < wedding.getTime()
+    })
+  }
+
+  // Momentos entre duas datas (para cápsulas anuais)
+  const momentsBetween = (fromDate: Date, toDate: Date) =>
     moments.filter((m: any) => {
-      const d = new Date(m.moment_date).getTime()
-      return d >= fromDate.getTime() && d < toDate.getTime()
+      const [y,mo,d] = m.moment_date.split('T')[0].split('-').map(Number)
+      const t = new Date(y, mo-1, d).getTime()
+      return t >= fromDate.getTime() && t < toDate.getTime()
     })
 
-  // Gera todas as datas
   const buildDates = () => {
     if (!wedding) return []
-
     const all = []
-
-    // Dia do casamento
     all.push({
       label: 'Dia do casamento',
       shortLabel: 'Casamento',
@@ -91,8 +98,6 @@ export default function Book() {
       description: 'Para ler no altar',
       prevDate: null,
     })
-
-    // 1 a 10 anos
     for (let y = 1; y <= 10; y++) {
       const date = new Date(wedding.getFullYear()+y, wedding.getMonth(), wedding.getDate())
       const prevDate = y === 1 ? wedding : new Date(wedding.getFullYear()+(y-1), wedding.getMonth(), wedding.getDate())
@@ -108,7 +113,6 @@ export default function Book() {
         prevDate,
       })
     }
-
     return all
   }
 
@@ -116,13 +120,16 @@ export default function Book() {
 
   const canWrite = (d: any) => {
     if (d.key === 'wedding') return daysUntil(d.date) > 0
-    // Libera depois que o evento anterior aconteceu
+    if (daysUntil(d.date) <= 0) return false
     const prevPassed = d.prevDate ? daysUntil(d.prevDate) <= 0 : true
-    // Fecha 6 meses antes do evento
-    const sixMonthsBefore = new Date(d.date)
-    sixMonthsBefore.setMonth(sixMonthsBefore.getMonth() - 6)
-    const stillOpen = daysUntil(sixMonthsBefore) > 0
-    return prevPassed && stillOpen && daysUntil(d.date) > 0
+    if (!prevPassed) return false
+    const hasEarlierFuture = dates.some(x =>
+      x.key !== 'wedding' &&
+      x.key !== d.key &&
+      daysUntil(x.date) > 0 &&
+      x.date.getTime() < d.date.getTime()
+    )
+    return !hasEarlierFuture
   }
 
   const isOpen = (d: any) => daysUntil(d.date) <= 0
@@ -148,17 +155,19 @@ export default function Book() {
       })?.shortLabel || 'evento anterior'
       return `🔒 Libera depois do ${prevLabel}`
     }
-    return `🔒 Libera 6 meses antes`
+    return `🔒 Aguardando data`
   }
 
-  // Separa casamento + anos free + anos premium
   const freeItems = dates.filter(d => !d.premium)
   const premiumItems = dates.filter(d => d.premium)
+  const weddingPassed = wedding ? daysUntil(wedding) <= 0 : false
 
-  return (
+  const availableLetters = dates.filter(d => isOpen(d))
+  const writableLetters = dates.filter(d => canWrite(d))
+
+  // ─── SEÇÃO CARTAS ──────────────────────────────────────────────────────────
+  if (section === 'cartas') return (
     <Layout>
-
-      {/* Modal escrever carta */}
       {writingLetter && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.85)'}}>
           <div className="w-full max-w-md rounded-t-3xl p-6" style={{background:'#F5E6EA'}}>
@@ -186,6 +195,130 @@ export default function Book() {
         </div>
       )}
 
+      <div className="rounded-b-3xl px-4 pt-5 pb-5 mb-4" style={{background:'linear-gradient(135deg,#2d1060,#6b21a8)'}}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSection('main')}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{background:'rgba(255,255,255,0.15)'}}
+          >
+            <span className="text-white text-lg">‹</span>
+          </button>
+          <div>
+            <h2 className="text-base font-bold text-white">Cartas</h2>
+            <p className="text-xs text-purple-200">mensagens para momentos especiais</p>
+          </div>
+          <span className="ml-auto text-2xl">💌</span>
+        </div>
+      </div>
+
+      <div className="px-4 pb-6">
+
+        {/* Cartas para escrever */}
+        {writableLetters.length > 0 && (
+          <>
+            <p className="section-label">Para escrever</p>
+            {writableLetters.map(d => (
+              <div key={d.key} className="rounded-2xl mb-2 border overflow-hidden"
+                style={{background:'#F0E6EF', borderColor:'#D8B4C8'}}>
+                <div className="flex items-center gap-3 p-3 cursor-pointer"
+                  onClick={() => { setWritingLetter(d); setLetterText(myLetter(d.key) || '') }}>
+                  <span className="text-2xl">{d.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">{d.label}</p>
+                    <p className="text-xs mt-0.5" style={{color:'#9B6B7A'}}>Abre em {fmt(d.date)}</p>
+                  </div>
+                  {myLetter(d.key)
+                    ? <span className="pill-green">✅ escrita</span>
+                    : <span className="pill-purple">escrever ✏️</span>}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Cartas para ler */}
+        {availableLetters.length > 0 && (
+          <>
+            <p className="section-label mt-4">Para ler</p>
+            {availableLetters.map(d => (
+              <div key={d.key} className="rounded-2xl mb-3 overflow-hidden"
+                style={{background:'#F0E6EF', border:'1px solid #D8B4C8'}}>
+                <div className="flex items-center gap-3 p-3 border-b" style={{borderColor:'rgba(0,0,0,0.06)'}}>
+                  <span className="text-2xl">{d.icon}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">{d.label}</p>
+                    <p className="text-xs" style={{color:'#9B6B7A'}}>{fmt(d.date)}</p>
+                  </div>
+                </div>
+                {myLetter(d.key) && (
+                  <div className="p-4" style={{background:'rgba(124,58,237,0.08)', borderBottom:'1px solid rgba(124,58,237,0.12)'}}>
+                    <p className="text-xs font-bold mb-2" style={{color:'#7c3aed'}}>💌 Sua carta</p>
+                    <p className="text-sm leading-relaxed text-gray-700">{myLetter(d.key)}</p>
+                  </div>
+                )}
+                {(() => {
+                  const partnerLetter = letters[`partner_${d.key}`]?.text
+                  return partnerLetter ? (
+                    <div className="p-4">
+                      <p className="text-xs font-bold mb-2" style={{color:'#be185d'}}>💌 Carta de {couple?.partner_name || 'parceiro(a)'}</p>
+                      <p className="text-sm leading-relaxed text-gray-700"
+                        style={{filter:'blur(5px)', cursor:'pointer', transition:'filter 0.4s'}}
+                        onClick={e => (e.currentTarget.style.filter='none')}>
+                        {partnerLetter}
+                      </p>
+                      <p className="text-xs text-center mt-2" style={{color:'#9B6B7A'}}>toque para revelar</p>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center">
+                      <p className="text-xs" style={{color:'#9B6B7A'}}>💌 {couple?.partner_name || 'Parceiro(a)'} ainda não escreveu</p>
+                    </div>
+                  )
+                })()}
+              </div>
+            ))}
+          </>
+        )}
+
+        {writableLetters.length === 0 && availableLetters.length === 0 && (
+          <div className="text-center py-10">
+            <div className="text-4xl mb-3">💌</div>
+            <p className="text-sm" style={{color:'#9B6B7A'}}>As cartas ficam disponíveis conforme as datas se aproximam</p>
+          </div>
+        )}
+      </div>
+    </Layout>
+  )
+
+  // ─── SEÇÃO PRINCIPAL ───────────────────────────────────────────────────────
+  return (
+    <Layout>
+
+      {/* Modal escrever carta */}
+      {writingLetter && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.85)'}}>
+          <div className="w-full max-w-md rounded-t-3xl p-6" style={{background:'#F5E6EA'}}>
+            <div className="text-center mb-4">
+              <div className="text-3xl mb-2">{writingLetter.icon}</div>
+              <h2 className="text-base font-bold text-gray-800">Carta para {writingLetter.label}</h2>
+              <p className="text-xs text-gray-600 mt-1">Só abre em {fmt(writingLetter.date)}</p>
+            </div>
+            <textarea
+              className="input-field resize-none mb-4"
+              style={{height:'160px'}}
+              placeholder={`Escreva para o seu parceiro(a) abrir em ${writingLetter.label.toLowerCase()}...`}
+              value={letterText}
+              onChange={e => setLetterText(e.target.value)}
+            />
+            {saveError && <p className="text-xs text-red-400 text-center mb-2">{saveError}</p>}
+            <button onClick={saveLetter} disabled={!letterText.trim()} className="btn-primary mb-3 disabled:opacity-40">
+              {letterSaved ? '✅ Carta salva!' : '💌 Salvar carta secreta'}
+            </button>
+            <button onClick={() => { setWritingLetter(null); setLetterText(''); setSaveError('') }} className="btn-secondary">Cancelar</button>
+          </div>
+        </div>
+      )}
+
       {/* Modal abrir cápsula */}
       {openCapsule && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{background:'rgba(0,0,0,0.85)'}}>
@@ -196,35 +329,13 @@ export default function Book() {
               <p className="text-xs text-gray-600 mt-1">{fmt(openCapsule.date)}</p>
             </div>
 
-            {/* Botão escrever carta se ainda não escreveu */}
-            {!myLetter(openCapsule.key) && !isOpen(openCapsule) && (
-              <button
-                className="w-full py-3 rounded-2xl text-sm font-semibold mb-4"
-                style={{background:'rgba(124,58,237,0.15)', color:'#7c3aed', border:'1px solid rgba(124,58,237,0.3)'}}
-                onClick={() => { setOpenCapsule(null); setWritingLetter(openCapsule); setLetterText('') }}
-              >
-                💌 Escrever minha carta secreta
-              </button>
-            )}
-            {myLetter(openCapsule.key) && !isOpen(openCapsule) && (
-              <button
-                className="w-full py-2 rounded-2xl text-xs font-semibold mb-3"
-                style={{background:'rgba(52,211,153,0.15)', color:'#059669', border:'1px solid rgba(52,211,153,0.3)'}}
-                onClick={() => { setOpenCapsule(null); setWritingLetter(openCapsule); setLetterText(myLetter(openCapsule.key) || '') }}
-              >
-                ✅ Carta escrita · toque para editar
-              </button>
-            )}
-
-            {/* Carta de quem está lendo */}
-            {myLetter(openCapsule.key) && isOpen(openCapsule) && (
+            {myLetter(openCapsule.key) && (
               <div className="rounded-2xl p-4 mb-3" style={{background:'rgba(124,58,237,0.2)',border:'1px solid rgba(124,58,237,0.3)'}}>
                 <p className="text-xs font-bold text-violet-700 mb-2">💌 Sua carta</p>
                 <p className="text-sm text-gray-700 leading-relaxed">{myLetter(openCapsule.key)}</p>
               </div>
             )}
 
-            {/* Carta do parceiro */}
             {(() => {
               const partnerLetter = letters[`partner_${openCapsule.key}`]?.text
               return partnerLetter ? (
@@ -238,21 +349,21 @@ export default function Book() {
                   <p className="text-xs text-gray-600 text-center mt-2">toque para revelar</p>
                 </div>
               ) : (
-                <div className="rounded-2xl p-4 mb-4 text-center" style={{background:'rgba(255,255,255,0.04)',border:'1px dashed rgba(255,255,255,0.1)'}}>
-                  <p className="text-xs text-gray-600">💌 {couple?.partner_name || 'Parceiro(a)'} ainda não escreveu a carta para este momento</p>
+                <div className="rounded-2xl p-4 mb-4 text-center" style={{background:'rgba(255,255,255,0.5)',border:'1px dashed #D8B4C8'}}>
+                  <p className="text-xs text-gray-600">💌 {couple?.partner_name || 'Parceiro(a)'} ainda não escreveu a carta</p>
                 </div>
               )
             })()}
 
-            {/* Momentos do período */}
+            {/* Momentos do período correto */}
             {(() => {
-              const periodMoments = openCapsule.prevDate
-                ? momentsByYear(openCapsule.prevDate, openCapsule.date)
-                : moments
+              const periodMoments = openCapsule.key === 'wedding'
+                ? momentsBeforeWedding()
+                : momentsBetween(openCapsule.prevDate, openCapsule.date)
               return periodMoments.length > 0 ? (
                 <>
                   <p className="text-xs font-bold text-violet-700 tracking-widest uppercase mb-3">
-                    📖 Momentos {openCapsule.prevDate ? 'deste ano' : 'de vocês'}
+                    📖 {openCapsule.key === 'wedding' ? 'Momentos antes do casamento' : 'Momentos deste ano'}
                   </p>
                   {periodMoments.map((m: any, i: number) => (
                     <div key={i} className="mb-3 pb-3 border-b border-gray-200">
@@ -295,6 +406,26 @@ export default function Book() {
           ))}
         </div>
 
+        {/* Botão Cartas */}
+        <div className="rounded-2xl mb-4 cursor-pointer"
+          style={{background:'#F0E6EF', border:'1px solid #D8B4C8'}}
+          onClick={() => setSection('cartas')}>
+          <div className="flex items-center gap-3 p-4">
+            <span className="text-2xl">💌</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-700">Cartas</p>
+              <p className="text-xs mt-0.5" style={{color:'#9B6B7A'}}>
+                {availableLetters.length > 0
+                  ? `${availableLetters.length} carta${availableLetters.length > 1 ? 's' : ''} para ler · ${writableLetters.length} para escrever`
+                  : writableLetters.length > 0
+                    ? `${writableLetters.length} carta${writableLetters.length > 1 ? 's' : ''} para escrever`
+                    : 'Mensagens para momentos especiais'}
+              </p>
+            </div>
+            <span className="text-gray-400 text-lg">›</span>
+          </div>
+        </div>
+
         {/* Cápsulas grátis */}
         <p className="section-label">Cápsulas do tempo</p>
         {freeItems.map(d => renderCard(d))}
@@ -311,7 +442,7 @@ export default function Book() {
                 ))}
               </div>
               <button className="btn-secondary mb-2" onClick={() => navigate("/livro-pdf")}>📥 Exportar livro em PDF</button>
-        <button className="btn-primary" onClick={() => navigate("/premium")}>
+              <button className="btn-primary" onClick={() => navigate("/premium")}>
                 👑 Desbloquear · R$49
               </button>
             </div>
@@ -327,7 +458,6 @@ export default function Book() {
   )
 
   function renderCard(d: any) {
-    const locked = d.premium && !isPremium
     const open = isOpen(d)
     const write = canWrite(d)
     const hasLetter = !!myLetter(d.key)

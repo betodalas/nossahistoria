@@ -10,21 +10,41 @@ export default function Dashboard() {
   const { user, couple, isPremium, logout } = useAuth()
   const navigate = useNavigate()
   const [momentCount, setMomentCount] = useState(0)
+  const [answerCount, setAnswerCount] = useState(0)
+  const [firstMoment, setFirstMoment] = useState<any>(null)
   const [todayQuestion, setTodayQuestion] = useState<string | null>(null)
 
   useEffect(() => {
-    momentsService.getAll().then(res => setMomentCount(res.data.length)).catch(() => {})
+    momentsService.getAll().then(res => {
+      const data = res.data
+      setMomentCount(data.length)
+      if (data.length > 0) {
+        const sorted = [...data].sort((a: any, b: any) =>
+          new Date(a.moment_date).getTime() - new Date(b.moment_date).getTime()
+        )
+        setFirstMoment(sorted[0])
+      }
+    }).catch(() => {})
+    questionsService.getAnswerCount().then(res => setAnswerCount(res.data.count || 0)).catch(() => {})
     questionsService.getCurrent().then(res => setTodayQuestion(res.data?.question?.text || null)).catch(() => {})
   }, [])
 
-  const daysLeft = couple?.wedding_date
-    ? daysUntil(parseDate(couple.wedding_date))
-    : null
+  const weddingDate = couple?.wedding_date ? parseDate(couple.wedding_date) : null
+  const daysLeft = weddingDate ? daysUntil(weddingDate) : null
   const weddingPassed = daysLeft !== null && daysLeft <= 0
+
+  const daysWithMoments = firstMoment
+    ? Math.floor((Date.now() - new Date(firstMoment.moment_date).getTime()) / 86400000)
+    : null
+
+  const daysSinceWedding = weddingPassed && weddingDate
+    ? Math.floor((Date.now() - weddingDate.getTime()) / 86400000)
+    : null
+
+  const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <Layout>
-      {/* Header */}
       <div className="px-4 pt-5 pb-5 rounded-b-3xl mb-4"
         style={{ background: 'linear-gradient(135deg, #FADADD, #E8C4CE)' }}>
         <div className="flex justify-between items-start">
@@ -50,28 +70,26 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4">
-        {/* Modo dia do casamento */}
-        {weddingPassed && (
-          <div className="card cursor-pointer mb-3 text-center"
-            style={{ background: 'linear-gradient(135deg,#FADADD,#E8C4CE)', borderColor: '#C9A0B0' }}
-            onClick={() => navigate('/dia-do-casamento')}>
-            <p className="text-xl mb-1">💍</p>
-            <p className="text-base font-bold" style={{ color: '#3D1A2A' }}>Abrir modo dia do casamento</p>
-            <p className="text-xs mt-1" style={{ color: '#9B6B7A' }}>Sua história completa te espera</p>
-          </div>
-        )}
 
-        {/* Countdown */}
-        {daysLeft !== null && !weddingPassed ? (
+        {weddingDate && !weddingPassed && daysLeft !== null && (
           <div className="rounded-2xl p-4 text-center mb-4"
             style={{ background: 'white', border: '1.5px solid #E8C4CE' }}>
             <div className="text-5xl font-extrabold" style={{ color: '#7C4D6B' }}>{daysLeft}</div>
             <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>dias para o casamento</div>
-            <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>
-              {parseDate(couple!.wedding_date!).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </div>
+            <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>{fmt(weddingDate)}</div>
           </div>
-        ) : daysLeft === null && (
+        )}
+
+        {weddingPassed && daysSinceWedding !== null && (
+          <div className="rounded-2xl p-4 text-center mb-4"
+            style={{ background: 'linear-gradient(135deg,#FADADD,#E8C4CE)', border: '1.5px solid #C9A0B0' }}>
+            <div className="text-4xl font-extrabold" style={{ color: '#3D1A2A' }}>{daysSinceWedding}</div>
+            <div className="text-xs mt-1 font-semibold" style={{ color: '#7C4D6B' }}>dias de casados 💍</div>
+            <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>desde {fmt(weddingDate!)}</div>
+          </div>
+        )}
+
+        {!weddingDate && (
           <div className="rounded-2xl p-4 text-center mb-4 cursor-pointer"
             style={{ background: 'white', border: '1.5px dashed #E8C4CE' }}
             onClick={() => navigate('/perfil')}>
@@ -81,30 +99,54 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {[
-            { n: momentCount, l: 'momentos' },
-            { n: isPremium ? '∞' : `${momentCount}/${FREE_MOMENTS_LIMIT}`, l: isPremium ? 'premium ✨' : 'grátis' },
-            { n: '💜', l: 'juntos' },
-          ].map(s => (
-            <div key={s.l} className="rounded-xl p-3 text-center"
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="rounded-xl p-3 text-center"
+            style={{ background: 'white', border: '1px solid #E8C4CE' }}>
+            <div className="text-2xl font-bold" style={{ color: '#7C4D6B' }}>{momentCount}</div>
+            <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>momentos registrados</div>
+          </div>
+          <div className="rounded-xl p-3 text-center"
+            style={{ background: 'white', border: '1px solid #E8C4CE' }}>
+            <div className="text-2xl font-bold" style={{ color: '#7C4D6B' }}>{answerCount}</div>
+            <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>perguntas respondidas</div>
+          </div>
+          {daysWithMoments !== null && (
+            <div className="rounded-xl p-3 text-center"
               style={{ background: 'white', border: '1px solid #E8C4CE' }}>
-              <div className="text-xl font-bold" style={{ color: '#7C4D6B' }}>{s.n}</div>
-              <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>{s.l}</div>
+              <div className="text-2xl font-bold" style={{ color: '#7C4D6B' }}>{daysWithMoments}</div>
+              <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>dias com memórias</div>
             </div>
-          ))}
+          )}
+          <div className="rounded-xl p-3 text-center"
+            style={{ background: 'white', border: '1px solid #E8C4CE' }}>
+            <div className="text-2xl font-bold" style={{ color: '#7C4D6B' }}>
+              {isPremium ? '∞' : `${momentCount}/${FREE_MOMENTS_LIMIT}`}
+            </div>
+            <div className="text-xs mt-1" style={{ color: '#9B6B7A' }}>
+              {isPremium ? 'premium ✨' : 'plano grátis'}
+            </div>
+          </div>
         </div>
 
-        {/* Convidar parceiro */}
+        {firstMoment && (
+          <div className="rounded-2xl p-3 mb-4 cursor-pointer"
+            style={{ background: 'white', border: '1px solid #E8C4CE' }}
+            onClick={() => navigate('/linha-do-tempo')}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#9B6B7A' }}>✨ Primeiro momento registrado</p>
+            <p className="text-sm font-semibold" style={{ color: '#3D1A2A' }}>{firstMoment.title}</p>
+            <p className="text-xs mt-0.5" style={{ color: '#9B6B7A' }}>
+              {new Date(firstMoment.moment_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+        )}
+
         {!couple && (
-          <div className="card cursor-pointer mb-1" onClick={() => navigate('/convidar')}>
+          <div className="card cursor-pointer mb-3" onClick={() => navigate('/convidar')}>
             <p className="text-sm font-bold" style={{ color: '#3D1A2A' }}>💌 Convidar parceiro(a)</p>
             <p className="text-xs mt-1" style={{ color: '#9B6B7A' }}>Chame o(a) parceiro(a) para usar junto</p>
           </div>
         )}
 
-        {/* Pergunta do dia */}
         <div className="card cursor-pointer mb-3" onClick={() => navigate('/perguntas')}>
           <span className="pill-purple text-xs mb-2 inline-block">PERGUNTA DE HOJE</span>
           <p className="text-sm font-medium leading-relaxed" style={{ color: '#3D1A2A' }}>
@@ -113,7 +155,6 @@ export default function Dashboard() {
           <p className="text-xs mt-2" style={{ color: '#9B6B7A' }}>Toque para responder</p>
         </div>
 
-        {/* Premium CTA */}
         {!isPremium && (
           <div className="card cursor-pointer"
             style={{ background: 'linear-gradient(135deg,#FADADD,#E8C4CE)', borderColor: '#C9A0B0' }}
