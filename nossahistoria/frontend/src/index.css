@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background-color: #FFF0F3;
+    color: #3D1A2A;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  input, textarea, button { font-family: inherit; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply w-full py-3 px-4 rounded-xl font-bold text-sm cursor-pointer border-none;
+    background: linear-gradient(135deg, #C9A0B0, #7C4D6B);
+    color: white;
+  }
+  .btn-secondary {
+    @apply w-full py-3 px-4 rounded-xl font-semibold text-sm cursor-pointer;
+    background: transparent;
+    border: 1.5px solid #C9A0B0;
+    color: #7C4D6B;
+  }
+  .card {
+    @apply rounded-2xl p-4 mb-3 cursor-pointer transition-colors;
+    background: #FADADD;
+    border: 1px solid #E8C4CE;
+  }
+  .card:hover { border-color: #9B6B7A; }
+  .input-field {
+    @apply w-full px-3 py-2.5 rounded-xl text-sm outline-none;
+    background: white;
+    border: 1.5px solid #E8C4CE;
+    color: #3D1A2A;
+  }
+  .input-field:focus { border-color: #9B6B7A; }
+  .input-field::placeholder { color: #9B6B7A; }
+  .pill-purple {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: #E8C4CE;
+    color: #7C4D6B;
+  }
+  .pill-green {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .pill-gray {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: #F5E6EA;
+    color: #9B6B7A;
+    border: 1px solid #E8C4CE;
+  }
+  .section-label {
+    @apply text-xs font-bold tracking-widest uppercase mb-3;
+    color: #9B6B7A;
+  }
+}
