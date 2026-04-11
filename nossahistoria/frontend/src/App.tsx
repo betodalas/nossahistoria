@@ -21,6 +21,7 @@ import GuestAlbum from './pages/GuestAlbum'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
+import WeddingDay from './pages/WeddingDay'
 
 function DeepLinkHandler() {
   const navigate = useNavigate()
@@ -77,6 +78,7 @@ function App() {
             <Route path="/armazenamento" element={<PrivateRoute><Storage /></PrivateRoute>} />
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />
             <Route path="/pagamento/sucesso" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
+            <Route path="/dia-do-casamento" element={<PrivateRoute><WeddingDay /></PrivateRoute>} />
             <Route path="/splash" element={<Splash />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

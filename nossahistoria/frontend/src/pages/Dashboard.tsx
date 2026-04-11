@@ -99,6 +99,14 @@ export default function Dashboard() {
           </div>
         )}
 
+        <div className="rounded-2xl p-4 text-center mb-4 cursor-pointer"
+          style={{ background: 'white', border: '1.5px solid #E8C4CE' }}
+          onClick={() => navigate('/dia-do-casamento')}>
+          <div className="text-3xl mb-2">💍</div>
+          <p className="text-sm font-medium" style={{ color: '#7C4D6B' }}>Abrir modo dia do casamento</p>
+          <p className="text-xs mt-1" style={{ color: '#9B6B7A' }}>Sua história completa te espera</p>
+        </div>
+
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div className="rounded-xl p-3 text-center"
             style={{ background: 'white', border: '1px solid #E8C4CE' }}>
