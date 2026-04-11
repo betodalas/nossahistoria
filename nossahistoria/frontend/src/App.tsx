@@ -49,6 +49,7 @@ const RootRoute = () => {
   if (loading) return <Splash />
   const splashShown = sessionStorage.getItem('splash_shown')
   if (splashShown) return user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+  if (user) return <Navigate to="/dashboard" />
   return <Splash />
 }
 
