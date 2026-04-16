@@ -57,26 +57,29 @@ export default function GuestAlbum() {
     <Layout>
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{background:'rgba(0,0,0,0.95)'}} onClick={() => setLightbox(null)}>
+          style={{background:'rgba(61,26,42,0.92)'}} onClick={() => setLightbox(null)}>
           <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" />
           <button className="absolute top-4 right-4 text-white text-2xl w-10 h-10 rounded-full flex items-center justify-center"
-            style={{background:'rgba(255,255,255,0.15)'}} onClick={() => setLightbox(null)}>×</button>
+            style={{background:'rgba(255,255,255,0.2)'}} onClick={() => setLightbox(null)}>×</button>
         </div>
       )}
 
-      <div className="rounded-b-3xl px-4 pt-5 pb-5 mb-4" style={{background:'linear-gradient(135deg,#2d1060,#6b21a8)'}}>
+      {/* Header */}
+      <div className="rounded-b-3xl px-4 pt-5 pb-5 mb-4"
+        style={{background:'linear-gradient(135deg,#C9A0B0,#7C4D6B)'}}>
         <h2 className="text-base font-bold text-white text-center">Álbum dos convidados</h2>
-        <p className="text-xs text-white/60 text-center mt-1">mensagens e fotos da família 💜</p>
+        <p className="text-xs text-white/70 text-center mt-1">mensagens e fotos da família 💜</p>
       </div>
 
+      {/* Tabs */}
       <div className="flex px-4 mb-4 gap-2">
         {(['album','convidar'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
             style={{
-              background: tab === t ? 'linear-gradient(135deg,#7c3aed,#be185d)' : '#1a1030',
-              color: tab === t ? 'white' : 'rgba(255,255,255,0.75)',
-              border: tab === t ? 'none' : '1px solid rgba(255,255,255,0.08)'
+              background: tab === t ? 'linear-gradient(135deg,#C9A0B0,#7C4D6B)' : 'white',
+              color: tab === t ? 'white' : '#9B6B7A',
+              border: tab === t ? 'none' : '1px solid #E8C4CE'
             }}>
             {t === 'album' ? `📸 Álbum (${posts.length})` : '💌 Convidar família'}
           </button>
@@ -91,8 +94,8 @@ export default function GuestAlbum() {
             {posts.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">📸</div>
-                <p className="text-sm text-white/60">Nenhuma mensagem ainda</p>
-                <p className="text-xs text-white/20 mt-1">Convide a família para deixar uma mensagem!</p>
+                <p className="text-sm" style={{color:'#9B6B7A'}}>Nenhuma mensagem ainda</p>
+                <p className="text-xs mt-1" style={{color:'#C9A0B0'}}>Convide a família para deixar uma mensagem!</p>
                 <button className="btn-primary mt-6 max-w-xs mx-auto" onClick={() => setTab('convidar')}>
                   Convidar agora 💌
                 </button>
@@ -117,25 +120,25 @@ export default function GuestAlbum() {
                 {/* Mensagens */}
                 <p className="section-label mb-3">Mensagens</p>
                 {posts.map(p => (
-                  <div key={p.id} className="rounded-2xl p-4 mb-3 border border-white/8"
-                    style={{background:'#1a1030'}}>
+                  <div key={p.id} className="rounded-2xl p-4 mb-3"
+                    style={{background:'white', border:'1px solid #E8C4CE'}}>
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                        style={{background:'linear-gradient(135deg,#7c3aed,#be185d)'}}>
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                        style={{background:'linear-gradient(135deg,#C9A0B0,#7C4D6B)'}}>
                         {p.name[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">{p.name}</p>
-                        <p className="text-xs text-white/60">
+                        <p className="text-sm font-semibold" style={{color:'#3D1A2A'}}>{p.name}</p>
+                        <p className="text-xs" style={{color:'#9B6B7A'}}>
                           {new Date(p.date).toLocaleDateString('pt-BR', {day:'numeric',month:'long'})}
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm text-purple-100 leading-relaxed">{p.message}</p>
+                    <p className="text-sm leading-relaxed" style={{color:'#3D1A2A'}}>{p.message}</p>
                     {p.photo && (
                       <img src={p.photo}
                         className="w-full rounded-xl mt-3 object-contain cursor-pointer"
-                        style={{maxHeight:'200px', background:'#0f0a1a'}}
+                        style={{maxHeight:'200px', background:'#FFF0F3'}}
                         onClick={() => setLightbox(p.photo)} />
                     )}
                   </div>
@@ -148,17 +151,16 @@ export default function GuestAlbum() {
         {/* TAB CONVIDAR */}
         {tab === 'convidar' && (
           <>
-            <div className="rounded-2xl p-4 mb-4 border border-violet-500/25"
-              style={{background:'rgba(124,58,237,0.1)'}}>
-              <p className="text-xs text-violet-300 font-bold mb-1">Como funciona?</p>
-              <p className="text-xs text-white/50 leading-relaxed">
+            <div className="rounded-2xl p-4 mb-4" style={{background:'#FADADD', border:'1px solid #E8C4CE'}}>
+              <p className="text-xs font-bold mb-1" style={{color:'#7C4D6B'}}>Como funciona?</p>
+              <p className="text-xs leading-relaxed" style={{color:'#9B6B7A'}}>
                 Envie o link para família e amigos. Eles abrem no celular, escrevem uma mensagem, enviam uma foto — e aparece aqui no álbum de vocês 💜
               </p>
             </div>
 
             <button onClick={handleShareLink}
               className="w-full py-4 rounded-2xl font-bold text-sm mb-3 flex items-center justify-center gap-3"
-              style={{background:'rgba(37,211,102,0.15)',border:'2px solid rgba(37,211,102,0.4)',color:'#25d366'}}>
+              style={{background:'rgba(37,211,102,0.1)', border:'2px solid rgba(37,211,102,0.35)', color:'#16a34a'}}>
               <span className="text-2xl">💬</span>
               <div className="text-left">
                 <p className="font-bold">Compartilhar pelo WhatsApp</p>
@@ -168,34 +170,34 @@ export default function GuestAlbum() {
 
             <button onClick={handleCopyLink}
               className="w-full py-3 rounded-2xl font-semibold text-sm mb-5"
-              style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:'white'}}>
+              style={{background:'white', border:'1px solid #E8C4CE', color:'#7C4D6B'}}>
               🔗 Copiar link do álbum
             </button>
 
-            <div className="border-t border-white/10 pt-5">
-              <p className="text-xs text-white/70 text-center mb-4">Ou adicione uma mensagem agora</p>
+            <div className="pt-5" style={{borderTop:'1px solid #E8C4CE'}}>
+              <p className="text-xs text-center mb-4" style={{color:'#9B6B7A'}}>Ou adicione uma mensagem agora</p>
               <div className="mb-3">
-                <label className="text-xs text-white/70 block mb-1">Seu nome</label>
+                <label className="text-xs block mb-1" style={{color:'#9B6B7A'}}>Seu nome</label>
                 <input className="input-field" placeholder="Ex: Vó Maria" value={name} onChange={e => setName(e.target.value)} />
               </div>
               <div className="mb-3">
-                <label className="text-xs text-white/70 block mb-1">Mensagem para o casal</label>
+                <label className="text-xs block mb-1" style={{color:'#9B6B7A'}}>Mensagem para o casal</label>
                 <textarea className="input-field resize-none" style={{height:'100px'}}
                   placeholder="Escreva uma mensagem especial..."
                   value={message} onChange={e => setMessage(e.target.value)} />
               </div>
               <div className="mb-4">
-                <label className="text-xs text-white/70 block mb-2">Foto (opcional)</label>
+                <label className="text-xs block mb-2" style={{color:'#9B6B7A'}}>Foto (opcional)</label>
                 {photo ? (
                   <div className="relative">
                     <img src={photo} className="w-full rounded-xl object-contain" style={{maxHeight:'180px'}} />
                     <button onClick={() => setPhoto(null)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-sm"
-                      style={{background:'rgba(0,0,0,0.7)',color:'white'}}>×</button>
+                      style={{background:'rgba(61,26,42,0.7)', color:'white'}}>×</button>
                   </div>
                 ) : (
                   <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl cursor-pointer text-sm"
-                    style={{background:'rgba(255,255,255,0.05)',border:'2px dashed rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.65)'}}>
+                    style={{background:'#FADADD', border:'2px dashed #E8C4CE', color:'#9B6B7A'}}>
                     📷 Adicionar foto
                     <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                   </label>

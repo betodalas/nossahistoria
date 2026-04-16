@@ -23,8 +23,8 @@ export default function Storage() {
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="text-5xl mb-4">🔒</div>
-        <p className="text-base font-bold text-white mb-2">Disponível no premium</p>
-        <p className="text-sm text-white/70 mb-6">Faça upgrade para gerenciar armazenamento</p>
+        <p className="text-base font-bold mb-2" style={{color:'#3D1A2A'}}>Disponível no premium</p>
+        <p className="text-sm mb-6" style={{color:'#9B6B7A'}}>Faça upgrade para gerenciar armazenamento</p>
         <button className="btn-primary max-w-xs" onClick={() => navigate('/premium')}>Ver premium</button>
       </div>
     </Layout>
@@ -34,8 +34,8 @@ export default function Storage() {
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="text-6xl mb-4">🎉</div>
-        <h2 className="text-xl font-bold text-white mb-2">+500 MB adicionados!</h2>
-        <p className="text-sm text-white/50 mb-8">Seu espaço foi ampliado com sucesso.</p>
+        <h2 className="text-xl font-bold mb-2" style={{color:'#3D1A2A'}}>+500 MB adicionados!</h2>
+        <p className="text-sm mb-8" style={{color:'#9B6B7A'}}>Seu espaço foi ampliado com sucesso.</p>
         <button className="btn-primary max-w-xs" onClick={() => navigate('/')}>Voltar ao início</button>
       </div>
     </Layout>
@@ -43,32 +43,32 @@ export default function Storage() {
 
   return (
     <Layout>
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10">
-        <button onClick={() => navigate(-1)} className="text-violet-300 px-3 py-1.5 rounded-lg text-sm"
-          style={{background:'#1e1035'}}>←</button>
-        <h2 className="text-base font-semibold text-white">Armazenamento</h2>
+      <div className="flex items-center gap-3 px-4 py-4 border-b" style={{borderColor:'#E8C4CE'}}>
+        <button onClick={() => navigate(-1)} className="px-3 py-1.5 rounded-lg text-sm font-semibold"
+          style={{background:'#FADADD', color:'#7C4D6B', border:'1px solid #E8C4CE'}}>←</button>
+        <h2 className="text-base font-semibold" style={{color:'#3D1A2A'}}>Armazenamento</h2>
       </div>
 
       <div className="p-4 pb-8">
         {loading ? (
-          <div className="text-center py-12 text-white/60 text-sm">Carregando...</div>
+          <div className="text-center py-12 text-sm" style={{color:'#9B6B7A'}}>Carregando...</div>
         ) : info && (
           <>
             {/* Card de uso atual */}
-            <div className="rounded-2xl p-5 mb-4 border border-white/10" style={{background:'#1a1030'}}>
+            <div className="rounded-2xl p-5 mb-4" style={{background:'white', border:'1px solid #E8C4CE'}}>
               <div className="flex justify-between items-center mb-3">
-                <p className="text-sm font-semibold text-white">Uso atual</p>
-                <p className="text-xs text-white/70">{info.usedMB} MB / {info.totalMB} MB</p>
+                <p className="text-sm font-semibold" style={{color:'#3D1A2A'}}>Uso atual</p>
+                <p className="text-xs" style={{color:'#9B6B7A'}}>{info.usedMB} MB / {info.totalMB} MB</p>
               </div>
 
               {/* Barra de progresso */}
-              <div className="w-full h-3 rounded-full mb-3" style={{background:'rgba(255,255,255,0.08)'}}>
+              <div className="w-full h-3 rounded-full mb-3" style={{background:'#F5E6EA'}}>
                 <div className="h-full rounded-full transition-all"
                   style={{
                     width: `${Math.min(info.percentUsed, 100)}%`,
                     background: info.percentUsed > 85
                       ? 'linear-gradient(90deg,#ef4444,#dc2626)'
-                      : 'linear-gradient(90deg,#7c3aed,#be185d)'
+                      : 'linear-gradient(90deg,#C9A0B0,#7C4D6B)'
                   }} />
               </div>
 
@@ -78,32 +78,32 @@ export default function Storage() {
                   { label: 'Disponível', value: `${Math.max(0, info.totalMB - info.usedMB)} MB` },
                   { label: 'Total', value: `${info.totalMB} MB` },
                 ].map(s => (
-                  <div key={s.label} className="text-center p-2 rounded-xl" style={{background:'rgba(255,255,255,0.05)'}}>
-                    <p className="text-sm font-bold text-violet-300">{s.value}</p>
-                    <p className="text-xs text-white/60 mt-0.5">{s.label}</p>
+                  <div key={s.label} className="text-center p-2 rounded-xl" style={{background:'#FFF0F3'}}>
+                    <p className="text-sm font-bold" style={{color:'#7C4D6B'}}>{s.value}</p>
+                    <p className="text-xs mt-0.5" style={{color:'#9B6B7A'}}>{s.label}</p>
                   </div>
                 ))}
               </div>
 
               {info.percentUsed > 85 && (
-                <div className="mt-3 px-3 py-2 rounded-xl text-xs text-center text-orange-300"
-                  style={{background:'rgba(251,146,60,0.1)', border:'1px solid rgba(251,146,60,0.2)'}}>
+                <div className="mt-3 px-3 py-2 rounded-xl text-xs text-center"
+                  style={{background:'rgba(251,146,60,0.08)', border:'1px solid rgba(251,146,60,0.25)', color:'#c2410c'}}>
                   ⚠️ Espaço quase esgotado — considere adicionar mais
                 </div>
               )}
             </div>
 
             {/* Compra de espaço extra */}
-            <div className="rounded-2xl p-5 border mb-4"
-              style={{background:'linear-gradient(135deg,rgba(124,58,237,0.2),rgba(190,24,93,0.2))', borderColor:'rgba(167,139,250,0.3)'}}>
+            <div className="rounded-2xl p-5 mb-4"
+              style={{background:'linear-gradient(135deg,#FADADD,#F5E6EA)', border:'1px solid #E8C4CE'}}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-3xl">💾</div>
                 <div>
-                  <p className="text-base font-bold text-white">+500 MB de espaço</p>
-                  <p className="text-xs text-white/50">pagamento único · sem mensalidade</p>
+                  <p className="text-base font-bold" style={{color:'#3D1A2A'}}>+500 MB de espaço</p>
+                  <p className="text-xs" style={{color:'#9B6B7A'}}>pagamento único · sem mensalidade</p>
                 </div>
                 <div className="ml-auto text-right">
-                  <p className="text-2xl font-extrabold text-white">R$ 19</p>
+                  <p className="text-2xl font-extrabold" style={{color:'#3D1A2A'}}>R$ 19</p>
                 </div>
               </div>
 
@@ -114,8 +114,8 @@ export default function Storage() {
                   'Acumulável — compre quantas vezes quiser',
                 ].map(f => (
                   <div key={f} className="flex items-center gap-2">
-                    <span className="text-violet-400 text-sm">✓</span>
-                    <span className="text-sm text-purple-100">{f}</span>
+                    <span className="text-sm" style={{color:'#7C4D6B'}}>✓</span>
+                    <span className="text-sm" style={{color:'#3D1A2A'}}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -136,9 +136,9 @@ export default function Storage() {
 
             {/* Histórico de compras */}
             {info.extraMB > 0 && (
-              <div className="rounded-2xl p-4 border border-white/8" style={{background:'#1a1030'}}>
-                <p className="text-xs text-white/70 mb-2">Espaço extra adquirido</p>
-                <p className="text-sm text-violet-300 font-semibold">+{info.extraMB} MB no total</p>
+              <div className="rounded-2xl p-4" style={{background:'white', border:'1px solid #E8C4CE'}}>
+                <p className="text-xs mb-2" style={{color:'#9B6B7A'}}>Espaço extra adquirido</p>
+                <p className="text-sm font-semibold" style={{color:'#7C4D6B'}}>+{info.extraMB} MB no total</p>
               </div>
             )}
           </>

@@ -41,24 +41,25 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{background:'#0f0a1a'}}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6"
+      style={{background:'#FFF0F3'}}>
       {status === 'loading' && (
         <>
           <div className="text-4xl mb-4">💌</div>
-          <p className="text-white text-base">Vinculando casal...</p>
+          <p className="text-base font-semibold" style={{color:'#3D1A2A'}}>Vinculando casal...</p>
         </>
       )}
       {status === 'success' && (
         <>
           <div className="text-5xl mb-4">💑</div>
-          <p className="text-lg font-bold text-white mb-2">Casal vinculado!</p>
-          <p className="text-sm text-white/50">Redirecionando para o app...</p>
+          <p className="text-lg font-bold mb-2" style={{color:'#3D1A2A'}}>Casal vinculado!</p>
+          <p className="text-sm" style={{color:'#9B6B7A'}}>Redirecionando para o app...</p>
         </>
       )}
       {status === 'error' && (
         <>
           <div className="text-4xl mb-4">😔</div>
-          <p className="text-base text-white mb-4">{error}</p>
+          <p className="text-base mb-4" style={{color:'#3D1A2A'}}>{error}</p>
           <button className="btn-primary mt-4" onClick={() => navigate('/dashboard')}>
             Ir para o início
           </button>
