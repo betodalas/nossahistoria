@@ -70,8 +70,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             style={{
               position: 'fixed',
               bottom: '76px',
-              left: '50%',
-              transform: 'translateX(calc(-50% + 163px))',
+              right: 'max(16px, calc(50vw - 215px + 16px))',
               height: '44px',
               borderRadius: '22px',
               background: 'linear-gradient(135deg, #C9A0B0, #7C4D6B)',
