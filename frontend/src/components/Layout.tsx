@@ -20,7 +20,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* FAB — Adicionar momento (apenas Dashboard e Timeline) */}
-        {(path === '/dashboard' || path === '/linha-do-tempo') && (
+        {path === '/dashboard' && (
           <button
             aria-label="Adicionar momento"
             onClick={() => navigate('/novo-momento')}
