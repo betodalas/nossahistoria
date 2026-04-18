@@ -194,9 +194,6 @@ export default function Timeline() {
             )}
           </div>
         )}
-        <button className="btn-primary mt-2" onClick={() => navigate('/novo-momento')}>
-          + Adicionar momento
-        </button>
       </div>
     </Layout>
   )
