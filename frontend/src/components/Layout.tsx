@@ -19,59 +19,62 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
 
-        {/* FAB — Adicionar momento */}
-        <button
-          aria-label="Adicionar momento"
-          onClick={() => navigate('/novo-momento')}
-          style={{
-            position: 'fixed',
-            bottom: '76px',
-            left: '50%',
-            /* maxWidth do container é 430px; 215px = metade + 108px de margem direita */
-            transform: 'translateX(calc(-50% + 163px))',
-            width: '52px',
-            height: '52px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #C9A0B0, #7C4D6B)',
-            border: 'none',
-            boxShadow: '0 4px 16px rgba(124,77,107,0.40)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 50,
-            transition: 'box-shadow 0.15s ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,77,107,0.55)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,77,107,0.40)'
-          }}
-          onFocus={e => {
-            e.currentTarget.style.outline = '3px solid #C9A0B0'
-            e.currentTarget.style.outlineOffset = '3px'
-          }}
-          onBlur={e => {
-            e.currentTarget.style.outline = 'none'
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+        {/* FAB — Adicionar momento (apenas Dashboard e Timeline) */}
+        {(path === '/dashboard' || path === '/linha-do-tempo') && (
+          <button
+            aria-label="Adicionar momento"
+            onClick={() => navigate('/novo-momento')}
+            style={{
+              position: 'fixed',
+              bottom: '76px',
+              right: '16px',
+              height: '44px',
+              borderRadius: '22px',
+              background: 'linear-gradient(135deg, #C9A0B0, #7C4D6B)',
+              border: 'none',
+              boxShadow: '0 4px 16px rgba(124,77,107,0.40)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0 18px 0 14px',
+              zIndex: 50,
+              transition: 'box-shadow 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,77,107,0.55)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,77,107,0.40)'
+            }}
+            onFocus={e => {
+              e.currentTarget.style.outline = '3px solid #C9A0B0'
+              e.currentTarget.style.outlineOffset = '3px'
+            }}
+            onBlur={e => {
+              e.currentTarget.style.outline = 'none'
+            }}
           >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span style={{ color: 'white', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              Adicionar momento
+            </span>
+          </button>
+        )}
 
         <nav style={{
           position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
