@@ -65,11 +65,9 @@ export default function BookPDF() {
       doc.setFillColor(...dark)
       doc.rect(0, 0, 210, 297, 'F')
       doc.setFillColor(...purple)
-      doc.setGState(new (doc as any).GState({ opacity: 0.3 }))
       doc.ellipse(105, 100, 80, 80, 'F')
       doc.setFillColor(...pink)
       doc.ellipse(105, 180, 60, 60, 'F')
-      doc.setGState(new (doc as any).GState({ opacity: 1 }))
 
       y = 80
       doc.setFontSize(36)
@@ -95,9 +93,7 @@ export default function BookPDF() {
       if (moments.length > 0) {
         addPage()
         doc.setFillColor(...purple)
-        doc.setGState(new (doc as any).GState({ opacity: 0.15 }))
         doc.rect(0, 0, 210, 40, 'F')
-        doc.setGState(new (doc as any).GState({ opacity: 1 }))
         y = 15
         addText('Capítulo 1', 105, 10, gray, 'center')
         addText('Nossos Momentos', 105, 22, light, 'center')
@@ -116,16 +112,19 @@ export default function BookPDF() {
           if (m.photo_url) {
             try {
               if (y > 200) addPage()
-              let imgData = m.photo_url
-              if (!imgData.startsWith('data:')) {
-                const resp = await fetch(m.photo_url)
-                const blob = await resp.blob()
-                imgData = await new Promise<string>((res) => {
-                  const reader = new FileReader()
-                  reader.onload = () => res(reader.result as string)
-                  reader.readAsDataURL(blob)
-                })
-              }
+              const imgData = await new Promise<string>((resolve, reject) => {
+                const img = new Image()
+                img.crossOrigin = 'anonymous'
+                img.onload = () => {
+                  const canvas = document.createElement('canvas')
+                  canvas.width = img.naturalWidth
+                  canvas.height = img.naturalHeight
+                  canvas.getContext('2d')!.drawImage(img, 0, 0)
+                  resolve(canvas.toDataURL('image/jpeg', 0.85))
+                }
+                img.onerror = reject
+                img.src = m.photo_url + (m.photo_url.includes('?') ? '&' : '?') + 't=' + Date.now()
+              })
               const imgH = 60
               doc.addImage(imgData, 'JPEG', 20, y, 170, imgH, undefined, 'MEDIUM')
               y += imgH + 5
@@ -139,9 +138,7 @@ export default function BookPDF() {
       if (answers.length > 0) {
         addPage()
         doc.setFillColor(...pink)
-        doc.setGState(new (doc as any).GState({ opacity: 0.1 }))
         doc.rect(0, 0, 210, 40, 'F')
-        doc.setGState(new (doc as any).GState({ opacity: 1 }))
         y = 15
         addText('Capítulo 2', 105, 10, gray, 'center')
         addText('Nossas Respostas', 105, 22, light, 'center')
