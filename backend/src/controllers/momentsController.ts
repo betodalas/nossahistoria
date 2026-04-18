@@ -9,7 +9,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-const FREE_MOMENTS_LIMIT = 10
+const FREE_MOMENTS_LIMIT = 15
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024       // 5 MB
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024      // 10 MB (~2 min webm)
 const MAX_AUDIO_DURATION = 120                 // 2 minutos em segundos
