@@ -125,7 +125,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {t.icon(active)}
                 <span style={{
                   fontWeight: active ? 700 : 400,
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: active ? '#7C4D6B' : '#C9A0B0'
                 }}>{t.label}</span>
               </button>
