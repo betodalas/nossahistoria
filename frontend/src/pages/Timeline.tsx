@@ -7,6 +7,43 @@ import { FREE_MOMENTS_LIMIT } from '../constants'
 import Layout from '../components/Layout'
 import MusicPlayer from '../components/MusicPlayer'
 
+function DeleteModal({ onConfirm, onCancel, loading }: {
+  onConfirm: () => void
+  onCancel: () => void
+  loading: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: 'rgba(61,26,42,0.5)' }}
+      onClick={onCancel}>
+      <div
+        className="w-full rounded-t-3xl p-6"
+        style={{ background: 'white', maxWidth: '430px' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: '#E8C4CE' }} />
+        <div className="text-center mb-5">
+          <div className="text-4xl mb-3">🗑️</div>
+          <p className="text-base font-bold" style={{ color: '#3D1A2A' }}>Apagar momento?</p>
+          <p className="text-sm mt-1" style={{ color: '#9B6B7A' }}>Esta ação não pode ser desfeita.</p>
+        </div>
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          className="w-full py-3 rounded-xl font-bold text-sm mb-3"
+          style={{ background: '#e11d48', color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+          {loading ? 'Apagando...' : 'Sim, apagar'}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={loading}
+          className="btn-secondary">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Timeline() {
   const [moments, setMoments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -15,6 +52,7 @@ export default function Timeline() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const { isPremium } = useAuth()
   const navigate = useNavigate()
 
@@ -44,16 +82,17 @@ export default function Timeline() {
     audio.onended = () => setPlayingVoice(null)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Apagar este momento? Esta ação não pode ser desfeita.')) return
-    setDeleting(id)
+  const handleDelete = async () => {
+    if (!confirmDeleteId) return
+    setDeleting(confirmDeleteId)
     try {
-      await momentsService.delete(id)
-      setMoments(prev => prev.filter(m => m.id !== id))
+      await momentsService.delete(confirmDeleteId)
+      setMoments(prev => prev.filter(m => m.id !== confirmDeleteId))
     } catch {
-      alert('Erro ao apagar momento.')
+      // silently fail — could add a toast here later
     } finally {
       setDeleting(null)
+      setConfirmDeleteId(null)
       setMenuOpen(null)
     }
   }
@@ -65,6 +104,15 @@ export default function Timeline() {
 
   return (
     <Layout>
+      {/* Modal de confirmação de exclusão */}
+      {confirmDeleteId && (
+        <DeleteModal
+          loading={deleting === confirmDeleteId}
+          onConfirm={handleDelete}
+          onCancel={() => { setConfirmDeleteId(null); setMenuOpen(null) }}
+        />
+      )}
+
       {/* Lightbox */}
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -134,11 +182,10 @@ export default function Timeline() {
                             style={{ color: '#3D1A2A' }}>
                             ✏️ Editar
                           </button>
-                          <button onClick={() => handleDelete(m.id)}
-                            disabled={deleting === m.id}
+                          <button onClick={() => { setMenuOpen(null); setConfirmDeleteId(m.id) }}
                             className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 border-t"
                             style={{ color: '#e11d48', borderColor: '#E8C4CE' }}>
-                            {deleting === m.id ? '⏳ Apagando...' : '🗑️ Apagar'}
+                            🗑️ Apagar
                           </button>
                         </div>
                       )}
