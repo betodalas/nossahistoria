@@ -113,11 +113,21 @@ export default function BookPDF() {
           addText(m.title, 20, 13, light, 'left', 170)
           if (m.description) addText(m.description, 20, 10, gray, 'left', 170)
           if (m.music_name) { y += 2; addText(`♪  ${m.music_name}`, 20, 9, purple) }
-          if (m.photo_url && m.photo_url.startsWith('data:')) {
+          if (m.photo_url) {
             try {
               if (y > 200) addPage()
+              let imgData = m.photo_url
+              if (!imgData.startsWith('data:')) {
+                const resp = await fetch(m.photo_url)
+                const blob = await resp.blob()
+                imgData = await new Promise<string>((res) => {
+                  const reader = new FileReader()
+                  reader.onload = () => res(reader.result as string)
+                  reader.readAsDataURL(blob)
+                })
+              }
               const imgH = 60
-              doc.addImage(m.photo_url, 'JPEG', 20, y, 170, imgH, undefined, 'MEDIUM')
+              doc.addImage(imgData, 'JPEG', 20, y, 170, imgH, undefined, 'MEDIUM')
               y += imgH + 5
             } catch {}
           }
