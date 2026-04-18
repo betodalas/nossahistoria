@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { momentsService, lettersService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import Layout from '../components/Layout'
 
 export default function BookPDF() {
   const { couple } = useAuth()
@@ -63,8 +64,6 @@ export default function BookPDF() {
       // CAPA
       doc.setFillColor(...dark)
       doc.rect(0, 0, 210, 297, 'F')
-
-      // Gradiente simulado com retângulos
       doc.setFillColor(...purple)
       doc.setGState(new (doc as any).GState({ opacity: 0.3 }))
       doc.ellipse(105, 100, 80, 80, 'F')
@@ -106,17 +105,14 @@ export default function BookPDF() {
 
         for (const m of moments) {
           if (y > 250) addPage()
-          // Linha decorativa
           doc.setDrawColor(...purple)
           doc.setLineWidth(0.5)
           doc.line(20, y, 190, y)
           y += 6
-
           addText(new Date(m.moment_date).toLocaleDateString('pt-BR', {day:'numeric',month:'long',year:'numeric'}), 20, 9, gray)
           addText(m.title, 20, 13, light, 'left', 170)
           if (m.description) addText(m.description, 20, 10, gray, 'left', 170)
           if (m.music_name) { y += 2; addText(`♪  ${m.music_name}`, 20, 9, purple) }
-
           if (m.photo_url && m.photo_url.startsWith('data:')) {
             try {
               if (y > 200) addPage()
@@ -208,36 +204,38 @@ export default function BookPDF() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{background:'#0f0a1a'}}>
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10">
-        <button onClick={() => navigate(-1)} className="text-violet-300 px-3 py-1.5 rounded-lg text-sm" style={{background:'#1e1035'}}>←</button>
-        <h2 className="text-base font-semibold text-white">Exportar livro em PDF</h2>
+    <Layout>
+      <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #E8C4CE' }}>
+        <button onClick={() => navigate(-1)} className="px-3 py-1.5 rounded-lg text-sm font-semibold"
+          style={{ background: '#FADADD', color: '#7C4D6B', border: '1px solid #E8C4CE' }}>←</button>
+        <h2 className="text-base font-semibold" style={{ color: '#3D1A2A' }}>Exportar livro em PDF</h2>
       </div>
 
       <div className="flex-1 p-4">
         <div className="text-center py-6">
           <div className="text-6xl mb-4">📖</div>
-          <h2 className="text-xl font-bold text-white mb-2">Nosso livro impresso</h2>
-          <p className="text-sm text-white/50 leading-relaxed max-w-xs mx-auto">
+          <h2 className="text-xl font-bold mb-2" style={{ color: '#3D1A2A' }}>Nosso livro impresso</h2>
+          <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#9B6B7A' }}>
             Gera um PDF com toda a história de vocês — momentos, perguntas, cartas e mensagens da família
           </p>
         </div>
 
         {/* Preview do conteúdo */}
-        <div className="rounded-2xl p-4 mb-5 border border-violet-500/20" style={{background:'#1a1030'}}>
-          <p className="text-xs text-white/70 uppercase tracking-widest mb-3">O que vai no PDF</p>
+        <div className="rounded-2xl p-4 mb-5" style={{ background: 'white', border: '1px solid #E8C4CE' }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9B6B7A' }}>O que vai no PDF</p>
           {[
-            { icon:'💍', label:'Capa personalizada', sub: couple?.couple_name || 'com nome do casal' },
-            { icon:'📸', label:`${moments.length} momentos`, sub: 'com fotos e descrições' },
-            { icon:'💬', label:`${answers.length} perguntas respondidas`, sub: 'respostas dos dois' },
-            { icon:'💌', label:'Carta do casamento', sub: letters.wedding?.text ? 'escrita ✅' : 'não escrita ainda' },
-            { icon:'👨‍👩‍👧', label:`${guestPosts.length} mensagens da família`, sub: 'do álbum de convidados' },
+            { icon: '💍', label: 'Capa personalizada', sub: couple?.couple_name || 'com nome do casal' },
+            { icon: '📸', label: `${moments.length} momentos`, sub: 'com fotos e descrições' },
+            { icon: '💬', label: `${answers.length} perguntas respondidas`, sub: 'respostas dos dois' },
+            { icon: '💌', label: 'Carta do casamento', sub: letters.wedding?.text ? 'escrita ✅' : 'não escrita ainda' },
+            { icon: '👨‍👩‍👧', label: `${guestPosts.length} mensagens da família`, sub: 'do álbum de convidados' },
           ].map(item => (
-            <div key={item.label} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+            <div key={item.label} className="flex items-center gap-3 py-2 border-b last:border-0"
+              style={{ borderColor: '#E8C4CE' }}>
               <span className="text-xl w-8">{item.icon}</span>
               <div>
-                <p className="text-sm text-purple-100">{item.label}</p>
-                <p className="text-xs text-white/60">{item.sub}</p>
+                <p className="text-sm font-semibold" style={{ color: '#3D1A2A' }}>{item.label}</p>
+                <p className="text-xs" style={{ color: '#9B6B7A' }}>{item.sub}</p>
               </div>
             </div>
           ))}
@@ -251,10 +249,10 @@ export default function BookPDF() {
           {done ? '✅ PDF baixado!' : generating ? '⏳ Gerando PDF...' : '📥 Gerar e baixar PDF'}
         </button>
 
-        <p className="text-xs text-white/25 text-center mt-3">
+        <p className="text-xs text-center mt-3" style={{ color: '#C9A0B0' }}>
           O PDF é gerado no seu celular — nenhum dado sai do seu dispositivo
         </p>
       </div>
-    </div>
+    </Layout>
   )
 }
