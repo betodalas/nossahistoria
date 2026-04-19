@@ -195,26 +195,27 @@ export default function BookPDF() {
             y += 1
             // Pill de música
             doc.setFillColor(...ROSE_CARD)
-            doc.roundedRect(ML, y - 4, TW, 10, 2, 2, 'F')
+            doc.rect(ML, y - 4, TW, 10, 'F')
             text(`♪  ${m.music_name}`, ML + 4, 9, ROSE_MID, 'left', TW - 8)
           }
 
           if (m.photo_url) {
             try {
               if (y > 210) { newPage(); y = 20 }
-              const imgData = await loadImage(m.photo_url)
-              // Calcular proporção real para não esticar
-              const tmpImg = new Image()
-              await new Promise(r => { tmpImg.onload = r; tmpImg.src = imgData })
-              const ratio = tmpImg.naturalHeight / tmpImg.naturalWidth
-              const imgW = TW
-              const imgH = Math.min(imgW * ratio, 90) // max 90mm de altura
-              // Borda arredondada simulada com rect claro atrás
-              doc.setFillColor(...ROSE_LIGHT)
-              doc.roundedRect(ML - 1, y - 1, imgW + 2, imgH + 2, 2, 2, 'F')
-              doc.addImage(imgData, 'JPEG', ML, y, imgW, imgH, undefined, 'MEDIUM')
-              y += imgH + 6
-            } catch {}
+              const imgData = await loadImage(m.photo_url).catch(() => null)
+              if (imgData) {
+                const tmpImg = new Image()
+                await new Promise(r => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = imgData })
+                const ratio = tmpImg.naturalHeight > 0 && tmpImg.naturalWidth > 0
+                  ? tmpImg.naturalHeight / tmpImg.naturalWidth : 0.75
+                const imgW = TW
+                const imgH = Math.min(imgW * ratio, 90)
+                doc.setFillColor(...ROSE_LIGHT)
+                doc.rect(ML - 1, y - 1, imgW + 2, imgH + 2, 'F')
+                doc.addImage(imgData, 'JPEG', ML, y, imgW, imgH, undefined, 'MEDIUM')
+                y += imgH + 6
+              }
+            } catch { /* pula foto com erro sem abortar o PDF */ }
           }
           y += 4
         }
@@ -246,7 +247,7 @@ export default function BookPDF() {
         doc.setFillColor(...WHITE)
         doc.setDrawColor(...ROSE_LIGHT)
         doc.setLineWidth(0.5)
-        doc.roundedRect(ML, y, TW, cardH, 3, 3, 'FD')
+        doc.rect(ML, y, TW, cardH, 'FD')
         y += 8
         text('Carta escrita antes do casamento:', ML + 6, 9, GRAY, 'left', TW - 12)
         y += 2
