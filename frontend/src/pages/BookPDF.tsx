@@ -11,7 +11,6 @@ export default function BookPDF() {
   const [done, setDone] = useState(false)
   const [moments, setMoments] = useState<any[]>([])
   const [letters, setLetters] = useState<Record<string,any>>({})
-  const allAnswers: Record<string, any> = {}
   const guestPosts: any[] = []
 
   useEffect(() => {
@@ -23,21 +22,6 @@ export default function BookPDF() {
     }).catch(() => {})
   }, [])
 
-  const answers = Object.values(allAnswers)
-
-  // Paleta rosé — consistente com o app
-  const ROSE_BG   = [255, 240, 243] as [number,number,number]  // #FFF0F3
-  const ROSE_DARK = [61,  26,  42]  as [number,number,number]  // #3D1A2A
-  const ROSE_MID  = [124, 77,  107] as [number,number,number]  // #7C4D6B
-  const ROSE_LIGHT= [232, 196, 206] as [number,number,number]  // #E8C4CE
-  const ROSE_CARD = [250, 218, 221] as [number,number,number]  // #FADADD
-  const WHITE     = [255, 255, 255] as [number,number,number]
-  const GRAY      = [155, 107, 122] as [number,number,number]  // #9B6B7A
-
-  const ML = 20  // margin left
-  const MR = 20  // margin right
-  const TW = 210 - ML - MR  // text width = 170mm
-
   const loadImage = (url: string): Promise<string> =>
     new Promise((resolve, reject) => {
       const img = new Image()
@@ -47,7 +31,7 @@ export default function BookPDF() {
         canvas.width = img.naturalWidth
         canvas.height = img.naturalHeight
         canvas.getContext('2d')!.drawImage(img, 0, 0)
-        resolve(canvas.toDataURL('image/jpeg', 0.85))
+        resolve(canvas.toDataURL('image/jpeg', 0.9))
       }
       img.onerror = reject
       img.src = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now()
@@ -57,241 +41,208 @@ export default function BookPDF() {
     setGenerating(true)
     try {
       const { default: jsPDF } = await import('jspdf')
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
+      const W = 210
+      const H = 297
+      const ML = 24
+      const MR = 24
+      const TW = W - ML - MR
+
+      // Paleta
+      const BLACK   = [20,  15,  20]  as [number,number,number]
+      const ROSE_MID = [124, 77,  107] as [number,number,number]
+      const ROSE_LT  = [232, 196, 206] as [number,number,number]
+      const ROSE_BG  = [255, 240, 243] as [number,number,number]
+      const GRAY     = [150, 140, 145] as [number,number,number]
+      const WHITE    = [255, 255, 255] as [number,number,number]
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       let y = 0
 
-      const newPage = (withHeader = false) => {
-        doc.addPage()
-        // fundo rosé claro
-        doc.setFillColor(...ROSE_BG)
-        doc.rect(0, 0, 210, 297, 'F')
-        y = withHeader ? 50 : 20
+      const bg = (color: [number,number,number]) => {
+        doc.setFillColor(...color)
+        doc.rect(0, 0, W, H, 'F')
       }
 
-      const text = (
-        t: string, x: number, size: number,
+      const hline = (x1: number, x2: number, yy: number, color: [number,number,number], w = 0.3) => {
+        doc.setDrawColor(...color)
+        doc.setLineWidth(w)
+        doc.line(x1, yy, x2, yy)
+      }
+
+      const vline = (xx: number, y1: number, y2: number, color: [number,number,number], w = 0.3) => {
+        doc.setDrawColor(...color)
+        doc.setLineWidth(w)
+        doc.line(xx, y1, xx, y2)
+      }
+
+      const txt = (
+        t: string, x: number, yy: number, size: number,
         color: [number,number,number],
         align: 'left'|'center'|'right' = 'left',
-        maxW?: number
-      ) => {
+        maxW?: number,
+        italic = false
+      ): number => {
         doc.setFontSize(size)
         doc.setTextColor(...color)
+        doc.setFont('helvetica', italic ? 'italic' : 'normal')
         if (maxW) {
           const lines = doc.splitTextToSize(t, maxW)
-          doc.text(lines, x, y, { align })
-          y += lines.length * (size * 0.42) + 2
-        } else {
-          doc.text(t, x, y, { align })
-          y += size * 0.42 + 2
+          doc.text(lines, x, yy, { align })
+          return lines.length * (size * 0.42) + 2
         }
+        doc.text(t, x, yy, { align })
+        return size * 0.42 + 2
       }
 
-      const chapterHeader = (num: string, title: string) => {
-        // Faixa de cabeçalho
-        doc.setFillColor(...ROSE_CARD)
-        doc.rect(0, 0, 210, 38, 'F')
-        doc.setFillColor(...ROSE_LIGHT)
-        doc.rect(0, 36, 210, 2, 'F')
-        y = 12
-        text(num, 105, 9, ROSE_MID, 'center')
-        text(title, 105, 20, ROSE_DARK, 'center')
-        y = 50
-      }
+      const label = (t: string, x: number, yy: number, align: 'left'|'center'|'right' = 'left') =>
+        txt(t.toUpperCase(), x, yy, 7, ROSE_MID, align)
 
-      const divider = () => {
-        doc.setDrawColor(...ROSE_LIGHT)
-        doc.setLineWidth(0.4)
-        doc.line(ML, y, 210 - MR, y)
-        y += 6
-      }
+      // ── CAPA ────────────────────────────────────────────────
+      bg(WHITE)
 
-      // ── CAPA ──────────────────────────────────────────────
-      doc.setFillColor(...WHITE)
-      doc.rect(0, 0, 210, 297, 'F')
-
-      // Bloco superior rosé
-      doc.setFillColor(...ROSE_CARD)
-      doc.rect(0, 0, 210, 140, 'F')
-
-      // Ornamento central — círculo decorativo
-      doc.setDrawColor(...ROSE_LIGHT)
-      doc.setLineWidth(0.8)
-      doc.circle(105, 90, 50)
-      doc.setLineWidth(0.3)
-      doc.circle(105, 90, 55)
-
-      // Título
-      y = 72
-      doc.setFontSize(38)
-      doc.setTextColor(...ROSE_DARK)
-      doc.text('Nossa', 105, y, { align: 'center' })
-      y += 17
-      doc.text('História', 105, y, { align: 'center' })
-
-      // Linha decorativa sob título
-      y = 148
-      doc.setDrawColor(...ROSE_LIGHT)
-      doc.setLineWidth(0.5)
-      doc.line(60, y, 150, y)
+      // Linha vertical decorativa
+      vline(W / 2, 60, 100, ROSE_LT, 0.5)
 
       // Nome do casal
-      y = 162
-      doc.setFontSize(15)
-      doc.setTextColor(...ROSE_MID)
-      doc.text(couple?.couple_name || 'Nosso casal', 105, y, { align: 'center' })
+      const name = couple?.couple_name || 'Nosso casal'
+      const parts = name.split(' e ')
+      if (parts.length === 2) {
+        txt(parts[0].trim(), W / 2, 118, 28, BLACK, 'center')
+        txt('e', W / 2, 130, 10, ROSE_MID, 'center')
+        txt(parts[1].trim(), W / 2, 142, 28, BLACK, 'center')
+      } else {
+        txt(name, W / 2, 130, 24, BLACK, 'center')
+      }
 
+      // Linha ornamental
+      hline(W / 2 - 20, W / 2 + 20, 152, ROSE_LT, 0.4)
+
+      // Data
       if (couple?.wedding_date) {
-        y += 10
-        doc.setFontSize(11)
-        doc.setTextColor(...GRAY)
-        doc.text(
-          new Date(couple.wedding_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }),
-          105, y, { align: 'center' }
-        )
+        const d = new Date(couple.wedding_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+        label(d, W / 2, 162, 'center')
       }
 
-      // Stats
-      y = 230
-      const stats = [
-        { n: moments.length, label: 'momentos' },
-        { n: answers.length, label: 'perguntas' },
-        { n: guestPosts.length, label: 'mensagens' },
-      ]
-      const colW = 170 / 3
-      stats.forEach((s, i) => {
-        const cx = ML + colW * i + colW / 2
-        doc.setFontSize(20)
-        doc.setTextColor(...ROSE_DARK)
-        doc.text(String(s.n), cx, y, { align: 'center' })
-        doc.setFontSize(9)
-        doc.setTextColor(...GRAY)
-        doc.text(s.label, cx, y + 7, { align: 'center' })
-      })
+      vline(W / 2, 172, 220, ROSE_LT, 0.5)
 
-      // Rodapé capa
-      doc.setFillColor(...ROSE_CARD)
-      doc.rect(0, 280, 210, 17, 'F')
-      doc.setFontSize(8)
-      doc.setTextColor(...ROSE_MID)
-      doc.text('Nossa História · gerado com amor', 105, 290, { align: 'center' })
+      // Rodapé
+      txt('Nossa História', W / 2, 280, 8, GRAY, 'center')
 
-      // ── CAP 1 — MOMENTOS ──────────────────────────────────
-      if (moments.length > 0) {
-        newPage()
-        chapterHeader('Capítulo 1', 'Nossos Momentos')
+      // ── MOMENTOS ────────────────────────────────────────────
+      for (const m of moments) {
+        const dateStr = new Date(m.moment_date)
+          .toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+          .toUpperCase()
 
-        for (const m of moments) {
-          if (y > 248) { newPage(); y = 20 }
+        if (m.photo_url) {
+          // Página foto full-bleed
+          doc.addPage()
+          bg([30, 20, 25])
 
-          divider()
-          text(
-            new Date(m.moment_date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }),
-            ML, 9, GRAY
-          )
-          text(m.title, ML, 14, ROSE_DARK, 'left', TW)
-          if (m.description) text(m.description, ML, 10, GRAY, 'left', TW)
-          if (m.music_name) {
-            y += 1
-            // Pill de música
-            doc.setFillColor(...ROSE_CARD)
-            doc.rect(ML, y - 4, TW, 10, 'F')
-            text(`♪  ${m.music_name}`, ML + 4, 9, ROSE_MID, 'left', TW - 8)
+          let imgData: string | null = null
+          try { imgData = await loadImage(m.photo_url).catch(() => null) } catch {}
+
+          if (imgData) {
+            // Calcular proporção
+            const tmpImg = new Image()
+            await new Promise(r => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = imgData! })
+            const ratio = tmpImg.naturalHeight > 0 ? tmpImg.naturalHeight / tmpImg.naturalWidth : 0.75
+            const imgH = ratio > (H / W) ? H : W * ratio
+
+            // Centralizar verticalmente
+            const imgY = Math.max(0, (H - imgH) / 2)
+            doc.addImage(imgData, 'JPEG', 0, imgY, W, imgH, undefined, 'MEDIUM')
           }
 
-          if (m.photo_url) {
-            try {
-              if (y > 210) { newPage(); y = 20 }
-              const imgData = await loadImage(m.photo_url).catch(() => null)
-              if (imgData) {
-                const tmpImg = new Image()
-                await new Promise(r => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = imgData })
-                const ratio = tmpImg.naturalHeight > 0 && tmpImg.naturalWidth > 0
-                  ? tmpImg.naturalHeight / tmpImg.naturalWidth : 0.75
-                const imgW = TW
-                const imgH = Math.min(imgW * ratio, 90)
-                doc.setFillColor(...ROSE_LIGHT)
-                doc.rect(ML - 1, y - 1, imgW + 2, imgH + 2, 'F')
-                doc.addImage(imgData, 'JPEG', ML, y, imgW, imgH, undefined, 'MEDIUM')
-                y += imgH + 6
-              }
-            } catch { /* pula foto com erro sem abortar o PDF */ }
+          // Overlay gradiente simulado (retângulo semi-transparente na base)
+          doc.setFillColor(10, 5, 10)
+          doc.rect(0, H - 55, W, 55, 'F')
+
+          // Data e título sobre a foto
+          label(dateStr, ML, H - 38, 'left')
+          txt(m.title, ML, H - 26, 18, WHITE, 'left', TW)
+          if (m.description) {
+            txt(m.description, ML, H - 14, 8, [200, 185, 195], 'left', TW)
           }
-          y += 4
+
+        } else {
+          // Página só texto — elegante, centrado
+          doc.addPage()
+          bg(WHITE)
+
+          hline(ML, W - MR, 50, ROSE_LT, 0.3)
+
+          y = 70
+          y += label(dateStr, ML, y)
+          y += 8
+          y += txt(m.title, ML, y, 22, BLACK, 'left', TW)
+          if (m.description) {
+            hline(ML, ML + 16, y + 4, ROSE_LT, 0.4)
+            y += 12
+            y += txt(m.description, ML, y, 10, GRAY, 'left', TW)
+          }
+
+          hline(ML, W - MR, H - 50, ROSE_LT, 0.3)
         }
       }
 
-      // ── CAP 2 — PERGUNTAS ────────────────────────────────
-      if (answers.length > 0) {
-        newPage()
-        chapterHeader('Capítulo 2', 'Nossas Respostas')
-
-        for (const a of answers.slice(0, 20)) {
-          if (y > 240) { newPage(); y = 20 }
-          divider()
-          text(`"${a.question}"`, ML, 9, GRAY, 'left', TW)
-          y += 1
-          text(`Você: ${a.myAnswer}`, ML, 10, ROSE_DARK, 'left', TW)
-          if (a.partnerAnswer)
-            text(`${couple?.partner_name || 'Parceiro(a)'}: ${a.partnerAnswer}`, ML, 10, ROSE_MID, 'left', TW)
-          y += 3
-        }
-      }
-
-      // ── CAP 3 — CARTA ────────────────────────────────────
+      // ── CARTA ───────────────────────────────────────────────
       if (letters.wedding?.text) {
-        newPage()
-        chapterHeader('Capítulo 3', 'Nossa Carta')
-        // Card de carta
-        const cardH = Math.min(letters.wedding.text.length * 0.5 + 20, 200)
-        doc.setFillColor(...WHITE)
-        doc.setDrawColor(...ROSE_LIGHT)
-        doc.setLineWidth(0.5)
-        doc.rect(ML, y, TW, cardH, 'FD')
-        y += 8
-        text('Carta escrita antes do casamento:', ML + 6, 9, GRAY, 'left', TW - 12)
-        y += 2
-        text(letters.wedding.text, ML + 6, 10, ROSE_DARK, 'left', TW - 12)
+        // Separador de capítulo
+        doc.addPage()
+        bg(WHITE)
+        vline(W / 2, 90, 130, ROSE_LT, 0.5)
+        label('Capítulo', W / 2, 138, 'center')
+        txt('Nossa Carta', W / 2, 152, 20, BLACK, 'center')
+        vline(W / 2, 158, 200, ROSE_LT, 0.5)
+
+        // Página da carta
+        doc.addPage()
+        bg(ROSE_BG)
+        y = 50
+        label('Escrita antes do casamento', ML, y)
+        y += 14
+        hline(ML, ML + 20, y, ROSE_LT, 0.4)
+        y += 12
+        const letterLines = doc.setFontSize(10).splitTextToSize(letters.wedding.text, TW)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(...BLACK)
+        doc.text(letterLines, ML, y)
       }
 
-      // ── CAP 4 — CONVIDADOS ───────────────────────────────
+      // ── CONVIDADOS ──────────────────────────────────────────
       if (guestPosts.length > 0) {
-        newPage()
-        chapterHeader('Capítulo 4', 'Mensagens da Família')
+        doc.addPage()
+        bg(WHITE)
+        vline(W / 2, 90, 130, ROSE_LT, 0.5)
+        label('Capítulo', W / 2, 138, 'center')
+        txt('Mensagens da Família', W / 2, 152, 20, BLACK, 'center')
+        vline(W / 2, 158, 200, ROSE_LT, 0.5)
 
+        doc.addPage()
+        bg(WHITE)
+        y = 40
         for (const p of guestPosts) {
-          if (y > 250) { newPage(); y = 20 }
-          divider()
-          text(p.name, ML, 12, ROSE_MID)
-          text(p.message, ML, 10, GRAY, 'left', TW)
-          y += 3
+          if (y > 260) { doc.addPage(); bg(WHITE); y = 40 }
+          hline(ML, W - MR, y, ROSE_LT, 0.3)
+          y += 8
+          y += txt(p.name, ML, y, 11, [100, 70, 90])
+          y += txt(p.message, ML, y, 9, GRAY, 'left', TW) + 6
         }
       }
 
-      // ── PÁGINA FINAL ──────────────────────────────────────
-      newPage()
-      doc.setFillColor(...ROSE_CARD)
-      doc.rect(0, 0, 210, 297, 'F')
-      y = 110
-      doc.setFontSize(36)
-      doc.setTextColor(...ROSE_LIGHT)
-      doc.text('♥', 105, y, { align: 'center' })
-      y += 20
-      doc.setFontSize(11)
-      doc.setTextColor(...ROSE_MID)
-      doc.text('Gerado com amor pelo', 105, y, { align: 'center' })
-      y += 8
-      doc.setFontSize(16)
-      doc.setTextColor(...ROSE_DARK)
-      doc.text('Nossa História', 105, y, { align: 'center' })
-      y += 10
-      doc.setFontSize(9)
-      doc.setTextColor(...GRAY)
-      doc.text(new Date().toLocaleDateString('pt-BR'), 105, y, { align: 'center' })
+      // ── PÁGINA FINAL ────────────────────────────────────────
+      doc.addPage()
+      bg(WHITE)
+      vline(W / 2, 80, 130, ROSE_LT, 0.5)
+      txt(couple?.couple_name || 'Nossa História', W / 2, 148, 18, BLACK, 'center')
+      vline(W / 2, 155, 200, ROSE_LT, 0.5)
+      txt('Nossa História', W / 2, 272, 8, GRAY, 'center')
 
-      doc.save(`nossa-historia-${couple?.couple_name?.replace(/\s/g, '-') || 'casal'}.pdf`)
+      doc.save(`nossa-historia-${(couple?.couple_name || 'casal').replace(/\s/g, '-')}.pdf`)
       setDone(true)
-      setTimeout(() => setDone(false), 3000)
+      setTimeout(() => setDone(false), 4000)
     } catch (err) {
       console.error(err)
       alert('Erro ao gerar PDF. Tente novamente.')
@@ -308,21 +259,20 @@ export default function BookPDF() {
         <h2 className="text-base font-semibold" style={{ color: '#3D1A2A' }}>Exportar livro em PDF</h2>
       </div>
 
-      <div className="flex-1 p-4">
+      <div className="p-4">
         <div className="text-center py-6">
           <div className="text-6xl mb-4">📖</div>
           <h2 className="text-xl font-bold mb-2" style={{ color: '#3D1A2A' }}>Nosso livro impresso</h2>
           <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#9B6B7A' }}>
-            Gera um PDF com toda a história de vocês — momentos, perguntas, cartas e mensagens da família
+            Um livro elegante com todos os momentos de vocês — fotos em página inteira, carta e mensagens da família.
           </p>
         </div>
 
         <div className="rounded-2xl p-4 mb-5" style={{ background: 'white', border: '1px solid #E8C4CE' }}>
-          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9B6B7A' }}>O que vai no PDF</p>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9B6B7A' }}>O que vai no livro</p>
           {[
             { icon: '💍', label: 'Capa personalizada', sub: couple?.couple_name || 'com nome do casal' },
-            { icon: '📸', label: `${moments.length} momentos`, sub: 'com fotos e descrições' },
-            { icon: '💬', label: `${answers.length} perguntas respondidas`, sub: 'respostas dos dois' },
+            { icon: '📸', label: `${moments.length} momentos`, sub: 'fotos em página inteira' },
             { icon: '💌', label: 'Carta do casamento', sub: letters.wedding?.text ? 'escrita ✅' : 'não escrita ainda' },
             { icon: '👨‍👩‍👧', label: `${guestPosts.length} mensagens da família`, sub: 'do álbum de convidados' },
           ].map(item => (
