@@ -67,16 +67,28 @@ export default function BookPDF() {
       const circ = (x: number, y: number, r: number, c: [number,number,number]) => {
         doc.setFillColor(...c); doc.circle(x, y, r, 'F')
       }
+      // Losango: 4 circulos sobrepostos formam um losango visual
       const diam = (x: number, y: number, s: number, c: [number,number,number]) => {
+        const r = s * 0.55
         doc.setFillColor(...c)
-        doc.triangle(x, y - s, x + s * 0.6, y, x, y + s, 'F')
-        doc.triangle(x, y - s, x - s * 0.6, y, x, y + s, 'F')
+        doc.circle(x,       y - s*0.45, r*0.7, 'F')
+        doc.circle(x,       y + s*0.45, r*0.7, 'F')
+        doc.circle(x - s*0.45*0.75, y, r*0.7, 'F')
+        doc.circle(x + s*0.45*0.75, y, r*0.7, 'F')
+        doc.circle(x, y, r*0.5, 'F')
       }
+      // Coracao: 2 circulos + 1 elipse na base
       const heart = (x: number, y: number, s: number, c: [number,number,number]) => {
         doc.setFillColor(...c)
-        doc.circle(x - s * 0.28, y - s * 0.1, s * 0.28, 'F')
-        doc.circle(x + s * 0.28, y - s * 0.1, s * 0.28, 'F')
-        doc.triangle(x - s * 0.55, y + s * 0.1, x + s * 0.55, y + s * 0.1, x, y + s * 0.75, 'F')
+        doc.circle(x - s * 0.28, y - s * 0.08, s * 0.3, 'F')
+        doc.circle(x + s * 0.28, y - s * 0.08, s * 0.3, 'F')
+        // Base arredondada do coracao
+        for (let i = 0; i <= 6; i++) {
+          const t = (i / 6) * Math.PI
+          const bx = x + Math.sin(t) * s * 0.5
+          const by = y + s * 0.15 + (1 - Math.cos(t)) * s * 0.28
+          doc.circle(bx, by, s * 0.18, 'F')
+        }
       }
       const dashedH = (x1: number, y: number, x2: number, c: [number,number,number]) => {
         doc.setDrawColor(...c); doc.setLineWidth(0.25)
