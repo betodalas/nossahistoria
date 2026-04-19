@@ -163,6 +163,7 @@ export default function BookPDF() {
 
           // Data e título sobre a foto
           txt(dateStr, ML, H - 38, 7, [200, 185, 195] as [number,number,number], 'left')
+          doc.setTextColor(255, 255, 255)
           txt(m.title, ML, H - 26, 18, WHITE, 'left', TW)
           if (m.description) {
             txt(m.description, ML, H - 14, 8, [200, 185, 195], 'left', TW)
@@ -173,20 +174,25 @@ export default function BookPDF() {
           doc.addPage()
           bg(WHITE)
 
-          hline(ML, W - MR, H / 2 - 30, ROSE_LT, 0.3)
+          const blockH = 10 + 6 + 24 * 0.42 + (m.description ? 20 : 0)
+          const startY = (H - blockH) / 2
 
-          y = H / 2 - 18
+          hline(ML, W - MR, startY - 10, ROSE_LT, 0.3)
+
+          y = startY
           y += label(dateStr, ML, y)
           y += 6
+          doc.setTextColor(...BLACK)
           y += txt(m.title, ML, y, 24, BLACK, 'left', TW)
           if (m.description) {
             y += 3
             hline(ML, ML + 16, y, ROSE_LT, 0.4)
             y += 8
             txt(m.description, ML, y, 10, GRAY, 'left', TW)
+            y += 16
           }
 
-          hline(ML, W - MR, H / 2 + 30, ROSE_LT, 0.3)
+          hline(ML, W - MR, y + 10, ROSE_LT, 0.3)
         }
       }
 
@@ -196,7 +202,7 @@ export default function BookPDF() {
         doc.addPage()
         bg(WHITE)
         vline(W / 2, 90, 130, ROSE_LT, 0.5)
-        label('Capítulo', W / 2, 138, 'center')
+        txt('CAPÍTULO', W / 2, 134, 7, ROSE_MID, 'center')
         txt('Nossa Carta', W / 2, 152, 20, BLACK, 'center')
         vline(W / 2, 158, 200, ROSE_LT, 0.5)
 
@@ -219,7 +225,7 @@ export default function BookPDF() {
         doc.addPage()
         bg(WHITE)
         vline(W / 2, 90, 130, ROSE_LT, 0.5)
-        label('Capítulo', W / 2, 138, 'center')
+        txt('CAPÍTULO', W / 2, 134, 7, ROSE_MID, 'center')
         txt('Mensagens da Família', W / 2, 152, 20, BLACK, 'center')
         vline(W / 2, 158, 200, ROSE_LT, 0.5)
 
