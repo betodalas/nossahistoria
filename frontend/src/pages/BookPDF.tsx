@@ -126,61 +126,98 @@ export default function BookPDF() {
         strokeR(cx-w/2, y-3.5, w, 6, [Math.max(0,c[0]-20), Math.max(0,c[1]-20), Math.max(0,c[2]-20)], 0.15)
       }
 
-      // POLAROID — borda branca grossa embaixo, fita no topo, inclinação
+      // POLAROID — recebe fx/fy como canto superior esquerdo da moldura
+      // A foto preenche toda a área interna (comportamento cover)
       const polaroid = async (
         url: string | null,
-        cx: number, cy: number,
+        fx: number, fy: number,   // canto superior esquerdo da moldura
         imgW: number, imgH: number,
         caption: string,
         angleDeg = 0,
         tapeColor: [number,number,number] = BLUSH
       ) => {
-        const PS = 6, PT = 6, PB = 20  // padding sides, top, bottom
-        const fw = imgW + PS*2
+        const PS = 6, PT = 6, PB = 20
+        const fw = imgW + PS * 2
         const fh = imgH + PT + PB
+
+        // Inclinação simulada por offset
         const rad = angleDeg * Math.PI / 180
-        const ox = Math.sin(rad) * fh * 0.3
-        const oy = Math.abs(Math.sin(rad)) * fw * 0.07
-        const fx = cx - fw/2 + ox
-        const fy = cy - fh/2 + oy
+        const ox = Math.sin(rad) * fh * 0.25
+        const rx = fx + ox   // posição real após inclinação
+        const ry = fy
 
         // Sombra
-        fillR(fx+3, fy+3, fw, fh, [185, 168, 178])
-        // Corpo branco
-        fillR(fx, fy, fw, fh, WHITE)
-        strokeR(fx, fy, fw, fh, [205, 188, 198], 0.18)
-        // Cantos decorativos
-        fillR(fx-1, fy-1, 3, 3, ROSE)
-        fillR(fx+fw-2, fy-1, 3, 3, ROSE)
-        fillR(fx-1, fy+fh-2, 3, 3, ROSE)
-        fillR(fx+fw-2, fy+fh-2, 3, 3, ROSE)
-        // Fita no topo
-        tape(fx+fw/2, fy, 22, tapeColor)
+        fillR(rx+3, ry+3, fw, fh, [180, 162, 172])
+        // Corpo branco da polaroid
+        fillR(rx, ry, fw, fh, WHITE)
+        strokeR(rx, ry, fw, fh, [200, 182, 192], 0.2)
+        // Cantos coloridos
+        fillR(rx-1,    ry-1,    3, 3, ROSE)
+        fillR(rx+fw-2, ry-1,    3, 3, ROSE)
+        fillR(rx-1,    ry+fh-2, 3, 3, ROSE)
+        fillR(rx+fw-2, ry+fh-2, 3, 3, ROSE)
+        // Fita adesiva no topo
+        tape(rx+fw/2, ry, 22, tapeColor)
 
-        // Foto
+        // Área da foto dentro da polaroid
+        const px = rx + PS
+        const py = ry + PT
+
+        // Carrega e desenha a foto preenchendo toda a área (cover)
         let imgData: string | null = null
-        let realH = imgH
         if (url) {
           try { imgData = await loadImage(url).catch(() => null) } catch {}
-          if (imgData) {
-            const tmp = new Image()
-            await new Promise(r => { tmp.onload=r; tmp.onerror=r; tmp.src=imgData! })
-            const iw = tmp.naturalWidth||4, ih = tmp.naturalHeight||3
-            realH = Math.min(imgW*(ih/iw), imgH)
-          }
         }
-        const px = fx+PS, py = fy+PT
-        if (imgData) {
-          fillR(px, py, imgW, imgH, [230, 218, 225])
-          doc.addImage(imgData,'JPEG', px, py+(imgH-realH)/2, imgW, realH, undefined, 'MEDIUM')
-        } else {
-          fillR(px, py, imgW, imgH, BLUSH)
-          heart(px+imgW/2, py+imgH/2, 7, [215, 190, 202])
-        }
-        // Legenda na parte inferior branca da polaroid
-        T(caption.toLowerCase(), fx+fw/2, fy+PT+imgH+13, 7, GRAY, 'center', fw-4, 'italic')
 
-        return { bottomY: fy+fh, rightX: fx+fw }
+        if (imgData) {
+          // Pinta fundo para caso a imagem não cubra tudo
+          fillR(px, py, imgW, imgH, [225, 210, 218])
+
+          // Calcula dimensões para "cover": escala a imagem para preencher sem distorcer
+          const tmp = new Image()
+          await new Promise(r => { tmp.onload = r; tmp.onerror = r; tmp.src = imgData! })
+          const iw = tmp.naturalWidth  || 4
+          const ih = tmp.naturalHeight || 3
+
+          // Escala que preenche a área (cover = max das escalas)
+          const scaleW = imgW / iw
+          const scaleH = imgH / ih
+          const scale  = Math.max(scaleW, scaleH)
+
+          const drawW = iw * scale
+          const drawH = ih * scale
+
+          // Centraliza (crop dos excessos)
+          const drawX = px + (imgW - drawW) / 2
+          const drawY = py + (imgH - drawH) / 2
+
+          // Clip para não vazar fora da área da foto
+          doc.saveGraphicsState()
+          // jsPDF não tem clip nativo fácil, então usamos canvas pré-cropado
+          // Recorta a imagem via canvas antes de inserir no PDF
+          const cropCanvas = document.createElement('canvas')
+          cropCanvas.width  = Math.round(imgW * 3)   // resolução 3x para qualidade
+          cropCanvas.height = Math.round(imgH * 3)
+          const ctx = cropCanvas.getContext('2d')!
+          ctx.drawImage(tmp,
+            0, 0, iw, ih,                             // fonte: imagem inteira
+            (drawX - px) * 3, (drawY - py) * 3,       // destino: offset do crop
+            drawW * 3, drawH * 3
+          )
+          const croppedData = cropCanvas.toDataURL('image/jpeg', 0.92)
+          doc.restoreGraphicsState()
+
+          doc.addImage(croppedData, 'JPEG', px, py, imgW, imgH, undefined, 'MEDIUM')
+        } else {
+          // Placeholder
+          fillR(px, py, imgW, imgH, BLUSH)
+          heart(px + imgW/2, py + imgH/2, 7, [210, 185, 198])
+        }
+
+        // Legenda na faixa branca inferior da polaroid
+        T(caption.toLowerCase(), rx + fw/2, ry + PT + imgH + 13, 7, GRAY, 'center', fw - 4, 'italic')
+
+        return { bottomY: ry + fh, rightX: rx + fw, fw, fh }
       }
 
       // Painel verde lateral (identidade do folheto)
@@ -272,7 +309,9 @@ export default function BookPDF() {
         if (m.photo_url) {
           const maxFW = W - 44
           const maxFH = m.description ? 108 : 140
-          const res = await polaroid(m.photo_url, W/2, y + maxFH/2 + 10, maxFW, maxFH, m.title, -1.5, BLUSH)
+          // fx = margem esquerda para centralizar a moldura (fw = imgW + 12)
+          const pfx = (W - maxFW - 12) / 2
+          const res = await polaroid(m.photo_url, pfx, y, maxFW, maxFH, m.title, -1.5, BLUSH)
           y = res.bottomY + 10
 
           if (m.description) {
