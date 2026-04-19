@@ -307,13 +307,13 @@ export default function BookPDF() {
           tag(dateStr, cardX + 10, cy, ROSE_MID); cy += 11
 
           // Linha decorativa
-          solidH(cardX + 10, cy, cardX + 10 + 14, cy, ROSE_LT, 0.6); cy += 6
+          solidH(cardX + 10, cy, cardX + 10 + 14, cy, ROSE_LT); cy += 6
 
           cy += txt(m.title, cardX + 10, cy, 20, DARK, 'left', cardW - 20, true)
 
           if (m.description) {
             cy += 4
-            solidH(cardX + 10, cy, cardX + 10 + 18, cy, ROSE_CARD, 0.6); cy += 6
+            solidH(cardX + 10, cy, cardX + 10 + 18, cy, ROSE_CARD); cy += 6
             txt(m.description, cardX + 10, cy, 9, GRAY, 'left', cardW - 20, true)
           }
 
