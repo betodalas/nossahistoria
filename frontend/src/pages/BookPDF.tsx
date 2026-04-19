@@ -160,7 +160,7 @@ export default function BookPDF() {
           doc.rect(0, H - 55, W, 55, 'F')
 
           // Data e título sobre a foto
-          label(dateStr, ML, H - 38, 'left')
+          txt(dateStr, ML, H - 38, 7, [200, 185, 195] as [number,number,number], 'left')
           txt(m.title, ML, H - 26, 18, WHITE, 'left', TW)
           if (m.description) {
             txt(m.description, ML, H - 14, 8, [200, 185, 195], 'left', TW)
