@@ -43,21 +43,20 @@ export default function BookPDF() {
       const { default: jsPDF } = await import('jspdf')
 
       const W = 210, H = 297
+      const M = 12  // margem lateral padrão
 
-      // Paleta inspirada no folheto de referência
-      const DG    = [42,  58,  38]  as [number,number,number]  // verde escuro painel
-      const DG2   = [55,  75,  48]  as [number,number,number]  // verde folha
-      const WINE  = [110, 50,  70]  as [number,number,number]  // vinho
-      const ROSE  = [180, 100, 130] as [number,number,number]  // rosa médio
-      const BLUSH = [240, 218, 225] as [number,number,number]  // rosa claro
-      const CREAM = [255, 248, 244] as [number,number,number]  // creme fundo
+      const DG    = [42,  58,  38]  as [number,number,number]
+      const DG2   = [55,  75,  48]  as [number,number,number]
+      const WINE  = [110, 50,  70]  as [number,number,number]
+      const ROSE  = [180, 100, 130] as [number,number,number]
+      const BLUSH = [240, 218, 225] as [number,number,number]
+      const CREAM = [255, 248, 244] as [number,number,number]
       const WHITE = [255, 255, 255] as [number,number,number]
-      const GOLD  = [185, 148, 88]  as [number,number,number]  // dourado
-      const GRAY  = [120, 95,  108] as [number,number,number]  // cinza rosado
+      const GOLD  = [185, 148, 88]  as [number,number,number]
+      const GRAY  = [120, 95,  108] as [number,number,number]
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
-      // Primitivas
       const bg = (c: [number,number,number]) => {
         doc.setFillColor(...c); doc.rect(0, 0, W, H, 'F')
       }
@@ -74,7 +73,6 @@ export default function BookPDF() {
         doc.setDrawColor(...c); doc.setLineWidth(lw); doc.line(x1, y1, x2, y2)
       }
 
-      // Tipografia
       const T = (t: string, x: number, y: number, size: number, c: [number,number,number],
         align: 'left'|'center'|'right' = 'left', maxW?: number, style: 'normal'|'bold'|'italic'|'bolditalic' = 'normal'
       ): number => {
@@ -87,7 +85,7 @@ export default function BookPDF() {
         doc.text(t, x, y, { align }); return size * 0.42 + 2.5
       }
 
-      // Coração
+      // Coração sólido com círculos
       const heart = (cx: number, cy: number, s: number, c: [number,number,number]) => {
         doc.setFillColor(...c)
         doc.circle(cx - s*0.28, cy - s*0.1, s*0.32, 'F')
@@ -98,17 +96,17 @@ export default function BookPDF() {
         }
       }
 
-      // Folha
+      // Folha decorativa
       const leaf = (x: number, y: number, s: number, c: [number,number,number], angle = 0) => {
         doc.setFillColor(...c)
         const rad = angle * Math.PI / 180
-        doc.circle(x, y, s * 0.65, 'F')
-        doc.circle(x + Math.cos(rad)*s*0.5, y - Math.sin(rad)*s*0.5, s * 0.5, 'F')
+        doc.circle(x, y, s*0.65, 'F')
+        doc.circle(x + Math.cos(rad)*s*0.5, y - Math.sin(rad)*s*0.5, s*0.5, 'F')
       }
 
-      // Fileira de corações
+      // Fileira de corações (substitui qualquer ícone de desenho)
       const heartRow = (cx: number, y: number, n: number, s: number, c: [number,number,number]) => {
-        for (let i = 0; i < n; i++) heart(cx + (i-(n-1)/2)*(s*2.8), y, s, c)
+        for (let i = 0; i < n; i++) heart(cx + (i-(n-1)/2)*(s*3), y, s, c)
       }
 
       // Badge de data
@@ -122,171 +120,157 @@ export default function BookPDF() {
       // Fita adesiva
       const tape = (cx: number, y: number, w = 18, c: [number,number,number] = BLUSH) => {
         const lc: [number,number,number] = [Math.min(255,c[0]+25), Math.min(255,c[1]+25), Math.min(255,c[2]+25)]
-        fillR(cx-w/2, y-3.5, w, 6, lc)
-        strokeR(cx-w/2, y-3.5, w, 6, [Math.max(0,c[0]-20), Math.max(0,c[1]-20), Math.max(0,c[2]-20)], 0.15)
+        fillR(cx-w/2, y-3, w, 5.5, lc)
+        strokeR(cx-w/2, y-3, w, 5.5, [Math.max(0,c[0]-20), Math.max(0,c[1]-20), Math.max(0,c[2]-20)], 0.15)
       }
 
-      // POLAROID — recebe fx/fy como canto superior esquerdo da moldura
-      // A foto preenche toda a área interna (comportamento cover)
+      // POLAROID: fx/fy = canto superior esquerdo ANTES da inclinação
+      // A moldura fica dentro das margens — sem cortes
       const polaroid = async (
         url: string | null,
-        fx: number, fy: number,   // canto superior esquerdo da moldura
+        fx: number, fy: number,
         imgW: number, imgH: number,
         caption: string,
         angleDeg = 0,
         tapeColor: [number,number,number] = BLUSH
       ) => {
         const PS = 6, PT = 6, PB = 20
-        const fw = imgW + PS * 2
+        const fw = imgW + PS*2
         const fh = imgH + PT + PB
 
-        // Inclinação simulada por offset
-        const rad = angleDeg * Math.PI / 180
-        const ox = Math.sin(rad) * fh * 0.25
-        const rx = fx + ox   // posição real após inclinação
-        const ry = fy
+        // Inclinação: apenas muda X levemente, nunca vai além das margens
+        const ox = Math.sin(angleDeg * Math.PI / 180) * 3
+        const rx = fx + ox
 
         // Sombra
-        fillR(rx+3, ry+3, fw, fh, [180, 162, 172])
-        // Corpo branco da polaroid
-        fillR(rx, ry, fw, fh, WHITE)
-        strokeR(rx, ry, fw, fh, [200, 182, 192], 0.2)
-        // Cantos coloridos
-        fillR(rx-1,    ry-1,    3, 3, ROSE)
-        fillR(rx+fw-2, ry-1,    3, 3, ROSE)
-        fillR(rx-1,    ry+fh-2, 3, 3, ROSE)
-        fillR(rx+fw-2, ry+fh-2, 3, 3, ROSE)
-        // Fita adesiva no topo
-        tape(rx+fw/2, ry, 22, tapeColor)
+        fillR(rx+3, fy+3, fw, fh, [175, 155, 165])
+        // Corpo branco
+        fillR(rx, fy, fw, fh, WHITE)
+        strokeR(rx, fy, fw, fh, [195, 175, 185], 0.25)
+        // Cantos coloridos (pequenos quadradinhos rosa nos 4 cantos)
+        fillR(rx-1, fy-1, 3.5, 3.5, ROSE)
+        fillR(rx+fw-2.5, fy-1, 3.5, 3.5, ROSE)
+        fillR(rx-1, fy+fh-2.5, 3.5, 3.5, ROSE)
+        fillR(rx+fw-2.5, fy+fh-2.5, 3.5, 3.5, ROSE)
+        // Fita no topo
+        tape(rx+fw/2, fy, 24, tapeColor)
 
-        // Área da foto dentro da polaroid
         const px = rx + PS
-        const py = ry + PT
+        const py = fy + PT
 
-        // Carrega e desenha a foto preenchendo toda a área (cover)
-        let imgData: string | null = null
+        // Carrega foto com cover crop via canvas
+        let croppedData: string | null = null
         if (url) {
-          try { imgData = await loadImage(url).catch(() => null) } catch {}
+          try {
+            const rawData = await loadImage(url).catch(() => null)
+            if (rawData) {
+              const tmp = new Image()
+              await new Promise(r => { tmp.onload=r; tmp.onerror=r; tmp.src=rawData })
+              const iw = tmp.naturalWidth||4, ih = tmp.naturalHeight||3
+              // cover: escala mínima para preencher a área
+              const scale = Math.max(imgW/iw, imgH/ih)
+              const dw = iw*scale, dh = ih*scale
+              const offX = (dw - imgW)/2, offY = (dh - imgH)/2
+              // 3x resolução para qualidade
+              const RES = 3
+              const cc = document.createElement('canvas')
+              cc.width = Math.round(imgW*RES); cc.height = Math.round(imgH*RES)
+              cc.getContext('2d')!.drawImage(tmp,
+                0, 0, iw, ih,
+                -offX*RES, -offY*RES, dw*RES, dh*RES
+              )
+              croppedData = cc.toDataURL('image/jpeg', 0.92)
+            }
+          } catch {}
         }
 
-        if (imgData) {
-          // Pinta fundo para caso a imagem não cubra tudo
-          fillR(px, py, imgW, imgH, [225, 210, 218])
-
-          // Calcula dimensões para "cover": escala a imagem para preencher sem distorcer
-          const tmp = new Image()
-          await new Promise(r => { tmp.onload = r; tmp.onerror = r; tmp.src = imgData! })
-          const iw = tmp.naturalWidth  || 4
-          const ih = tmp.naturalHeight || 3
-
-          // Escala que preenche a área (cover = max das escalas)
-          const scaleW = imgW / iw
-          const scaleH = imgH / ih
-          const scale  = Math.max(scaleW, scaleH)
-
-          const drawW = iw * scale
-          const drawH = ih * scale
-
-          // Centraliza (crop dos excessos)
-          const drawX = px + (imgW - drawW) / 2
-          const drawY = py + (imgH - drawH) / 2
-
-          // Clip para não vazar fora da área da foto
-          doc.saveGraphicsState()
-          // jsPDF não tem clip nativo fácil, então usamos canvas pré-cropado
-          // Recorta a imagem via canvas antes de inserir no PDF
-          const cropCanvas = document.createElement('canvas')
-          cropCanvas.width  = Math.round(imgW * 3)   // resolução 3x para qualidade
-          cropCanvas.height = Math.round(imgH * 3)
-          const ctx = cropCanvas.getContext('2d')!
-          ctx.drawImage(tmp,
-            0, 0, iw, ih,                             // fonte: imagem inteira
-            (drawX - px) * 3, (drawY - py) * 3,       // destino: offset do crop
-            drawW * 3, drawH * 3
-          )
-          const croppedData = cropCanvas.toDataURL('image/jpeg', 0.92)
-          doc.restoreGraphicsState()
-
+        if (croppedData) {
           doc.addImage(croppedData, 'JPEG', px, py, imgW, imgH, undefined, 'MEDIUM')
         } else {
-          // Placeholder
           fillR(px, py, imgW, imgH, BLUSH)
-          heart(px + imgW/2, py + imgH/2, 7, [210, 185, 198])
+          heart(px+imgW/2, py+imgH/2, 7, [210, 185, 200])
         }
 
-        // Legenda na faixa branca inferior da polaroid
-        T(caption.toLowerCase(), rx + fw/2, ry + PT + imgH + 13, 7, GRAY, 'center', fw - 4, 'italic')
+        // Legenda na faixa branca inferior
+        T(caption.toLowerCase(), rx+fw/2, fy+PT+imgH+13, 7, GRAY, 'center', fw-4, 'italic')
 
-        return { bottomY: ry + fh, rightX: rx + fw, fw, fh }
+        return { bottomY: fy+fh, fw, fh }
       }
 
-      // Painel verde lateral (identidade do folheto)
-      const greenPanel = (panelW = 72) => {
+      // Painel verde lateral
+      const greenPanel = (panelW = 70) => {
         fillR(0, 0, panelW, H, DG)
         leaf(panelW*0.22, 20, 7, DG2, 45)
-        leaf(panelW*0.75, 35, 5, DG2, -30)
-        leaf(panelW*0.18, H-28, 6, DG2, 135)
-        leaf(panelW*0.7,  H-42, 4, DG2, -120)
-        leaf(panelW*0.5,  85,   3, DG2, 60)
-        leaf(panelW*0.3, H/2+25, 3.5, DG2, -60)
+        leaf(panelW*0.75, 36, 5, DG2, -30)
+        leaf(panelW*0.18, H-30, 6, DG2, 135)
+        leaf(panelW*0.7, H-44, 4, DG2, -120)
+        leaf(panelW*0.5, 88, 3, DG2, 60)
+        leaf(panelW*0.3, H/2+28, 3.5, DG2, -60)
       }
 
       // Rodapé verde
-      const greenFooter = (h = 16) => {
-        fillR(0, H-h, W, h, DG)
-        leaf(W-14, H-h/2, 3, DG2, -30)
-        leaf(W-23, H-h/2, 2.5, DG2, 20)
-        T('feito com amor  •  nossa história', W/2, H-h/2+2.5, 6, BLUSH, 'center')
+      const greenFooter = () => {
+        fillR(0, H-16, W, 16, DG)
+        heart(W-16, H-8, 2.5, DG2)
+        heart(W-24, H-8, 2, DG2)
+        T('feito com amor  •  nossa história', W/2, H-5.5, 6, BLUSH, 'center')
       }
 
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       // CAPA
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       bg(CREAM)
-      const PW = 72
+      const PW = 70
       greenPanel(PW)
 
-      T('NOSSA',   12, 52, 14, BLUSH, 'left', undefined, 'bold')
-      T('História',10, 74, 27, WHITE, 'left', undefined, 'bolditalic')
-      T('de amor', 12, 92, 9,  BLUSH, 'left', undefined, 'italic')
+      T('NOSSA',    12, 52, 14, BLUSH, 'left', undefined, 'bold')
+      T('História', 10, 74, 27, WHITE, 'left', undefined, 'bolditalic')
+      T('de amor',  12, 92, 9,  BLUSH, 'left', undefined, 'italic')
       ln(10, 100, PW-10, 100, BLUSH, 0.4)
 
       heart(35, H/2-12, 10, WINE)
-      heart(35, H/2+14, 6, ROSE)
+      heart(35, H/2+14, 6,  ROSE)
       heart(35, H/2+32, 3.5, BLUSH)
 
       T('HAPPY',   10, H-40, 9, CREAM, 'left', undefined, 'bold')
       T('FOREVER', 10, H-29, 9, CREAM, 'left', undefined, 'bold')
 
-      // Dois polaroids de placeholder na capa
-      const f1 = await polaroid(null, PW+38, 80, 50, 42, 'nosso momento', -4, BLUSH)
-      const f2 = await polaroid(null, PW+88, 106, 43, 36, 'para sempre',   3, [218, 200, 212])
+      // Área da capa: largura disponível = W - PW - margem = 210 - 70 - 12 = 128
+      const CA = PW + M  // início da área creme com margem
+      const CW = W - PW - M*2  // largura disponível na área creme
+
+      // Dois polaroids na capa, dentro da área sem cortar
+      const p1W = 56, p1H = 46
+      const p2W = 48, p2H = 40
+      const f1 = await polaroid(null, CA,           22, p1W, p1H, 'nosso momento', -3, BLUSH)
+      const f2 = await polaroid(null, CA+p1W+6,     38, p2W, p2H, 'para sempre',    3, [218,200,212])
       const midY = Math.max(f1.bottomY, f2.bottomY) + 10
 
-      ln(PW+8, midY, W-10, midY, GOLD, 0.5)
+      ln(CA, midY, W-M, midY, GOLD, 0.5)
 
-      T('WE ACCOMPANY YOU', PW+65, midY+9, 7.5, WINE, 'center', W-PW-20, 'bold')
-      heartRow(PW+65, midY+17, 5, 1.4, ROSE)
+      const cx = CA + CW/2  // centro da área creme
+      T('WE ACCOMPANY YOU', cx, midY+9, 7.5, WINE, 'center', CW, 'bold')
+      heartRow(cx, midY+18, 5, 1.4, ROSE)
 
       const coupleName = couple?.couple_name || 'Roberto e Rosana'
-      T(coupleName, PW+65, midY+30, 17, DG, 'center', W-PW-18, 'bolditalic')
-      ln(PW+20, midY+36, W-12, midY+36, GOLD, 0.4)
+      T(coupleName, cx, midY+32, 17, DG, 'center', CW, 'bolditalic')
+      ln(CA, midY+37, W-M, midY+37, GOLD, 0.4)
 
-      fillR(PW+30, midY+40, 70, 10, WINE)
-      T('4 DE ABRIL DE 2025', PW+65, midY+47, 7, WHITE, 'center')
+      fillR(CA+10, midY+41, CW-20, 10, WINE)
+      T('4 DE ABRIL DE 2025', cx, midY+48, 7, WHITE, 'center')
 
-      circ(PW+65, midY+82, 28, [233, 212, 220])
-      circ(PW+65, midY+82, 23, [244, 226, 232])
-      heart(PW+65, midY+82, 10, WINE)
+      circ(cx, midY+84, 28, [233, 212, 220])
+      circ(cx, midY+84, 23, [244, 226, 232])
+      heart(cx, midY+84, 10, WINE)
 
-      ln(PW+20, midY+117, W-12, midY+117, BLUSH, 0.3)
-      heartRow(PW+65, midY+125, 7, 1.3, ROSE)
+      ln(CA, midY+118, W-M, midY+118, BLUSH, 0.3)
+      heartRow(cx, midY+126, 7, 1.3, ROSE)
 
       greenFooter()
 
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       // MOMENTOS
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       for (const m of moments) {
         const dateStr = new Date(m.moment_date)
           .toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'}).toUpperCase()
@@ -295,142 +279,147 @@ export default function BookPDF() {
 
         // Faixa topo verde
         fillR(0, 0, W, 24, DG)
-        leaf(W-14, 12, 3.5, DG2, -30)
-        leaf(W-24, 12, 3,   DG2, 20)
-        badge(dateStr, 10, 15, WINE)
-        heartRow(W-36, 12, 3, 1.2, BLUSH)
+        badge(dateStr, M, 15, WINE)
+        // Corações substituem ícones no canto direito
+        heart(W-M,   12, 2.5, BLUSH)
+        heart(W-M-8, 12, 2,   ROSE)
+        heart(W-M-15,12, 1.5, BLUSH)
 
         let y = 34
 
-        // Título
-        y += T(m.title, W/2, y, 20, DG, 'center', W-30, 'bolditalic')
-        ln(18, y, W-18, y, GOLD, 0.4); y += 8
+        // Título centralizado na página
+        y += T(m.title, W/2, y, 20, DG, 'center', W-M*2, 'bolditalic')
+        ln(M, y, W-M, y, GOLD, 0.4); y += 8
 
         if (m.photo_url) {
-          const maxFW = W - 44
-          const maxFH = m.description ? 108 : 140
-          // fx = margem esquerda para centralizar a moldura (fw = imgW + 12)
-          const pfx = (W - maxFW - 12) / 2
-          const res = await polaroid(m.photo_url, pfx, y, maxFW, maxFH, m.title, -1.5, BLUSH)
+          // Polaroid centralizada, sem cortar
+          const pW = W - M*2 - 12  // fw = pW + 12, total = W - M*2 → cabe exato
+          const pFx = M            // começa na margem esquerda
+          const pFH = m.description ? 108 : 142
+          const res = await polaroid(m.photo_url, pFx, y, pW, pFH, m.title, 0, BLUSH)
           y = res.bottomY + 10
 
           if (m.description) {
-            const descLines = doc.setFontSize(10).splitTextToSize(m.description, W-44)
-            const descH = descLines.length * 5.5 + 10
-            fillR(14, y, 3.5, descH, WINE)
-            fillR(17.5, y, W-32, descH, [250, 240, 244])
-            T(m.description, 23, y+7, 10, GRAY, 'left', W-42, 'italic')
+            const dH = (doc.setFontSize(10).splitTextToSize(m.description, W-M*2-10) as string[]).length * 5.5 + 12
+            fillR(M, y, 3.5, dH, WINE)
+            fillR(M+3.5, y, W-M*2-3.5, dH, [250, 240, 244])
+            T(m.description, M+9, y+7, 10, GRAY, 'left', W-M*2-12, 'italic')
           }
         } else {
-          fillR(14, y+2, W-28, 72, [246, 236, 241])
-          strokeR(14, y+2, W-28, 72, BLUSH, 0.4)
-          fillR(14, y+2, 3.5, 72, WINE)
-          tape(W/2-18, y+2, 18, BLUSH)
-          tape(W/2+18, y+2, 18, [218, 202, 212])
-          T(m.description||'Um momento especial', 24, y+18, 11, DG, 'left', W-42, 'italic')
+          const cardH = 70
+          fillR(M, y, W-M*2, cardH, [246, 236, 241])
+          strokeR(M, y, W-M*2, cardH, BLUSH, 0.4)
+          fillR(M, y, 3.5, cardH, WINE)
+          tape(W/2, y, 22, BLUSH)
+          T(m.description||'Um momento especial', M+10, y+18, 11, DG, 'left', W-M*2-14, 'italic')
         }
 
-        heartRow(W/2, H-22, 9, 1.3, BLUSH)
+        heartRow(W/2, H-26, 9, 1.3, BLUSH)
         greenFooter()
       }
 
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       // SEPARADOR CAPÍTULO
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       const chapterPage = (title: string) => {
         doc.addPage(); bg(CREAM)
-        fillR(0, 0, 70, H, DG)
-        leaf(15, 22, 8, DG2, 45);  leaf(56, 38, 5, DG2, -30)
-        leaf(10, H/2-40, 6, DG2, 80); leaf(60, H/2-20, 4, DG2, -60)
-        leaf(12, H-32, 7, DG2, 130); leaf(58, H-52, 4.5, DG2, -120)
-        heart(35, H/2+8, 9, WINE); heart(20, H/2+34, 4, ROSE); heart(50, H/2+28, 3, BLUSH)
+        const CP = 70
+        fillR(0, 0, CP, H, DG)
+        leaf(CP*0.22, 22, 8, DG2, 45);  leaf(CP*0.75, 38, 5, DG2, -30)
+        leaf(CP*0.18, H/2-40, 6, DG2, 80); leaf(CP*0.7, H/2-20, 4, DG2, -60)
+        leaf(CP*0.18, H-32, 7, DG2, 130); leaf(CP*0.75, H-52, 4.5, DG2, -120)
+        heart(CP/2, H/2+8, 9, WINE)
+        heart(CP/2-15, H/2+34, 4, ROSE)
+        heart(CP/2+15, H/2+28, 3, BLUSH)
         T('HAPPY',   10, H-40, 9, CREAM, 'left', undefined, 'bold')
         T('FOREVER', 10, H-29, 9, CREAM, 'left', undefined, 'bold')
 
-        circ(W/2+15, H/2, 40, [238, 218, 226])
-        heart(W/2+15, H/2-8, 12, WINE)
-        heartRow(W/2+15, H/2+18, 5, 1.5, ROSE)
-        ln(78, H/2-32, W-12, H/2-32, BLUSH, 0.35)
-        T('CAPÍTULO', W/2+15, H/2-22, 7.5, WINE, 'center', undefined, 'bold')
-        T(title, W/2+15, H/2-5, 20, DG, 'center', W-100, 'bolditalic')
-        ln(78, H/2+6, W-12, H/2+6, BLUSH, 0.35)
-        T('uma história de amor', W/2+15, H/2+18, 8, GRAY, 'center', W-100, 'italic')
+        const ccx = CP + (W-CP)/2
+        circ(ccx, H/2, 40, [238, 218, 226])
+        heart(ccx, H/2-8, 12, WINE)
+        heartRow(ccx, H/2+18, 5, 1.5, ROSE)
+        ln(CP+M, H/2-32, W-M, H/2-32, BLUSH, 0.35)
+        T('CAPÍTULO', ccx, H/2-22, 7.5, WINE, 'center', undefined, 'bold')
+        T(title, ccx, H/2-5, 20, DG, 'center', W-CP-M*2, 'bolditalic')
+        ln(CP+M, H/2+6, W-M, H/2+6, BLUSH, 0.35)
+        T('uma história de amor', ccx, H/2+18, 8, GRAY, 'center', W-CP-M*2, 'italic')
       }
 
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       // CARTA
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       if (letters.wedding?.text) {
         chapterPage('Nossa Carta')
         doc.addPage(); bg(CREAM)
 
-        // Barra lateral vinho
-        fillR(0, 0, 20, H, WINE)
-        for (let yy = 22; yy < H-20; yy += 14) heart(10, yy, 2.2, ROSE)
+        fillR(0, 0, 18, H, WINE)
+        for (let yy = 20; yy < H-18; yy += 13) heart(9, yy, 2, ROSE)
 
-        fillR(24, 14, W-32, 16, DG)
-        circ(32, 22, 4, BLUSH)
-        T('CARTA DO CASAMENTO', 40, 24, 8, WHITE, 'left', undefined, 'bold')
-        ln(24, 34, W-8, 34, BLUSH, 0.3)
+        fillR(22, 14, W-30, 16, DG)
+        circ(30, 22, 4, BLUSH)
+        T('CARTA DO CASAMENTO', 38, 24, 8, WHITE, 'left', undefined, 'bold')
+        ln(22, 34, W-8, 34, BLUSH, 0.3)
 
-        tape(W/2-20, 46, 18, BLUSH)
-        tape(W/2+20, 46, 18, [218, 202, 212])
+        tape(W/2-18, 46, 18, BLUSH)
+        tape(W/2+18, 46, 18, [218, 202, 212])
 
-        const cX = 24, cW = W-32, cY = 50, cH = H-82
-        fillR(cX, cY, cW, cH, WHITE)
-        strokeR(cX, cY, cW, cH, BLUSH, 0.3)
-        for (let ly = cY+14; ly < cY+cH-6; ly += 8) {
-          ln(cX+4, ly, cX+cW-4, ly, [240, 228, 233], 0.18)
-        }
-        T(letters.wedding.text, cX+6, cY+14, 10, DG, 'left', cW-12)
+        const cX = 22, cW2 = W-30, cY = 50, cH = H-80
+        fillR(cX, cY, cW2, cH, WHITE)
+        strokeR(cX, cY, cW2, cH, BLUSH, 0.3)
+        for (let ly = cY+13; ly < cY+cH-5; ly += 8)
+          ln(cX+4, ly, cX+cW2-4, ly, [240, 228, 233], 0.18)
+        T(letters.wedding.text, cX+6, cY+13, 10, DG, 'left', cW2-12)
 
         heartRow(W/2, H-22, 7, 1.4, BLUSH)
         fillR(0, H-14, W, 14, DG)
         T('feito com amor  •  nossa história', W/2, H-6, 6, BLUSH, 'center')
       }
 
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       // CONVIDADOS
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       if (guestPosts.length > 0) {
         chapterPage('Mensagens da Família')
         doc.addPage(); bg(CREAM)
         fillR(0, 0, W, 24, DG)
-        badge('MENSAGENS', 10, 15, WINE)
+        badge('MENSAGENS', M, 15, WINE)
         let gy = 34
         for (const p of guestPosts) {
           if (gy > 260) { doc.addPage(); bg(CREAM); fillR(0,0,W,24,DG); gy=34 }
-          ln(14, gy, W-14, gy, BLUSH, 0.3); gy += 7
-          gy += T(p.name, 14, gy, 12, WINE, 'left', undefined, 'bold')
-          gy += T(p.message, 14, gy, 9.5, GRAY, 'left', W-28, 'italic') + 8
+          ln(M, gy, W-M, gy, BLUSH, 0.3); gy += 7
+          gy += T(p.name, M, gy, 12, WINE, 'left', undefined, 'bold')
+          gy += T(p.message, M, gy, 9.5, GRAY, 'left', W-M*2, 'italic') + 8
         }
         greenFooter()
       }
 
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       // PÁGINA FINAL
-      // ═════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       doc.addPage(); bg(CREAM)
-      greenPanel(72)
+      greenPanel(PW)
 
-      heart(36, H/2-25, 10, WINE); heart(36, H/2+2, 6, ROSE)
-      heart(22, H/2+22, 3.5, BLUSH); heart(50, H/2+18, 3, BLUSH)
+      heart(PW/2, H/2-25, 10, WINE)
+      heart(PW/2, H/2+2,  6,  ROSE)
+      heart(PW/2-14, H/2+22, 3.5, BLUSH)
+      heart(PW/2+14, H/2+18, 3,   BLUSH)
       T('HAPPY',   10, H-40, 10, CREAM, 'left', undefined, 'bold')
       T('FOREVER', 10, H-28, 10, CREAM, 'left', undefined, 'bold')
 
-      heartRow(W/2+5, 40, 7, 1.5, BLUSH)
-      ln(80, 50, W-12, 50, BLUSH, 0.3)
+      const fcx = PW + (W-PW)/2
+      heartRow(fcx, 40, 7, 1.5, BLUSH)
+      ln(PW+M, 50, W-M, 50, BLUSH, 0.3)
 
-      circ(W/2+5, 100, 38, [233, 212, 220])
-      circ(W/2+5, 100, 33, [244, 226, 232])
-      heart(W/2+5, 100, 12, WINE)
+      circ(fcx, 102, 38, [233, 212, 220])
+      circ(fcx, 102, 33, [244, 226, 232])
+      heart(fcx, 102, 12, WINE)
 
-      T(coupleName, W/2+5, 148, 20, DG, 'center', W-100, 'bolditalic')
-      ln(82, 154, W-14, 154, GOLD, 0.5)
-      T('HAPPY FOREVER', W/2+5, 165, 9, WINE, 'center', undefined, 'bold')
-      heartRow(W/2+5, 174, 9, 1.5, ROSE)
-      ln(82, 182, W-14, 182, BLUSH, 0.3)
-      T('NOSSA HISTÓRIA  ' + new Date().getFullYear(), W/2+5, 192, 7.5, GRAY, 'center')
+      T(coupleName, fcx, 150, 20, DG, 'center', W-PW-M*2, 'bolditalic')
+      ln(PW+M, 156, W-M, 156, GOLD, 0.5)
+      T('HAPPY FOREVER', fcx, 167, 9, WINE, 'center', undefined, 'bold')
+      heartRow(fcx, 176, 9, 1.5, ROSE)
+      ln(PW+M, 184, W-M, 184, BLUSH, 0.3)
+      T('NOSSA HISTÓRIA  ' + new Date().getFullYear(), fcx, 194, 7.5, GRAY, 'center')
 
       greenFooter()
 
@@ -457,7 +446,7 @@ export default function BookPDF() {
           <div className="text-6xl mb-4">📖</div>
           <h2 className="text-xl font-bold mb-2" style={{ color: '#3D1A2A' }}>Nosso livro impresso</h2>
           <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#9B6B7A' }}>
-            Álbum estilo folheto elegante — fotos em moldura polaroid, tipografia bonita e toda a história de vocês.
+            Álbum estilo folheto elegante — fotos em polaroid, tipografia bonita e toda a história de vocês.
           </p>
         </div>
         <div className="rounded-2xl p-4 mb-5" style={{ background: 'white', border: '1px solid #E8C4CE' }}>
