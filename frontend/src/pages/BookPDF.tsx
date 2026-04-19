@@ -144,15 +144,17 @@ export default function BookPDF() {
           try { imgData = await loadImage(m.photo_url).catch(() => null) } catch {}
 
           if (imgData) {
-            // Calcular proporção
+            // Cover: preenche a página toda sem esticar
             const tmpImg = new Image()
             await new Promise(r => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = imgData! })
-            const ratio = tmpImg.naturalHeight > 0 ? tmpImg.naturalHeight / tmpImg.naturalWidth : 0.75
-            const imgH = ratio > (H / W) ? H : W * ratio
-
-            // Centralizar verticalmente
-            const imgY = Math.max(0, (H - imgH) / 2)
-            doc.addImage(imgData, 'JPEG', 0, imgY, W, imgH, undefined, 'MEDIUM')
+            const iw = tmpImg.naturalWidth || 1
+            const ih = tmpImg.naturalHeight || 1
+            const scale = Math.max(W / iw, H / ih)
+            const drawW = iw * scale
+            const drawH = ih * scale
+            const drawX = (W - drawW) / 2
+            const drawY = (H - drawH) / 2
+            doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH, undefined, 'MEDIUM')
           }
 
           // Overlay gradiente simulado (retângulo semi-transparente na base)
@@ -167,23 +169,24 @@ export default function BookPDF() {
           }
 
         } else {
-          // Página só texto — elegante, centrado
+          // Página só texto — centralizado verticalmente
           doc.addPage()
           bg(WHITE)
 
-          hline(ML, W - MR, 50, ROSE_LT, 0.3)
+          hline(ML, W - MR, H / 2 - 30, ROSE_LT, 0.3)
 
-          y = 70
+          y = H / 2 - 18
           y += label(dateStr, ML, y)
-          y += 8
-          y += txt(m.title, ML, y, 22, BLACK, 'left', TW)
+          y += 6
+          y += txt(m.title, ML, y, 24, BLACK, 'left', TW)
           if (m.description) {
-            hline(ML, ML + 16, y + 4, ROSE_LT, 0.4)
-            y += 12
-            y += txt(m.description, ML, y, 10, GRAY, 'left', TW)
+            y += 3
+            hline(ML, ML + 16, y, ROSE_LT, 0.4)
+            y += 8
+            txt(m.description, ML, y, 10, GRAY, 'left', TW)
           }
 
-          hline(ML, W - MR, H - 50, ROSE_LT, 0.3)
+          hline(ML, W - MR, H / 2 + 30, ROSE_LT, 0.3)
         }
       }
 
