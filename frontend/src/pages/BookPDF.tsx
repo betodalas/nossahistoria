@@ -273,9 +273,10 @@ export default function BookPDF() {
       const fw1 = 82, fh1 = 96
       const fw2 = 82, fh2 = 96
 
-      // Pega as 2 primeiras fotos dos momentos
-      const coverUrl1 = moments[0]?.photo_url || null
-      const coverUrl2 = moments[1]?.photo_url || null
+      // Pega as 2 primeiras fotos disponíveis nos momentos
+      const momentosComFoto = moments.filter(m => m.photo_url)
+      const coverUrl1 = momentosComFoto[0]?.photo_url || null
+      const coverUrl2 = momentosComFoto[1]?.photo_url || null
 
       // Foto 1 — inclinada -4deg (esquerda)
       const cf1cx = MID - 46, cf1cy = 108
