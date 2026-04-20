@@ -397,8 +397,9 @@ export default function BookPDF() {
       // ══════════════════════════════════════════════════════════
       const chapterPage = (title: string, sub: string) => {
         doc.addPage(); pageNum++
-        // Fundo escuro elegante
-        doc.setFillColor(...DARK); doc.rect(0, 0, W, H, 'F')
+        // Fundo creme claro elegante
+        const CHAPTER_BG = [242, 234, 220] as [number,number,number]  // bege quente claro
+        doc.setFillColor(...CHAPTER_BG); doc.rect(0, 0, W, H, 'F')
         // Borda dupla dourada
         doc.setDrawColor(...GOLD); doc.setLineWidth(0.7); doc.rect(10,10,W-20,H-20)
         doc.setLineWidth(0.25); doc.rect(14,14,W-28,H-28)
@@ -410,16 +411,16 @@ export default function BookPDF() {
         // Monograma translúcido (texto grande em baixa opacidade)
         const initials = coupleName.split(' ').filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join('&')
         doc.setFontSize(88); doc.setTextColor(185,148,80)
-        doc.setFont('times','italic'); doc.setGState(new (doc as any).GState({opacity:0.08}))
+        doc.setFont('times','italic'); doc.setGState(new (doc as any).GState({opacity:0.12}))
         doc.text(initials, MID, H/2+16, {align:'center'})
         doc.setGState(new (doc as any).GState({opacity:1}))
 
         // Texto do capítulo
         T('CAPITULO', MID, H/2-24, 8, GOLD, 'center', undefined, 'normal')
         ln(MID-50, H/2-18, MID+50, H/2-18, GOLD, 0.4)
-        T(title, MID, H/2+2, 26, WHITE as [number,number,number], 'center', W-M*3, 'italic')
+        T(title, MID, H/2+2, 26, DARK, 'center', W-M*3, 'italic')
         ln(MID-50, H/2+10, MID+50, H/2+10, GOLD, 0.4)
-        T(sub, MID, H/2+22, 9, GOLD, 'center', W-M*3, 'italic')
+        T(sub, MID, H/2+22, 9, SEPIA, 'center', W-M*3, 'italic')
       }
 
       // ══════════════════════════════════════════════════════════
@@ -474,7 +475,8 @@ export default function BookPDF() {
       // PÁGINA FINAL
       // ══════════════════════════════════════════════════════════
       doc.addPage(); pageNum++
-      doc.setFillColor(...DARK); doc.rect(0,0,W,H,'F')
+      const FINAL_BG = [242, 234, 220] as [number,number,number]
+      doc.setFillColor(...FINAL_BG); doc.rect(0,0,W,H,'F')
       doc.setDrawColor(...GOLD); doc.setLineWidth(0.7); doc.rect(10,10,W-20,H-20)
       doc.setLineWidth(0.25); doc.rect(14,14,W-28,H-28)
 
@@ -484,15 +486,15 @@ export default function BookPDF() {
       // Monograma grande translúcido
       const initials2 = coupleName.split(' ').filter((w: string)=>w.length>2).slice(0,2).map((w: string)=>w[0]).join('&')
       doc.setFontSize(96); doc.setTextColor(185,148,80)
-      doc.setFont('times','italic'); doc.setGState(new (doc as any).GState({opacity:0.07}))
+      doc.setFont('times','italic'); doc.setGState(new (doc as any).GState({opacity:0.12}))
       doc.text(initials2, MID, H/2+20, {align:'center'})
       doc.setGState(new (doc as any).GState({opacity:1}))
 
       T('feito com amor', MID, H/2-18, 9, GOLD, 'center', undefined, 'italic')
       ln(MID-55, H/2-10, MID+55, H/2-10, GOLD, 0.4)
-      T(coupleName, MID, H/2+8, 24, WHITE as [number,number,number], 'center', W-M*3, 'italic')
+      T(coupleName, MID, H/2+8, 24, DARK, 'center', W-M*3, 'italic')
       ln(MID-55, H/2+16, MID+55, H/2+16, GOLD, 0.4)
-      T(String(new Date().getFullYear()), MID, H/2+28, 9, GOLD, 'center')
+      T(String(new Date().getFullYear()), MID, H/2+28, 9, SEPIA, 'center')
 
       doc.save(`nossa-historia-${coupleName.replace(/\s/g,'-')}.pdf`)
       setDone(true)
