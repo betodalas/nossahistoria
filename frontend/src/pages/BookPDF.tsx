@@ -43,374 +43,476 @@ export default function BookPDF() {
       const { default: jsPDF } = await import('jspdf')
 
       const W = 210, H = 297
-      const M = 14
+      const M = 16   // margem lateral
+      const MID = W / 2
 
-      const DG    = [42,  58,  38]  as [number,number,number]
-      const DG2   = [55,  75,  48]  as [number,number,number]
-      const WINE  = [110, 50,  70]  as [number,number,number]
-      const ROSE  = [180, 100, 130] as [number,number,number]
-      const BLUSH = [240, 218, 225] as [number,number,number]
-      const CREAM = [255, 248, 244] as [number,number,number]
-      const WHITE = [255, 255, 255] as [number,number,number]
-      const GOLD  = [185, 148, 88]  as [number,number,number]
-      const GRAY  = [120, 95,  108] as [number,number,number]
+      // Paleta clássica de álbum de casamento
+      const DARK   = [40,  28,  18]  as [number,number,number]  // marrom escuro
+      const GOLD   = [185, 148, 80]  as [number,number,number]  // dourado
+      const CREAM  = [250, 246, 240] as [number,number,number]  // creme fundo
+      const BEIGE  = [232, 218, 198] as [number,number,number]  // bege moldura
+      const SEPIA  = [120, 88,  55]  as [number,number,number]  // sépia texto
+      const LGRAY  = [200, 188, 175] as [number,number,number]  // cinza claro
+      const WHITE  = [255, 255, 255] as [number,number,number]
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
+      // ── Primitivas ────────────────────────────────────────────
       const bg = (c: [number,number,number]) => {
         doc.setFillColor(...c); doc.rect(0, 0, W, H, 'F')
       }
       const fillR = (x: number, y: number, w: number, h: number, c: [number,number,number]) => {
         doc.setFillColor(...c); doc.rect(x, y, w, h, 'F')
       }
-      const strokeR = (x: number, y: number, w: number, h: number, c: [number,number,number], lw = 0.3) => {
-        doc.setDrawColor(...c); doc.setLineWidth(lw); doc.rect(x, y, w, h)
-      }
-      const circ = (x: number, y: number, r: number, c: [number,number,number]) => {
-        doc.setFillColor(...c); doc.circle(x, y, r, 'F')
-      }
-      const ln = (x1: number, y1: number, x2: number, y2: number, c: [number,number,number], lw = 0.3) => {
+      const ln = (x1: number, y1: number, x2: number, y2: number, c: [number,number,number], lw = 0.4) => {
         doc.setDrawColor(...c); doc.setLineWidth(lw); doc.line(x1, y1, x2, y2)
       }
-      const T = (t: string, x: number, y: number, size: number, c: [number,number,number],
-        align: 'left'|'center'|'right' = 'left', maxW?: number, style: 'normal'|'bold'|'italic'|'bolditalic' = 'normal'
+      const circ = (x: number, y: number, r: number, c: [number,number,number], fill = true) => {
+        doc.setFillColor(...c)
+        if (fill) doc.circle(x, y, r, 'F')
+        else { doc.setDrawColor(...c); doc.circle(x, y, r) }
+      }
+
+      // ── Tipografia (tudo em Times/Georgia = serif elegante) ───
+      const T = (
+        t: string, x: number, y: number, size: number,
+        c: [number,number,number],
+        align: 'left'|'center'|'right' = 'left',
+        maxW?: number,
+        style: 'normal'|'bold'|'italic'|'bolditalic' = 'normal'
       ): number => {
-        doc.setFontSize(size); doc.setTextColor(...c); doc.setFont('helvetica', style)
+        doc.setFontSize(size)
+        doc.setTextColor(...c)
+        doc.setFont('times', style)
         if (maxW) {
           const lines = doc.splitTextToSize(t, maxW)
           doc.text(lines, x, y, { align })
-          return lines.length * (size * 0.42) + 2.5
+          return lines.length * (size * 0.43) + 2
         }
-        doc.text(t, x, y, { align }); return size * 0.42 + 2.5
+        doc.text(t, x, y, { align })
+        return size * 0.43 + 2
       }
 
-      // Coração desenhado com bezier path via canvas SVG → dataURL → addImage
-      // Mais confiável que Unicode em jsPDF
-      const heartImg = (cx: number, cy: number, r: number, c: [number,number,number]) => {
-        const sz = Math.round(r * 8)
-        const cv = document.createElement('canvas')
-        cv.width = sz; cv.height = sz
-        const ctx = cv.getContext('2d')!
-        const x = sz/2, y = sz*0.52
-        const w = sz*0.46
-        ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`
-        ctx.beginPath()
-        ctx.moveTo(x, y)
-        ctx.bezierCurveTo(x, y - w*0.3, x - w, y - w*0.8, x - w, y - w*0.35)
-        ctx.bezierCurveTo(x - w, y - w*0.9, x - w*0.15, y - w*1.1, x, y - w*0.55)
-        ctx.bezierCurveTo(x + w*0.15, y - w*1.1, x + w, y - w*0.9, x + w, y - w*0.35)
-        ctx.bezierCurveTo(x + w, y - w*0.8, x, y - w*0.3, x, y)
-        ctx.closePath()
-        ctx.fill()
-        const data = cv.toDataURL('image/png')
-        const d = r * 2
-        doc.addImage(data, 'PNG', cx - r, cy - r * 1.1, d, d)
+      // ── Ornamento dourado (linha + losango central) ───────────
+      const ornament = (cx: number, y: number, lineW = 60) => {
+        const half = lineW / 2
+        ln(cx - half, y, cx - 5, y, GOLD, 0.5)
+        ln(cx + 5, y, cx + half, y, GOLD, 0.5)
+        // losango central
+        doc.setFillColor(...GOLD)
+        doc.triangle(cx, y-2.2, cx-2.2, y, cx, y+2.2, 'F')
+        doc.triangle(cx, y-2.2, cx+2.2, y, cx, y+2.2, 'F')
       }
 
-      // Fileira de corações
-      const heartRow = (startX: number, y: number, n: number, r: number, c: [number,number,number]) => {
-        const gap = r * 2.6
-        const totalW = (n - 1) * gap
-        for (let i = 0; i < n; i++) heartImg(startX - totalW/2 + i*gap, y, r, c)
+      // ── Borda elegante da página ──────────────────────────────
+      const pageBorder = () => {
+        doc.setDrawColor(...GOLD)
+        doc.setLineWidth(0.7)
+        doc.rect(10, 10, W-20, H-20)
+        doc.setLineWidth(0.25)
+        doc.rect(13, 13, W-26, H-26)
       }
 
-      // Folha
-      const leaf = (x: number, y: number, s: number, c: [number,number,number], angle = 0) => {
-        doc.setFillColor(...c)
-        const rad = angle * Math.PI / 180
-        doc.circle(x, y, s*0.65, 'F')
-        doc.circle(x + Math.cos(rad)*s*0.5, y - Math.sin(rad)*s*0.5, s*0.5, 'F')
+      // ── Carregar foto com cover-crop ──────────────────────────
+      const loadCropped = async (url: string, imgW: number, imgH: number): Promise<string|null> => {
+        try {
+          const raw = await loadImage(url).catch(() => null)
+          if (!raw) return null
+          const tmp = new Image()
+          await new Promise(r => { tmp.onload=r; tmp.onerror=r; tmp.src=raw })
+          const iw = tmp.naturalWidth||4, ih = tmp.naturalHeight||3
+          const scale = Math.max(imgW/iw, imgH/ih)
+          const dw = iw*scale, dh = ih*scale
+          const RES = 3
+          const cc = document.createElement('canvas')
+          cc.width = Math.round(imgW*RES); cc.height = Math.round(imgH*RES)
+          cc.getContext('2d')!.drawImage(tmp, 0, 0, iw, ih,
+            -(dw-imgW)/2*RES, -(dh-imgH)/2*RES, dw*RES, dh*RES)
+          return cc.toDataURL('image/jpeg', 0.92)
+        } catch { return null }
       }
 
-      const badge = (label: string, x: number, y: number, c: [number,number,number] = WINE) => {
-        const tw = label.length * 1.45 + 8
-        fillR(x, y-4.5, tw, 8, c)
-        T(label, x+4, y+0.8, 5.5, WHITE)
-        return tw
+      // ── Foto com moldura passepartout (sem inclinação — capa) ─
+      const photoFrame = async (
+        url: string|null, fx: number, fy: number, fw: number, fh: number
+      ) => {
+        const PAD = 4  // passepartout interno
+        // sombra
+        fillR(fx+3, fy+3, fw, fh, [180, 162, 140])
+        // moldura escura
+        fillR(fx, fy, fw, fh, DARK)
+        // passepartout creme
+        fillR(fx+PAD, fy+PAD, fw-PAD*2, fh-PAD*2, CREAM)
+        // área da foto
+        const px = fx+PAD+2, py = fy+PAD+2
+        const pw = fw-PAD*2-4, ph = fh-PAD*2-4
+        if (url) {
+          const data = await loadCropped(url, pw, ph)
+          if (data) {
+            doc.addImage(data, 'JPEG', px, py, pw, ph, undefined, 'MEDIUM')
+          } else {
+            fillR(px, py, pw, ph, BEIGE)
+          }
+        } else {
+          fillR(px, py, pw, ph, BEIGE)
+        }
+        // borda interna dourada fina
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.3)
+        doc.rect(px, py, pw, ph)
       }
 
-      const tape = (cx: number, y: number, w = 18, c: [number,number,number] = BLUSH) => {
-        const lc: [number,number,number] = [Math.min(255,c[0]+30), Math.min(255,c[1]+30), Math.min(255,c[2]+30)]
-        fillR(cx-w/2, y-3, w, 5.5, lc)
-        strokeR(cx-w/2, y-3, w, 5.5, [Math.max(0,c[0]-25), Math.max(0,c[1]-25), Math.max(0,c[2]-25)], 0.15)
-      }
-
-      // POLAROID
-      const polaroid = async (
-        url: string | null,
-        fx: number, fy: number,
+      // ── Polaroid inclinada (páginas internas) ─────────────────
+      // jsPDF não tem transform nativo — simulamos inclinação
+      // desenhando a foto em canvas rotacionado e inserindo como imagem
+      const polaroidTilted = async (
+        url: string|null,
+        cx: number, cy: number,   // centro da polaroid
         imgW: number, imgH: number,
         caption: string,
-        tapeColor: [number,number,number] = BLUSH
+        angleDeg: number          // positivo = direita, negativo = esquerda
       ) => {
-        const PS = 5, PT = 5, PB = 18
-        const fw = imgW + PS*2
-        const fh = imgH + PT + PB
+        const PAD_S = 6, PAD_T = 6, PAD_B = 22
+        const fw = imgW + PAD_S*2
+        const fh = imgH + PAD_T + PAD_B
 
-        fillR(fx+3, fy+3, fw, fh, [170, 148, 160])
-        fillR(fx, fy, fw, fh, WHITE)
-        strokeR(fx, fy, fw, fh, [190, 168, 180], 0.25)
-        fillR(fx-1.5, fy-1.5, 4, 4, ROSE)
-        fillR(fx+fw-2.5, fy-1.5, 4, 4, ROSE)
-        fillR(fx-1.5, fy+fh-2.5, 4, 4, ROSE)
-        fillR(fx+fw-2.5, fy+fh-2.5, 4, 4, ROSE)
-        tape(fx+fw/2, fy, 22, tapeColor)
+        // Renderiza a polaroid inteira num canvas (com rotação)
+        const RES = 3
+        const diagW = Math.ceil(Math.sqrt(fw*fw + fh*fh)) + 4
+        const cv = document.createElement('canvas')
+        cv.width = diagW * RES; cv.height = diagW * RES
+        const ctx = cv.getContext('2d')!
+        const rad = angleDeg * Math.PI / 180
 
-        const px = fx + PS, py = fy + PT
+        ctx.translate(cv.width/2, cv.height/2)
+        ctx.rotate(rad)
+        ctx.translate(-fw*RES/2, -fh*RES/2)
 
-        let croppedData: string | null = null
+        // Sombra
+        ctx.shadowColor = 'rgba(40,28,18,0.22)'
+        ctx.shadowBlur = 12 * RES
+        ctx.shadowOffsetX = 3 * RES
+        ctx.shadowOffsetY = 3 * RES
+
+        // Corpo branco da polaroid
+        ctx.fillStyle = '#FFFFFF'
+        ctx.fillRect(0, 0, fw*RES, fh*RES)
+        ctx.shadowColor = 'transparent'
+
+        // Borda fina sépia
+        ctx.strokeStyle = '#C8B89A'
+        ctx.lineWidth = 0.5 * RES
+        ctx.strokeRect(0, 0, fw*RES, fh*RES)
+
+        // Área da foto (passepartout escuro)
+        const px = PAD_S*RES, py = PAD_T*RES
+        const pw = imgW*RES, ph = imgH*RES
+
+        // Fundo bege para foto
+        ctx.fillStyle = '#E8DAC6'
+        ctx.fillRect(px, py, pw, ph)
+
+        // Foto real
         if (url) {
-          try {
-            const rawData = await loadImage(url).catch(() => null)
-            if (rawData) {
-              const tmp = new Image()
-              await new Promise(r => { tmp.onload=r; tmp.onerror=r; tmp.src=rawData })
-              const iw = tmp.naturalWidth||4, ih = tmp.naturalHeight||3
-              const scale = Math.max(imgW/iw, imgH/ih)
-              const dw = iw*scale, dh = ih*scale
-              const offX = (dw-imgW)/2, offY = (dh-imgH)/2
-              const RES = 3
-              const cc = document.createElement('canvas')
-              cc.width = Math.round(imgW*RES); cc.height = Math.round(imgH*RES)
-              cc.getContext('2d')!.drawImage(tmp, 0, 0, iw, ih, -offX*RES, -offY*RES, dw*RES, dh*RES)
-              croppedData = cc.toDataURL('image/jpeg', 0.92)
-            }
-          } catch {}
-        }
-
-        if (croppedData) {
-          doc.addImage(croppedData, 'JPEG', px, py, imgW, imgH, undefined, 'MEDIUM')
-        } else {
-          fillR(px, py, imgW, imgH, BLUSH)
-          heartImg(px+imgW/2, py+imgH/2, 7, [210, 185, 200])
-        }
-
-        T(caption.toLowerCase(), fx+fw/2, fy+PT+imgH+12, 7, GRAY, 'center', fw-4, 'italic')
-        return { bottomY: fy+fh, fw, fh }
-      }
-
-      // Painel verde
-      const PW = 70
-      const greenPanel = () => {
-        fillR(0, 0, PW, H, DG)
-        leaf(PW*0.22, 20, 7, DG2, 45); leaf(PW*0.75, 36, 5, DG2, -30)
-        leaf(PW*0.18, H-30, 6, DG2, 135); leaf(PW*0.7, H-44, 4, DG2, -120)
-        leaf(PW*0.5, 88, 3, DG2, 60); leaf(PW*0.3, H/2+28, 3.5, DG2, -60)
-      }
-
-      const greenFooter = () => {
-        fillR(0, H-16, W, 16, DG)
-        heartImg(W-10, H-8, 2, DG2)
-        heartImg(W-18, H-8, 1.8, DG2)
-        T('feito com amor  -  nossa historia', W/2, H-5.5, 6, BLUSH, 'center')
-      }
-
-      // Preenche espaço vazio com decoração texto (sem corações — só texto)
-      const fillEmpty = (startY: number, endY: number) => {
-        if (endY - startY < 20) return
-        const mid = (startY + endY) / 2
-        ln(M*2, startY+6, W-M*2, startY+6, BLUSH, 0.3)
-        T('LOVE', W/2 - 28, startY+16, 10, BLUSH, 'center', undefined, 'bold')
-        T('AMOR', W/2,      startY+16, 10, [228,205,215], 'center', undefined, 'bold')
-        T('LOVE', W/2 + 28, startY+16, 10, BLUSH, 'center', undefined, 'bold')
-        T('para sempre juntos', W/2, mid, 11, [230,208,218], 'center', undefined, 'bolditalic')
-        T('AMOR', W/2 - 22, mid+14, 9, BLUSH, 'center', undefined, 'bold')
-        T('LOVE', W/2 + 22, mid+14, 9, [228,205,215], 'center', undefined, 'bold')
-        ln(M*2, endY-6, W-M*2, endY-6, BLUSH, 0.3)
-      }
-
-      // ══════════════════════════════════════════
-      // CAPA
-      // ══════════════════════════════════════════
-      bg(CREAM)
-      greenPanel()
-      T('NOSSA',    10, 52, 14, BLUSH, 'left', undefined, 'bold')
-      T('Historia', 8,  74, 27, WHITE, 'left', undefined, 'bolditalic')
-      T('de amor',  10, 92, 9,  BLUSH, 'left', undefined, 'italic')
-      ln(8, 100, PW-8, 100, BLUSH, 0.4)
-      heartImg(PW/2, H/2-14, 8, WINE)
-      heartImg(PW/2, H/2+8,  5, ROSE)
-      heartImg(PW/2, H/2+22, 3, BLUSH)
-      T('HAPPY',   8, H-40, 9, CREAM, 'left', undefined, 'bold')
-      T('FOREVER', 8, H-29, 9, CREAM, 'left', undefined, 'bold')
-
-      const CA = PW + M
-      const CW = W - PW - M*2
-      const cx = CA + CW/2
-
-      const pSmall = Math.floor((CW - 6) / 2)
-      const f1 = await polaroid(null, CA,           22, pSmall, 44, 'nosso momento', BLUSH)
-      const f2 = await polaroid(null, CA+pSmall+16, 34, pSmall, 38, 'para sempre',   [218,200,212])
-      const midY = Math.max(f1.bottomY, f2.bottomY) + 10
-
-      ln(CA, midY, W-M, midY, GOLD, 0.5)
-      T('WE ACCOMPANY YOU', cx, midY+9, 7.5, WINE, 'center', CW, 'bold')
-      heartRow(cx, midY+18, 5, 1.6, ROSE)
-      const coupleName = couple?.couple_name || 'Roberto e Rosana'
-      T(coupleName, cx, midY+30, 15, DG, 'center', CW, 'bolditalic')
-      ln(CA, midY+36, W-M, midY+36, GOLD, 0.4)
-      fillR(CA+8, midY+40, CW-16, 10, WINE)
-      T('4 DE ABRIL DE 2025', cx, midY+47, 7, WHITE, 'center')
-      circ(cx, midY+80, 26, [233,212,220])
-      circ(cx, midY+80, 21, [244,226,232])
-      heartImg(cx, midY+80, 9, WINE)
-      heartRow(cx, midY+108, 7, 1.4, ROSE)
-      ln(CA, midY+115, W-M, midY+115, BLUSH, 0.3)
-      greenFooter()
-
-      // ══════════════════════════════════════════
-      // MOMENTOS
-      // ══════════════════════════════════════════
-      for (const m of moments) {
-        const dateStr = new Date(m.moment_date)
-          .toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'}).toUpperCase()
-
-        doc.addPage(); bg(CREAM)
-        fillR(0, 0, W, 24, DG)
-        badge(dateStr, M, 15, WINE)
-        heartImg(W-M,    12, 1.8, BLUSH)
-        heartImg(W-M-8,  12, 1.5, ROSE)
-        heartImg(W-M-15, 12, 1.2, [200,160,175])
-
-        let y = 34
-        y += T(m.title, W/2, y, 20, DG, 'center', W-M*2, 'bolditalic')
-        ln(M, y, W-M, y, GOLD, 0.4); y += 8
-
-        if (m.photo_url) {
-          const pImgW = W - M*2 - 10
-          const pImgH = m.description ? 100 : 130
-          const res = await polaroid(m.photo_url, M, y, pImgW, pImgH, m.title, BLUSH)
-          y = res.bottomY + 8
-          if (m.description) {
-            const lines = doc.setFontSize(10).splitTextToSize(m.description, W-M*2-12) as string[]
-            const dH = lines.length * 5.5 + 12
-            fillR(M, y, 3.5, dH, WINE)
-            fillR(M+3.5, y, W-M*2-3.5, dH, [250,240,244])
-            T(m.description, M+9, y+7, 10, GRAY, 'left', W-M*2-14, 'italic')
-            y += dH + 8
+          const raw = await loadImage(url).catch(() => null)
+          if (raw) {
+            const tmp2 = new Image()
+            await new Promise(r => { tmp2.onload=r; tmp2.onerror=r; tmp2.src=raw })
+            const iw = tmp2.naturalWidth||4, ih = tmp2.naturalHeight||3
+            const sc = Math.max(pw/iw, ph/ih)
+            const dw = iw*sc, dh = ih*sc
+            ctx.drawImage(tmp2, 0, 0, iw, ih,
+              px-(dw-pw)/2, py-(dh-ph)/2, dw, dh)
           }
-          fillEmpty(y, H-32)
+        }
+
+        // Clip da foto (para não vazar além do rect)
+        // Re-apply com clip
+        ctx.save()
+        ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip()
+        if (url) {
+          const raw = await loadImage(url).catch(() => null)
+          if (raw) {
+            const tmp3 = new Image()
+            await new Promise(r => { tmp3.onload=r; tmp3.onerror=r; tmp3.src=raw })
+            const iw = tmp3.naturalWidth||4, ih = tmp3.naturalHeight||3
+            const sc = Math.max(pw/iw, ph/ih)
+            const dw = iw*sc, dh = ih*sc
+            ctx.fillStyle = '#E8DAC6'; ctx.fillRect(px, py, pw, ph)
+            ctx.drawImage(tmp3, 0, 0, iw, ih,
+              px-(dw-pw)/2, py-(dh-ph)/2, dw, dh)
+          }
+        }
+        ctx.restore()
+
+        // Borda interna dourada
+        ctx.strokeStyle = '#B9945A'
+        ctx.lineWidth = 0.4 * RES
+        ctx.strokeRect(px, py, pw, ph)
+
+        // Legenda na faixa branca inferior
+        ctx.fillStyle = '#786037'
+        ctx.font = `italic ${9*RES}px Georgia, serif`
+        ctx.textAlign = 'center'
+        ctx.fillText(caption.toLowerCase(), fw*RES/2, (PAD_T+imgH+15)*RES)
+
+        // Pequenos cantos decorativos (triângulos dourados)
+        ctx.fillStyle = '#C9A96E'
+        const cs = 5*RES
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(cs,0); ctx.lineTo(0,cs); ctx.fill()
+        ctx.beginPath(); ctx.moveTo(fw*RES,0); ctx.lineTo(fw*RES-cs,0); ctx.lineTo(fw*RES,cs); ctx.fill()
+        ctx.beginPath(); ctx.moveTo(0,fh*RES); ctx.lineTo(cs,fh*RES); ctx.lineTo(0,fh*RES-cs); ctx.fill()
+        ctx.beginPath(); ctx.moveTo(fw*RES,fh*RES); ctx.lineTo(fw*RES-cs,fh*RES); ctx.lineTo(fw*RES,fh*RES-cs); ctx.fill()
+
+        const imgData = cv.toDataURL('image/png')
+        const dMM = diagW
+        doc.addImage(imgData, 'PNG', cx-dMM/2, cy-dMM/2, dMM, dMM, undefined, 'FAST')
+
+        return { topY: cy - fh/2, bottomY: cy + fh/2 + Math.abs(angleDeg)*0.3 }
+      }
+
+      // ── Rodapé elegante ───────────────────────────────────────
+      const footer = (pageNum: number) => {
+        ln(M+10, H-18, W-M-10, H-18, GOLD, 0.4)
+        ornament(MID, H-18)
+        T(`— ${pageNum} —`, MID, H-12, 8, SEPIA, 'center')
+      }
+
+      // ══════════════════════════════════════════════════════════
+      // CAPA
+      // ══════════════════════════════════════════════════════════
+      bg(CREAM)
+      pageBorder()
+
+      // Ornamento topo
+      ornament(MID, 28, 100)
+
+      // Duas fotos dos primeiros momentos, lado a lado com inclinação oposta
+      const fw1 = 82, fh1 = 96
+      const fw2 = 82, fh2 = 96
+
+      // Pega as 2 primeiras fotos dos momentos
+      const coverUrl1 = moments[0]?.photo_url || null
+      const coverUrl2 = moments[1]?.photo_url || null
+
+      // Foto 1 — inclinada -4deg (esquerda)
+      const cf1cx = MID - 46, cf1cy = 108
+      const RES3 = 3
+      const buildTiltedFrame = async (
+        url: string|null, fw: number, fh: number, angle: number
+      ): Promise<string> => {
+        const diag = Math.ceil(Math.sqrt(fw*fw+fh*fh))+8
+        const cv = document.createElement('canvas')
+        cv.width=diag*RES3; cv.height=diag*RES3
+        const ctx = cv.getContext('2d')!
+        ctx.translate(cv.width/2, cv.height/2)
+        ctx.rotate(angle*Math.PI/180)
+        ctx.translate(-fw*RES3/2, -fh*RES3/2)
+        // sombra
+        ctx.shadowColor='rgba(40,28,18,0.2)'; ctx.shadowBlur=10*RES3
+        ctx.shadowOffsetX=2*RES3; ctx.shadowOffsetY=3*RES3
+        // moldura escura
+        ctx.fillStyle=`rgb(${DARK[0]},${DARK[1]},${DARK[2]})`
+        ctx.fillRect(0,0,fw*RES3,fh*RES3)
+        ctx.shadowColor='transparent'
+        // passepartout creme
+        const PAD=4*RES3
+        ctx.fillStyle='#FAF6F0'
+        ctx.fillRect(PAD,PAD,fw*RES3-PAD*2,fh*RES3-PAD*2)
+        // foto
+        const px2=PAD+2*RES3, py2=PAD+2*RES3
+        const pw2=fw*RES3-PAD*2-4*RES3, ph2=fh*RES3-PAD*2-4*RES3
+        if (url) {
+          const raw = await loadImage(url).catch(()=>null)
+          if (raw) {
+            const img2 = new Image()
+            await new Promise(r=>{img2.onload=r;img2.onerror=r;img2.src=raw})
+            const iw=img2.naturalWidth||4,ih=img2.naturalHeight||3
+            const sc=Math.max(pw2/iw,ph2/ih)
+            const dw=iw*sc,dh=ih*sc
+            ctx.save()
+            ctx.beginPath(); ctx.rect(px2,py2,pw2,ph2); ctx.clip()
+            ctx.fillStyle='#E8DAC6'; ctx.fillRect(px2,py2,pw2,ph2)
+            ctx.drawImage(img2,0,0,iw,ih,px2-(dw-pw2)/2,py2-(dh-ph2)/2,dw,dh)
+            ctx.restore()
+          }
         } else {
-          const cardH = 72
-          fillR(M, y, W-M*2, cardH, [246,236,241])
-          strokeR(M, y, W-M*2, cardH, BLUSH, 0.4)
-          fillR(M, y, 3.5, cardH, WINE)
-          tape(W/2-12, y, 20, BLUSH)
-          tape(W/2+12, y, 20, [218,202,212])
-          T(m.description||'Um momento especial', M+10, y+16, 11, DG, 'left', W-M*2-14, 'italic')
-          heartRow(W/2, y+cardH-10, 4, 1.4, ROSE)
-          y += cardH + 10
-          fillEmpty(y, H-32)
+          ctx.fillStyle='#E8DAC6'; ctx.fillRect(px2,py2,pw2,ph2)
+        }
+        // borda dourada interna
+        ctx.strokeStyle='#C9A96E'; ctx.lineWidth=0.4*RES3
+        ctx.strokeRect(px2,py2,pw2,ph2)
+        return cv.toDataURL('image/png')
+      }
+
+      const frame1 = await buildTiltedFrame(coverUrl1, fw1, fh1, -4)
+      const frame2 = await buildTiltedFrame(coverUrl2, fw2, fh2, 4)
+      const d1 = Math.ceil(Math.sqrt(fw1*fw1+fh1*fh1))+8
+      const d2 = Math.ceil(Math.sqrt(fw2*fw2+fh2*fh2))+8
+      doc.addImage(frame1,'PNG', cf1cx-d1/2, cf1cy-d1/2, d1, d1, undefined,'FAST')
+      doc.addImage(frame2,'PNG', MID+46-d2/2, cf1cy-d2/2, d2, d2, undefined,'FAST')
+
+      // Texto da capa
+      const coupleName = couple?.couple_name || 'Roberto e Rosana'
+      const textY = cf1cy + fh1/2 + 16
+
+      ornament(MID, textY, 90)
+      T('NOSSA HISTORIA', MID, textY+12, 8, SEPIA, 'center', undefined, 'normal')
+      // espaçamento
+      const nameSize = coupleName.length > 18 ? 22 : 26
+      T(coupleName, MID, textY+30, nameSize, DARK, 'center', W-M*2, 'italic')
+      T('4 DE ABRIL DE 2025', MID, textY+44, 8, SEPIA, 'center', undefined, 'normal')
+      ornament(MID, textY+52, 80)
+
+      // Citação
+      T('"e foi assim que comecou a nossa historia"', MID, textY+68, 9.5, SEPIA, 'center', W-M*3, 'italic')
+
+      // Ornamento rodapé da capa
+      ornament(MID, H-22, 90)
+
+      // ══════════════════════════════════════════════════════════
+      // MOMENTOS
+      // ══════════════════════════════════════════════════════════
+      let pageNum = 1
+      for (let mi = 0; mi < moments.length; mi++) {
+        const m = moments[mi]
+        const angle = mi % 2 === 0 ? -4 : 4   // alterna esquerda/direita
+        const dateStr = new Date(m.moment_date)
+          .toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})
+          .toUpperCase()
+
+        doc.addPage(); pageNum++
+        bg(CREAM); pageBorder()
+
+        // Data em smallcaps
+        ln(M+10, 26, W-M-10, 26, GOLD, 0.35)
+        T(dateStr, MID, 23, 7.5, SEPIA, 'center', undefined, 'normal')
+
+        // Título do momento
+        T(m.title || 'Momento', MID, 40, 22, DARK, 'center', W-M*2, 'italic')
+        ornament(MID, 48, 80)
+
+        // Polaroid inclinada centralizada
+        const pImgW = 140, pImgH = m.description ? 105 : 128
+        const pcy = 48 + (pImgH/2) + 16 + (m.description ? 0 : 10)
+        const pol = await polaroidTilted(m.photo_url||null, MID, pcy, pImgW, pImgH, m.title||'', angle)
+
+        let y = pol.bottomY + 12
+
+        // Texto/descrição
+        if (m.description) {
+          ornament(MID, y, 70); y += 10
+          T(`"${m.description}"`, MID, y, 10, SEPIA, 'center', W-M*3, 'italic')
+          y += doc.setFontSize(10).splitTextToSize(`"${m.description}"`, W-M*3).length * 5 + 6
         }
 
-        heartRow(W/2, H-26, 9, 1.3, BLUSH)
-        greenFooter()
+        footer(pageNum)
       }
 
-      // ══════════════════════════════════════════
-      // SEPARADOR CAPÍTULO
-      // ══════════════════════════════════════════
-      const chapterPage = (title: string) => {
-        doc.addPage(); bg(CREAM)
-        const CP = 70
-        fillR(0, 0, CP, H, DG)
-        leaf(CP*0.22, 22, 8, DG2, 45);  leaf(CP*0.75, 38, 5, DG2, -30)
-        leaf(CP*0.18, H/2-40, 6, DG2, 80); leaf(CP*0.7, H/2-20, 4, DG2, -60)
-        leaf(CP*0.18, H-32, 7, DG2, 130); leaf(CP*0.75, H-52, 4.5, DG2, -120)
-        heartImg(CP/2, H/2+4, 8, WINE)
-        heartImg(CP/2, H/2+24, 4, ROSE)
-        heartImg(CP/2, H/2+38, 2.5, BLUSH)
-        T('HAPPY',   8, H-40, 9, CREAM, 'left', undefined, 'bold')
-        T('FOREVER', 8, H-29, 9, CREAM, 'left', undefined, 'bold')
+      // ══════════════════════════════════════════════════════════
+      // SEPARADOR DE CAPÍTULO
+      // ══════════════════════════════════════════════════════════
+      const chapterPage = (title: string, sub: string) => {
+        doc.addPage(); pageNum++
+        // Fundo escuro elegante
+        doc.setFillColor(...DARK); doc.rect(0, 0, W, H, 'F')
+        // Borda dupla dourada
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.7); doc.rect(10,10,W-20,H-20)
+        doc.setLineWidth(0.25); doc.rect(14,14,W-28,H-28)
 
-        const ccx = CP + (W-CP)/2
-        circ(ccx, H/2, 40, [238,218,226])
-        heartImg(ccx, H/2, 10, WINE)
-        heartRow(ccx, H/2+22, 5, 1.5, ROSE)
-        ln(CP+M, H/2-32, W-M, H/2-32, BLUSH, 0.35)
-        T('CAPITULO', ccx, H/2-22, 7.5, WINE, 'center', undefined, 'bold')
-        T(title, ccx, H/2-5, 20, DG, 'center', W-CP-M*2, 'bolditalic')
-        ln(CP+M, H/2+6, W-M, H/2+6, BLUSH, 0.35)
-        T('uma historia de amor', ccx, H/2+18, 8, GRAY, 'center', W-CP-M*2, 'italic')
+        // Ornamentos topo e base
+        ornament(MID, 28, 100)
+        ornament(MID, H-28, 100)
+
+        // Monograma translúcido (texto grande em baixa opacidade)
+        const initials = coupleName.split(' ').filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join('&')
+        doc.setFontSize(88); doc.setTextColor(185,148,80)
+        doc.setFont('times','italic'); doc.setGState(new (doc as any).GState({opacity:0.08}))
+        doc.text(initials, MID, H/2+16, {align:'center'})
+        doc.setGState(new (doc as any).GState({opacity:1}))
+
+        // Texto do capítulo
+        T('CAPITULO', MID, H/2-24, 8, GOLD, 'center', undefined, 'normal')
+        ln(MID-50, H/2-18, MID+50, H/2-18, GOLD, 0.4)
+        T(title, MID, H/2+2, 26, WHITE as [number,number,number], 'center', W-M*3, 'italic')
+        ln(MID-50, H/2+10, MID+50, H/2+10, GOLD, 0.4)
+        T(sub, MID, H/2+22, 9, GOLD, 'center', W-M*3, 'italic')
       }
 
-      // ══════════════════════════════════════════
+      // ══════════════════════════════════════════════════════════
       // CARTA
-      // ══════════════════════════════════════════
+      // ══════════════════════════════════════════════════════════
       if (letters.wedding?.text) {
-        chapterPage('Nossa Carta')
-        doc.addPage(); bg(CREAM)
-        fillR(0, 0, 18, H, WINE)
-        for (let yy = 22; yy < H-18; yy += 13) heartImg(9, yy, 1.8, ROSE)
-        fillR(22, 14, W-30, 16, DG)
-        heartImg(30, 22, 1.8, BLUSH)
-        T('CARTA DO CASAMENTO', 38, 24, 8, WHITE, 'left', undefined, 'bold')
-        ln(22, 34, W-8, 34, BLUSH, 0.3)
-        tape(W/2-18, 46, 18, BLUSH)
-        tape(W/2+18, 46, 18, [218,202,212])
-        const cX = 22, cW2 = W-30, cY = 50, cH = H-80
-        fillR(cX, cY, cW2, cH, WHITE)
-        strokeR(cX, cY, cW2, cH, BLUSH, 0.3)
-        for (let ly = cY+13; ly < cY+cH-5; ly += 8)
-          ln(cX+4, ly, cX+cW2-4, ly, [240,228,233], 0.18)
-        T(letters.wedding.text, cX+6, cY+13, 10, DG, 'left', cW2-12)
-        heartRow(W/2, H-22, 7, 1.4, BLUSH)
-        fillR(0, H-14, W, 14, DG)
-        T('feito com amor  -  nossa historia', W/2, H-6, 6, BLUSH, 'center')
+        chapterPage('Nossa Carta', 'uma historia de amor')
+
+        doc.addPage(); pageNum++
+        bg(CREAM); pageBorder()
+
+        ornament(MID, 28, 90)
+        T('CARTA DO CASAMENTO', MID, 24, 8, SEPIA, 'center', undefined, 'normal')
+
+        // Papel de carta com linhas pautadas
+        const cX = M+6, cY = 38, cW = W-M*2-12, cH = H-70
+        doc.setFillColor(255,252,248); doc.rect(cX, cY, cW, cH, 'F')
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.3); doc.rect(cX, cY, cW, cH)
+        // Linha vermelha vertical (papel carta)
+        ln(cX+12, cY, cX+12, cY+cH, [200,160,140], 0.3)
+        // Linhas pautadas
+        for (let ly = cY+10; ly < cY+cH-4; ly += 7)
+          ln(cX+2, ly, cX+cW-2, ly, LGRAY, 0.18)
+
+        T(letters.wedding.text, cX+16, cY+12, 10.5, DARK, 'left', cW-20, 'italic')
+
+        ornament(MID, H-22, 80)
+        footer(pageNum)
       }
 
-      // ══════════════════════════════════════════
+      // ══════════════════════════════════════════════════════════
       // CONVIDADOS
-      // ══════════════════════════════════════════
+      // ══════════════════════════════════════════════════════════
       if (guestPosts.length > 0) {
-        chapterPage('Mensagens da Familia')
-        doc.addPage(); bg(CREAM)
-        fillR(0, 0, W, 24, DG)
-        badge('MENSAGENS', M, 15, WINE)
-        let gy = 34
+        chapterPage('Mensagens da Familia', 'palavras de quem amamos')
+        doc.addPage(); pageNum++
+        bg(CREAM); pageBorder()
+        ornament(MID, 28, 90)
+        T('MENSAGENS', MID, 24, 8, SEPIA, 'center')
+        let gy = 40
         for (const p of guestPosts) {
-          if (gy > 260) { doc.addPage(); bg(CREAM); fillR(0,0,W,24,DG); gy=34 }
-          ln(M, gy, W-M, gy, BLUSH, 0.3); gy += 7
-          gy += T(p.name, M, gy, 12, WINE, 'left', undefined, 'bold')
-          gy += T(p.message, M, gy, 9.5, GRAY, 'left', W-M*2, 'italic') + 8
+          if (gy > 250) { doc.addPage(); pageNum++; bg(CREAM); pageBorder(); gy=30 }
+          ln(M+10, gy, W-M-10, gy, GOLD, 0.3); gy += 8
+          T(p.name, MID, gy, 12, DARK, 'center', undefined, 'italic'); gy += 7
+          T(`"${p.message}"`, MID, gy, 9.5, SEPIA, 'center', W-M*3, 'italic')
+          gy += doc.setFontSize(9.5).splitTextToSize(`"${p.message}"`,W-M*3).length*5.5+10
         }
-        greenFooter()
+        footer(pageNum)
       }
 
-      // ══════════════════════════════════════════
+      // ══════════════════════════════════════════════════════════
       // PÁGINA FINAL
-      // ══════════════════════════════════════════
-      doc.addPage(); bg(CREAM)
-      greenPanel()
-      heartImg(PW/2, H/2-18, 8, WINE)
-      heartImg(PW/2, H/2+6,  5, ROSE)
-      heartImg(PW/2, H/2+22, 3, BLUSH)
-      T('HAPPY',   8, H-40, 10, CREAM, 'left', undefined, 'bold')
-      T('FOREVER', 8, H-29, 10, CREAM, 'left', undefined, 'bold')
+      // ══════════════════════════════════════════════════════════
+      doc.addPage(); pageNum++
+      doc.setFillColor(...DARK); doc.rect(0,0,W,H,'F')
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.7); doc.rect(10,10,W-20,H-20)
+      doc.setLineWidth(0.25); doc.rect(14,14,W-28,H-28)
 
-      const fcx = PW + (W-PW)/2
-      heartRow(fcx, 40, 7, 1.5, BLUSH)
-      ln(PW+M, 50, W-M, 50, BLUSH, 0.3)
-      circ(fcx, 100, 36, [233,212,220])
-      circ(fcx, 100, 30, [244,226,232])
-      heartImg(fcx, 100, 11, WINE)
-      T(coupleName, fcx, 148, 18, DG, 'center', W-PW-M*2, 'bolditalic')
-      ln(PW+M, 154, W-M, 154, GOLD, 0.5)
-      T('HAPPY FOREVER', fcx, 165, 9, WINE, 'center', undefined, 'bold')
-      heartRow(fcx, 174, 9, 1.4, ROSE)
-      ln(PW+M, 182, W-M, 182, BLUSH, 0.3)
-      T('NOSSA HISTORIA  ' + new Date().getFullYear(), fcx, 192, 7.5, GRAY, 'center')
-      T('LOVE', fcx-24, 208, 11, BLUSH, 'center', undefined, 'bold')
-      T('AMOR', fcx,    208, 11, [228,205,215], 'center', undefined, 'bold')
-      T('LOVE', fcx+24, 208, 11, BLUSH, 'center', undefined, 'bold')
-      heartRow(fcx, 218, 5, 1.6, [230,205,218])
-      T('para sempre juntos', fcx, 230, 9, GRAY, 'center', undefined, 'italic')
-      heartRow(fcx, 240, 3, 1.2, BLUSH)
-      greenFooter()
+      ornament(MID, 30, 90)
+      ornament(MID, H-30, 90)
 
-      doc.save(`nossa-historia-${(couple?.couple_name||'casal').replace(/\s/g,'-')}.pdf`)
+      // Monograma grande translúcido
+      const initials2 = coupleName.split(' ').filter((w: string)=>w.length>2).slice(0,2).map((w: string)=>w[0]).join('&')
+      doc.setFontSize(96); doc.setTextColor(185,148,80)
+      doc.setFont('times','italic'); doc.setGState(new (doc as any).GState({opacity:0.07}))
+      doc.text(initials2, MID, H/2+20, {align:'center'})
+      doc.setGState(new (doc as any).GState({opacity:1}))
+
+      T('feito com amor', MID, H/2-18, 9, GOLD, 'center', undefined, 'italic')
+      ln(MID-55, H/2-10, MID+55, H/2-10, GOLD, 0.4)
+      T(coupleName, MID, H/2+8, 24, WHITE as [number,number,number], 'center', W-M*3, 'italic')
+      ln(MID-55, H/2+16, MID+55, H/2+16, GOLD, 0.4)
+      T(String(new Date().getFullYear()), MID, H/2+28, 9, GOLD, 'center')
+
+      doc.save(`nossa-historia-${coupleName.replace(/\s/g,'-')}.pdf`)
       setDone(true)
-      setTimeout(() => setDone(false), 4000)
+      setTimeout(() => setDone(false), 5000)
     } catch (err) {
       console.error(err)
       alert('Erro ao gerar PDF. Tente novamente.')
@@ -421,42 +523,43 @@ export default function BookPDF() {
 
   return (
     <Layout>
-      <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #E8C4CE' }}>
+      <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #D4C4A0' }}>
         <button onClick={() => navigate(-1)} className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-          style={{ background: '#FADADD', color: '#7C4D6B', border: '1px solid #E8C4CE' }}>←</button>
-        <h2 className="text-base font-semibold" style={{ color: '#3D1A2A' }}>Exportar livro em PDF</h2>
+          style={{ background: '#FAF6F0', color: '#786037', border: '1px solid #C9A96E' }}>←</button>
+        <h2 className="text-base font-semibold" style={{ color: '#28180A' }}>Exportar livro em PDF</h2>
       </div>
       <div className="p-4">
-        <div className="text-center py-6">
-          <div className="text-6xl mb-4">📖</div>
-          <h2 className="text-xl font-bold mb-2" style={{ color: '#3D1A2A' }}>Nosso livro impresso</h2>
-          <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#9B6B7A' }}>
-            Album estilo folheto elegante com fotos em polaroid e toda a historia de voces.
+        <div className="text-center py-8">
+          <div className="text-5xl mb-4">📖</div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: '#28180A', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>Nosso livro de casamento</h2>
+          <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#786037' }}>
+            Album elegante com fotos, polaroids inclinadas, ornamentos dourados e toda a nossa historia.
           </p>
         </div>
-        <div className="rounded-2xl p-4 mb-5" style={{ background: 'white', border: '1px solid #E8C4CE' }}>
-          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#9B6B7A' }}>O que vai no livro</p>
+        <div className="rounded-xl p-4 mb-5" style={{ background: '#FAF6F0', border: '1px solid #C9A96E' }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#786037', letterSpacing: '0.15em' }}>Conteudo do livro</p>
           {[
-            { icon: '💍', label: 'Capa personalizada', sub: couple?.couple_name || 'com nome do casal' },
-            { icon: '📸', label: `${moments.length} momentos`, sub: 'fotos em moldura polaroid' },
-            { icon: '💌', label: 'Carta do casamento', sub: letters.wedding?.text ? 'escrita ✓' : 'nao escrita ainda' },
-            { icon: '👨‍👩‍👧', label: `${guestPosts.length} mensagens`, sub: 'do album de convidados' },
+            { icon: '📷', label: 'Capa com 2 fotos', sub: 'primeiros 2 momentos, inclinadas' },
+            { icon: '🖼', label: `${moments.length} momentos`, sub: 'polaroids inclinadas, alternando' },
+            { icon: '✉️', label: 'Carta do casamento', sub: letters.wedding?.text ? 'escrita' : 'ainda nao escrita' },
+            { icon: '💬', label: `${guestPosts.length} mensagens`, sub: 'de familia e amigos' },
           ].map(item => (
-            <div key={item.label} className="flex items-center gap-3 py-2 border-b last:border-0" style={{ borderColor: '#E8C4CE' }}>
-              <span className="text-xl w-8">{item.icon}</span>
+            <div key={item.label} className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: '#E8D8B0' }}>
+              <span className="text-lg w-7">{item.icon}</span>
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#3D1A2A' }}>{item.label}</p>
-                <p className="text-xs" style={{ color: '#9B6B7A' }}>{item.sub}</p>
+                <p className="text-sm font-semibold" style={{ color: '#28180A' }}>{item.label}</p>
+                <p className="text-xs" style={{ color: '#786037' }}>{item.sub}</p>
               </div>
             </div>
           ))}
         </div>
         <button onClick={generatePDF} disabled={generating||done}
-          className="btn-primary disabled:opacity-60 py-4 text-base w-full">
-          {done ? 'PDF baixado!' : generating ? 'Gerando PDF...' : 'Gerar e baixar PDF'}
+          className="w-full py-4 rounded-xl text-base font-semibold disabled:opacity-60"
+          style={{ background: generating||done ? '#C9A96E' : '#28180A', color: '#FAF6F0' }}>
+          {done ? 'PDF baixado com sucesso!' : generating ? 'Gerando...' : 'Gerar e baixar PDF'}
         </button>
-        <p className="text-xs text-center mt-3" style={{ color: '#C9A0B0' }}>
-          O PDF e gerado no seu celular
+        <p className="text-xs text-center mt-3" style={{ color: '#B09060' }}>
+          Gerado no seu dispositivo
         </p>
       </div>
     </Layout>
