@@ -203,15 +203,16 @@ export default function BookPDF() {
         ctx.lineWidth = 0.5 * RES
         ctx.strokeRect(0, 0, fw*RES, fh*RES)
 
-        // Área da foto (passepartout escuro)
+        // Área da foto com clip correto (cover crop dentro da polaroid)
         const px = PAD_S*RES, py = PAD_T*RES
         const pw = imgW*RES, ph = imgH*RES
 
-        // Fundo bege para foto
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(px, py, pw, ph)
+        ctx.clip()
         ctx.fillStyle = '#E8DAC6'
         ctx.fillRect(px, py, pw, ph)
-
-        // Foto real
         if (url) {
           const raw = await loadImage(url).catch(() => null)
           if (raw) {
@@ -221,24 +222,6 @@ export default function BookPDF() {
             const sc = Math.max(pw/iw, ph/ih)
             const dw = iw*sc, dh = ih*sc
             ctx.drawImage(tmp2, 0, 0, iw, ih,
-              px-(dw-pw)/2, py-(dh-ph)/2, dw, dh)
-          }
-        }
-
-        // Clip da foto (para não vazar além do rect)
-        // Re-apply com clip
-        ctx.save()
-        ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip()
-        if (url) {
-          const raw = await loadImage(url).catch(() => null)
-          if (raw) {
-            const tmp3 = new Image()
-            await new Promise(r => { tmp3.onload=r; tmp3.onerror=r; tmp3.src=raw })
-            const iw = tmp3.naturalWidth||4, ih = tmp3.naturalHeight||3
-            const sc = Math.max(pw/iw, ph/ih)
-            const dw = iw*sc, dh = ih*sc
-            ctx.fillStyle = '#E8DAC6'; ctx.fillRect(px, py, pw, ph)
-            ctx.drawImage(tmp3, 0, 0, iw, ih,
               px-(dw-pw)/2, py-(dh-ph)/2, dw, dh)
           }
         }
@@ -321,6 +304,9 @@ export default function BookPDF() {
         // foto
         const px2=PAD+2*RES3, py2=PAD+2*RES3
         const pw2=fw*RES3-PAD*2-4*RES3, ph2=fh*RES3-PAD*2-4*RES3
+        ctx.save()
+        ctx.beginPath(); ctx.rect(px2,py2,pw2,ph2); ctx.clip()
+        ctx.fillStyle='#E8DAC6'; ctx.fillRect(px2,py2,pw2,ph2)
         if (url) {
           const raw = await loadImage(url).catch(()=>null)
           if (raw) {
@@ -329,15 +315,10 @@ export default function BookPDF() {
             const iw=img2.naturalWidth||4,ih=img2.naturalHeight||3
             const sc=Math.max(pw2/iw,ph2/ih)
             const dw=iw*sc,dh=ih*sc
-            ctx.save()
-            ctx.beginPath(); ctx.rect(px2,py2,pw2,ph2); ctx.clip()
-            ctx.fillStyle='#E8DAC6'; ctx.fillRect(px2,py2,pw2,ph2)
             ctx.drawImage(img2,0,0,iw,ih,px2-(dw-pw2)/2,py2-(dh-ph2)/2,dw,dh)
-            ctx.restore()
           }
-        } else {
-          ctx.fillStyle='#E8DAC6'; ctx.fillRect(px2,py2,pw2,ph2)
         }
+        ctx.restore()
         // borda dourada interna
         ctx.strokeStyle='#C9A96E'; ctx.lineWidth=0.4*RES3
         ctx.strokeRect(px2,py2,pw2,ph2)
@@ -391,12 +372,15 @@ export default function BookPDF() {
         T(m.title || 'Momento', MID, 40, 22, DARK, 'center', W-M*2, 'italic')
         ornament(MID, 48, 80)
 
-        // Polaroid inclinada centralizada
-        const pImgW = 140, pImgH = m.description ? 105 : 128
-        const pcy = 48 + (pImgH/2) + 16 + (m.description ? 0 : 10)
-        const pol = await polaroidTilted(m.photo_url||null, MID, pcy, pImgW, pImgH, m.title||'', angle)
+        let y = 56
 
-        let y = pol.bottomY + 12
+        // Só mostra polaroid se tiver foto
+        if (m.photo_url) {
+          const pImgW = 140, pImgH = m.description ? 100 : 128
+          const pcy = y + (pImgH/2) + 14
+          const pol = await polaroidTilted(m.photo_url, MID, pcy, pImgW, pImgH, m.title||'', angle)
+          y = pol.bottomY + 12
+        }
 
         // Texto/descrição
         if (m.description) {
