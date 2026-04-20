@@ -15,9 +15,11 @@ export default function GuestAlbum() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [albumToken, setAlbumToken] = useState<string | null>(null)
 
   useEffect(() => {
     guestService.getAll().then(res => setPosts(res.data)).catch(() => {})
+    guestService.getAlbumToken().then(res => setAlbumToken(res.data.album_token)).catch(() => {})
   }, [])
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,14 +43,18 @@ export default function GuestAlbum() {
     setSending(false)
   }
 
-  const albumLink = `${window.location.origin}/album-convidados?casal=${encodeURIComponent(couple?.couple_name || '')}`
+  const albumLink = albumToken
+    ? `${window.location.origin}/album-convidados/${albumToken}`
+    : null
 
   const handleShareLink = () => {
+    if (!albumLink) return
     const msg = `💍 Olá! ${couple?.couple_name || 'O casal'} te convidou para deixar uma mensagem e foto no álbum especial deles!\n\nAcesse: ${albumLink}`
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   const handleCopyLink = () => {
+    if (!albumLink) return
     navigator.clipboard.writeText(albumLink)
     alert('Link copiado!')
   }
@@ -159,7 +165,8 @@ export default function GuestAlbum() {
             </div>
 
             <button onClick={handleShareLink}
-              className="w-full py-4 rounded-2xl font-bold text-sm mb-3 flex items-center justify-center gap-3"
+              disabled={!albumLink}
+              className="w-full py-4 rounded-2xl font-bold text-sm mb-3 flex items-center justify-center gap-3 disabled:opacity-40"
               style={{background:'rgba(37,211,102,0.1)', border:'2px solid rgba(37,211,102,0.35)', color:'#16a34a'}}>
               <span className="text-2xl">💬</span>
               <div className="text-left">
@@ -169,7 +176,8 @@ export default function GuestAlbum() {
             </button>
 
             <button onClick={handleCopyLink}
-              className="w-full py-3 rounded-2xl font-semibold text-sm mb-5"
+              disabled={!albumLink}
+              className="w-full py-3 rounded-2xl font-semibold text-sm mb-5 disabled:opacity-40"
               style={{background:'white', border:'1px solid #E8C4CE', color:'#7C4D6B'}}>
               🔗 Copiar link do álbum
             </button>

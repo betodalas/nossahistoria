@@ -369,6 +369,80 @@ router.post('/letters', authMiddleware, async (req: any, res) => {
 })
 
 // ─── Álbum de convidados ──────────────────────────────────────────────────────
+router.get('/album-token', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { v4: uuidv4 } = await import('uuid')
+  try {
+    const row = await pool.query(
+      'SELECT id, album_token FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
+      [req.userId]
+    )
+    const couple = row.rows[0]
+    if (!couple) return res.status(404).json({ error: 'Casal não encontrado' })
+
+    // Garante que o token existe (para casais criados antes da migration)
+    if (!couple.album_token) {
+      const token = uuidv4()
+      await pool.query('UPDATE couples SET album_token = $1 WHERE id = $2', [token, couple.id])
+      return res.json({ album_token: token })
+    }
+
+    res.json({ album_token: couple.album_token })
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar token do álbum' })
+  }
+})
+
+router.get('/guest-posts/public/:token', async (req, res) => {
+  const { pool } = await import('../utils/db')
+  const { token } = req.params
+  try {
+    const coupleRow = await pool.query(
+      'SELECT id FROM couples WHERE album_token = $1',
+      [token]
+    )
+    if (!coupleRow.rows[0]) return res.status(404).json({ error: 'Álbum não encontrado' })
+    const coupleId = coupleRow.rows[0].id
+    const result = await pool.query(
+      'SELECT id, name, message, photo_url, created_at FROM guest_posts WHERE couple_id = $1 ORDER BY created_at DESC',
+      [coupleId]
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar posts' })
+  }
+})
+
+router.post('/guest-posts/public/:token', async (req, res) => {
+  const { pool } = await import('../utils/db')
+  const { v2: cloudinary } = await import('cloudinary')
+  const { token } = req.params
+  const { name, message, photo } = req.body
+  if (!name || !message) return res.status(400).json({ error: 'Nome e mensagem obrigatórios' })
+  try {
+    const coupleRow = await pool.query(
+      'SELECT id FROM couples WHERE album_token = $1',
+      [token]
+    )
+    if (!coupleRow.rows[0]) return res.status(404).json({ error: 'Álbum não encontrado' })
+    const coupleId = coupleRow.rows[0].id
+    let photo_url = null
+    if (photo) {
+      try {
+        const result = await cloudinary.uploader.upload(photo, { folder: 'nossa-historia/guest' })
+        photo_url = result.secure_url
+      } catch {}
+    }
+    const result = await pool.query(
+      'INSERT INTO guest_posts (couple_id, name, message, photo_url) VALUES ($1, $2, $3, $4) RETURNING *',
+      [coupleId, name, message, photo_url]
+    )
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar mensagem' })
+  }
+})
+
 router.get('/guest-posts', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   try {
