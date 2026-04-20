@@ -510,15 +510,19 @@ Responda APENAS com a frase, sem aspas, sem explicações, sem pontuação no fi
 
         // Papel de carta com linhas pautadas
         const cX = M+6, cY = 38, cW = W-M*2-12, cH = H-70
+        const lineSpacing = 7
+        const textStartY = cY + 14  // primeira linha de texto
+        const redLineX = cX + 14    // posição da linha vermelha vertical
+
         doc.setFillColor(255,252,248); doc.rect(cX, cY, cW, cH, 'F')
         doc.setDrawColor(...GOLD); doc.setLineWidth(0.3); doc.rect(cX, cY, cW, cH)
-        // Linha vermelha vertical (papel carta)
-        ln(cX+12, cY, cX+12, cY+cH, [200,160,140], 0.3)
-        // Linhas pautadas
-        for (let ly = cY+10; ly < cY+cH-4; ly += 7)
+        // Linhas pautadas alinhadas com o texto
+        for (let ly = textStartY; ly < cY+cH-4; ly += lineSpacing)
           ln(cX+2, ly, cX+cW-2, ly, LGRAY, 0.18)
+        // Linha vermelha vertical (papel carta)
+        ln(redLineX, cY, redLineX, cY+cH, [200,160,140], 0.35)
 
-        T(letters.wedding.text, cX+16, cY+12, 10.5, DARK, 'left', cW-20, 'italic')
+        T(letters.wedding.text, redLineX + 3, textStartY - 1, 10.5, DARK, 'left', cW - (redLineX - cX) - 6, 'italic')
 
         ornament(MID, H-22, 80)
         footer(pageNum)
