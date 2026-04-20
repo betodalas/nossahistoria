@@ -29,7 +29,7 @@ export default function Premium() {
   return (
     <div className="min-h-screen flex flex-col" style={{background:'#FFF0F3'}}>
       <div className="flex items-center gap-3 px-4 py-4" style={{borderBottom:'1px solid #E8C4CE'}}>
-        <button onClick={() => navigate(-1)} className="text-sm px-3 py-1.5 rounded-lg"
+        <button onClick={() => navigate('/dashboard')} className="text-sm px-3 py-1.5 rounded-lg"
           style={{background:'#FADADD', color:'#7C4D6B'}}>←</button>
         <h2 className="text-base font-semibold" style={{color:'#3D1A2A'}}>Plano premium</h2>
       </div>
@@ -57,7 +57,7 @@ export default function Premium() {
           onApprove={async (data) => { await paymentService.capture(data.orderID); await refreshCouple(); navigate('/pagamento/sucesso') }}
           onError={() => alert('Erro no pagamento. Tente novamente.')}
         />
-        <button onClick={() => navigate(-1)} className="btn-secondary mt-3">Agora não</button>
+        <button onClick={() => navigate('/dashboard')} className="btn-secondary mt-3">Agora não</button>
       </div>
     </div>
   )

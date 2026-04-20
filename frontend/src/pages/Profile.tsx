@@ -73,7 +73,7 @@ export default function Profile() {
   return (
     <Layout>
       <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #E8C4CE' }}>
-        <button onClick={() => navigate(-1)} className="px-3 py-1.5 rounded-lg text-sm"
+        <button onClick={() => navigate('/dashboard')} className="px-3 py-1.5 rounded-lg text-sm"
           style={{ background: '#F5E6EA', color: '#7C4D6B' }}>←</button>
         <h2 className="text-base font-semibold" style={{ color: '#3D1A2A' }}>Perfil do casal</h2>
       </div>
