@@ -37,6 +37,30 @@ export default function BookPDF() {
       img.src = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now()
     })
 
+  const generateQuote = async (title: string, description: string): Promise<string> => {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `Crie uma frase romântica e poética em português para um álbum de casamento.
+O momento se chama "${title}"${description ? ` e tem a descrição: "${description}"` : ''}.
+A frase deve ter entre 10 e 20 palavras, ser intimista e emocionante, sem clichês óbvios.
+Responda APENAS com a frase, sem aspas, sem explicações, sem pontuação no final.`
+          }]
+        })
+      })
+      const data = await response.json()
+      return data.content?.[0]?.text?.trim() || 'cada momento guardado é uma eternidade de amor'
+    } catch {
+      return 'cada momento guardado é uma eternidade de amor'
+    }
+  }
+
   const generatePDF = async () => {
     setGenerating(true)
     try {
@@ -102,6 +126,40 @@ export default function BookPDF() {
         doc.setFillColor(...GOLD)
         doc.triangle(cx, y-2.2, cx-2.2, y, cx, y+2.2, 'F')
         doc.triangle(cx, y-2.2, cx+2.2, y, cx, y+2.2, 'F')
+      }
+
+      // ── Moldura decorativa sem foto (iniciais + ornamentos) ───
+      const noPhotoFrame = (cx: number, cy: number, fw: number, fh: number, initials: string) => {
+        const x = cx - fw/2, y = cy - fh/2
+        // Sombra suave
+        fillR(x+3, y+3, fw, fh, [200, 185, 165])
+        // Fundo bege elegante
+        fillR(x, y, fw, fh, BEIGE)
+        // Borda dourada externa
+        doc.setDrawColor(...GOLD); doc.setLineWidth(0.6)
+        doc.rect(x, y, fw, fh)
+        // Borda interna fina
+        doc.setLineWidth(0.25)
+        doc.rect(x+4, y+4, fw-8, fh-8)
+        // Ornamentos laterais centrais
+        ornament(cx, y+4, fw*0.5)
+        ornament(cx, y+fh-4, fw*0.5)
+        // Losangos nos cantos
+        const corners = [[x+4,y+4],[x+fw-4,y+4],[x+4,y+fh-4],[x+fw-4,y+fh-4]] as [number,number][]
+        corners.forEach(([cx2,cy2]) => {
+          doc.setFillColor(...GOLD)
+          doc.triangle(cx2,cy2-2,cx2-2,cy2,cx2,cy2+2,'F')
+          doc.triangle(cx2,cy2-2,cx2+2,cy2,cx2,cy2+2,'F')
+        })
+        // Iniciais grandes translúcidas
+        doc.setFontSize(52); doc.setTextColor(...GOLD)
+        doc.setFont('times','italic')
+        doc.setGState(new (doc as any).GState({opacity:0.3}))
+        doc.text(initials, cx, cy+8, {align:'center'})
+        doc.setGState(new (doc as any).GState({opacity:1}))
+        // Linhas decorativas
+        ln(cx-20, cy-10, cx+20, cy-10, GOLD, 0.3)
+        ln(cx-20, cy+14, cx+20, cy+14, GOLD, 0.3)
       }
 
       // ── Borda elegante da página ──────────────────────────────
@@ -375,16 +433,30 @@ export default function BookPDF() {
 
         let y = 56
 
-        // Só mostra polaroid se tiver foto
+        // Iniciais do casal para a moldura decorativa
+        const coupleInitials = coupleName.split(' ').filter((w:string)=>w.length>2).slice(0,2).map((w:string)=>w[0]).join('&')
+
         if (m.photo_url) {
+          // Com foto: polaroid inclinada normal
           const pImgW = 140, pImgH = m.description ? 100 : 128
           const pcy = y + (pImgH/2) + 14
           const pol = await polaroidTilted(m.photo_url, MID, pcy, pImgW, pImgH, m.title||'', angle)
           y = pol.bottomY + 12
+        } else {
+          // Sem foto: moldura decorativa com iniciais + citação gerada pela IA
+          const frameW = 148, frameH = 110
+          const fcy = y + frameH/2 + 10
+          noPhotoFrame(MID, fcy, frameW, frameH, coupleInitials)
+          y = fcy + frameH/2 + 16
+
+          const quote = await generateQuote(m.title || '', m.description || '')
+          ornament(MID, y, 70); y += 10
+          T(`"${quote}"`, MID, y, 10.5, SEPIA, 'center', W-M*3, 'italic')
+          y += doc.setFontSize(10.5).splitTextToSize(`"${quote}"`, W-M*3).length * 5.5 + 6
         }
 
-        // Texto/descrição
-        if (m.description) {
+        // Texto/descrição (só quando tem foto; sem foto a citação já foi exibida acima)
+        if (m.photo_url && m.description) {
           ornament(MID, y, 70); y += 10
           T(`"${m.description}"`, MID, y, 10, SEPIA, 'center', W-M*3, 'italic')
           y += doc.setFontSize(10).splitTextToSize(`"${m.description}"`, W-M*3).length * 5 + 6
