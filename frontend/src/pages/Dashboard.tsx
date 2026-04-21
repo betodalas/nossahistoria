@@ -13,7 +13,6 @@ export default function Dashboard() {
   const [answerCount, setAnswerCount] = useState(0)
   const [firstMoment, setFirstMoment] = useState<any>(null)
   const [todayQuestion, setTodayQuestion] = useState<string | null>(null)
-  const [questionOffline, setQuestionOffline] = useState(false)
 
   useEffect(() => {
     momentsService.getAll().then(res => {
@@ -27,13 +26,10 @@ export default function Dashboard() {
       }
     }).catch(() => {})
     questionsService.getAnswerCount().then(res => setAnswerCount(res.data.count || 0)).catch(() => {})
-    questionsService.getCurrent()
-      .then(res => {
-        const text = res.data?.question?.text || null
-        setTodayQuestion(text)
-        setQuestionOffline(!text)
-      })
-      .catch(() => setQuestionOffline(true))
+    questionsService.getCurrent().then(res => {
+      if (res.data?.done) return
+      setTodayQuestion(res.data?.question?.text || null)
+    }).catch(() => {})
   }, [])
 
   const weddingDate = couple?.wedding_date ? parseDate(couple.wedding_date) : null
@@ -154,52 +150,15 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div
-          className="card mb-3"
-          style={{ cursor: questionOffline ? 'default' : 'pointer', opacity: questionOffline ? 0.75 : 1 }}
-          onClick={() => !questionOffline && navigate('/perguntas')}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="pill-purple text-xs inline-block">PERGUNTA DE HOJE</span>
-            {questionOffline && (
-              <span className="text-xs px-2 py-0.5 rounded-full"
-                style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
-                📶 Sem conexão
-              </span>
-            )}
+        {todayQuestion && (
+          <div className="card cursor-pointer mb-3" onClick={() => navigate('/perguntas')}>
+            <span className="pill-purple text-xs mb-2 inline-block">PERGUNTA DE HOJE</span>
+            <p className="text-sm font-medium leading-relaxed" style={{ color: '#3D1A2A' }}>
+              {todayQuestion}
+            </p>
+            <p className="text-xs mt-2" style={{ color: '#9B6B7A' }}>Toque para responder</p>
           </div>
-          {questionOffline ? (
-            <div className="text-center py-2">
-              <p className="text-sm" style={{ color: '#9B6B7A' }}>
-                Não foi possível carregar a pergunta de hoje.
-              </p>
-              <button
-                className="text-xs mt-2 underline"
-                style={{ color: '#7C4D6B' }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setQuestionOffline(false)
-                  questionsService.getCurrent()
-                    .then(res => {
-                      const text = res.data?.question?.text || null
-                      setTodayQuestion(text)
-                      setQuestionOffline(!text)
-                    })
-                    .catch(() => setQuestionOffline(true))
-                }}
-              >
-                Tentar novamente
-              </button>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm font-medium leading-relaxed" style={{ color: '#3D1A2A' }}>
-                {todayQuestion}
-              </p>
-              <p className="text-xs mt-2" style={{ color: '#9B6B7A' }}>Toque para responder</p>
-            </>
-          )}
-        </div>
+        )}
 
         {!isPremium && (
           <div className="card cursor-pointer"
