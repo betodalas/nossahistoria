@@ -116,10 +116,69 @@ export default function Timeline() {
             </button>
           </div>
         ) : moments.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">📖</div>
-            <p className="text-sm" style={{ color: '#9B6B7A' }}>Nenhum momento ainda</p>
-            <p className="text-xs mt-1" style={{ color: '#9B6B7A' }}>Adicione o primeiro momento de vocês!</p>
+          <div className="flex flex-col items-center text-center pt-8 pb-6 px-2">
+
+            {/* Ilustração SVG */}
+            <svg width="180" height="140" viewBox="0 0 180 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ marginBottom: '24px' }}>
+              {/* Linha do tempo vertical */}
+              <line x1="48" y1="18" x2="48" y2="122" stroke="#E8C4CE" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="5 4" />
+              {/* Ponto do topo */}
+              <circle cx="48" cy="18" r="7" fill="url(#dot1)" />
+              {/* Card 1 */}
+              <rect x="64" y="8" width="96" height="36" rx="10" fill="white" stroke="#E8C4CE" strokeWidth="1.5" />
+              <rect x="74" y="18" width="38" height="6" rx="3" fill="#FADADD" />
+              <rect x="74" y="28" width="56" height="5" rx="2.5" fill="#F5E6EA" />
+              {/* Ponto do meio */}
+              <circle cx="48" cy="70" r="7" fill="url(#dot2)" />
+              {/* Card 2 */}
+              <rect x="64" y="60" width="96" height="36" rx="10" fill="white" stroke="#E8C4CE" strokeWidth="1.5" />
+              <rect x="74" y="70" width="50" height="6" rx="3" fill="#FADADD" />
+              <rect x="74" y="80" width="40" height="5" rx="2.5" fill="#F5E6EA" />
+              {/* Ponto "+" no final */}
+              <circle cx="48" cy="122" r="11" fill="url(#addBtn)" />
+              <line x1="48" y1="117" x2="48" y2="127" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="43" y1="122" x2="53" y2="122" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+              {/* Coração flutuante */}
+              <text x="148" y="118" fontSize="18" textAnchor="middle">💍</text>
+              <defs>
+                <linearGradient id="dot1" x1="41" y1="11" x2="55" y2="25" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#E8C4CE" /><stop offset="1" stopColor="#C9A0B0" />
+                </linearGradient>
+                <linearGradient id="dot2" x1="41" y1="63" x2="55" y2="77" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#E8C4CE" /><stop offset="1" stopColor="#C9A0B0" />
+                </linearGradient>
+                <linearGradient id="addBtn" x1="37" y1="111" x2="59" y2="133" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#C9A0B0" /><stop offset="1" stopColor="#7C4D6B" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            <h3 className="text-base font-bold mb-2" style={{ color: '#3D1A2A' }}>
+              A história de vocês começa aqui
+            </h3>
+            <p className="text-sm leading-relaxed mb-1" style={{ color: '#7C4D6B', maxWidth: '280px' }}>
+              Registre o primeiro momento de vocês.
+            </p>
+            <p className="text-xs leading-relaxed mb-6" style={{ color: '#9B6B7A', maxWidth: '260px' }}>
+              Pode ser uma viagem, um jantar especial, a primeira vez que se viram — qualquer memória que mereça ser guardada.
+            </p>
+
+            {/* Sugestões de exemplos */}
+            <div className="flex flex-wrap justify-center gap-2 mb-6">
+              {['✈️ Viagem', '🍽️ Jantar', '🎬 Primeiro encontro', '🏠 Nova casa', '🎉 Conquista'].map(tag => (
+                <span key={tag} className="text-xs px-3 py-1.5 rounded-full"
+                  style={{ background: '#FADADD', color: '#7C4D6B', border: '1px solid #E8C4CE' }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <button
+              onClick={() => navigate('/novo-momento')}
+              className="btn-primary"
+              style={{ maxWidth: '240px' }}>
+              + Adicionar primeiro momento
+            </button>
           </div>
         ) : (
           <div className="relative pl-7">
