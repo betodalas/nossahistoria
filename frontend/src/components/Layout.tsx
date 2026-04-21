@@ -1,8 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { hasAlbum } = useAuth()
   const path = location.pathname
 
   const tabs = [
@@ -51,6 +53,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
         </svg>
+      ),
+    },
+    {
+      label: 'Álbum',
+      route: hasAlbum ? '/album-convidados' : '/album-convidados/info',
+      icon: (active: boolean) => (
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke={active ? '#7C4D6B' : '#C9A0B0'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          {!hasAlbum && (
+            <span style={{
+              position: 'absolute', top: -4, right: -4,
+              fontSize: '9px', lineHeight: 1,
+            }}>🔒</span>
+          )}
+        </div>
       ),
     },
   ]
@@ -110,7 +133,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           padding: '0 8px', zIndex: 40
         }}>
           {tabs.map(t => {
-            const active = path === t.route
+            const active = path === t.route ||
+              (t.label === 'Álbum' && (path === '/album-convidados' || path === '/album-convidados/info'))
             return (
               <button key={t.route} onClick={() => navigate(t.route)}
                 aria-label={t.label}

@@ -113,4 +113,9 @@ export const guestService = {
     api.post(`/guest-posts/public/${token}`, data),
 }
 
+export const albumService = {
+  createOrder: () => api.post('/album/create-order'),
+  capture: (orderId: string) => api.post('/album/capture', { orderId }),
+}
+
 export default api

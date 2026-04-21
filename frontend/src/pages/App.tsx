@@ -19,7 +19,6 @@ import Invite from './pages/Invite'
 import AcceptInvite from './pages/AcceptInvite'
 import GuestAlbum from './pages/GuestAlbum'
 import PublicAlbum from './pages/PublicAlbum'
-import AlbumPayment from './pages/AlbumPayment'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
@@ -76,7 +75,6 @@ function App() {
             <Route path="/convidar" element={<PrivateRoute><Invite /></PrivateRoute>} />
             <Route path="/convite/:token" element={<AcceptInvite />} />
             <Route path="/album-convidados" element={<PrivateRoute><GuestAlbum /></PrivateRoute>} />
-            <Route path="/album-convidados/info" element={<PrivateRoute><AlbumPayment /></PrivateRoute>} />
             <Route path="/album-convidados/:token" element={<PublicAlbum />} />
             <Route path="/armazenamento" element={<PrivateRoute><Storage /></PrivateRoute>} />
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />

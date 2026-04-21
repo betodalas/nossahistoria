@@ -142,6 +142,10 @@ const migrate = async () => {
     `).catch(() => {})
 
     await client.query(`
+      ALTER TABLE couples ADD COLUMN IF NOT EXISTS album_paid BOOLEAN DEFAULT FALSE;
+    `).catch(() => {})
+
+    await client.query(`
       ALTER TABLE couples DROP CONSTRAINT IF EXISTS couples_user2_id_fkey;
       ALTER TABLE couples ADD CONSTRAINT couples_user2_id_fkey
         FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE SET NULL;

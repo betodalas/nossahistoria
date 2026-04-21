@@ -13,6 +13,7 @@ interface Couple {
   couple_name?: string
   wedding_date?: string
   is_premium?: boolean
+  album_paid?: boolean
   user1_id?: string
   user2_id?: string
   partner_name?: string
@@ -23,6 +24,7 @@ interface AuthContextType {
   user: User | null
   couple: Couple | null
   isPremium: boolean
+  hasAlbum: boolean
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   loginWithGoogle: (credential: string) => Promise<void>
@@ -116,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, couple,
       isPremium: couple?.is_premium || false,
+      hasAlbum: couple?.is_premium || couple?.album_paid || false,
       loading,
       login, loginWithGoogle, logout, refreshCouple, saveCouple
     }}>

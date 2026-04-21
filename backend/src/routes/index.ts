@@ -368,6 +368,64 @@ router.post('/letters', authMiddleware, async (req: any, res) => {
   }
 })
 
+// ─── Pagamento do Álbum de Convidados ────────────────────────────────────────
+router.post('/album/create-order', authMiddleware, async (req: any, res) => {
+  const { v2: paypal } = await import('@paypal/checkout-server-sdk')
+  try {
+    const environment = process.env.NODE_ENV === 'production'
+      ? new paypal.core.LiveEnvironment(process.env.PAYPAL_CLIENT_ID!, process.env.PAYPAL_CLIENT_SECRET!)
+      : new paypal.core.SandboxEnvironment(process.env.PAYPAL_CLIENT_ID!, process.env.PAYPAL_CLIENT_SECRET!)
+    const client = new paypal.core.PayPalHttpClient(environment)
+    const request = new paypal.orders.OrdersCreateRequest()
+    request.requestBody({
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: { currency_code: 'BRL', value: '29.90' },
+        description: 'Álbum de Convidados - Nossa História',
+      }],
+    })
+    const order = await client.execute(request)
+    res.json({ orderId: order.result.id })
+  } catch (err) {
+    console.error('Album order error:', err)
+    res.status(500).json({ error: 'Erro ao criar pedido' })
+  }
+})
+
+router.post('/album/capture', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { v2: paypal } = await import('@paypal/checkout-server-sdk')
+  const { orderId } = req.body
+  if (!orderId) return res.status(400).json({ error: 'orderId obrigatório' })
+  try {
+    const environment = process.env.NODE_ENV === 'production'
+      ? new paypal.core.LiveEnvironment(process.env.PAYPAL_CLIENT_ID!, process.env.PAYPAL_CLIENT_SECRET!)
+      : new paypal.core.SandboxEnvironment(process.env.PAYPAL_CLIENT_ID!, process.env.PAYPAL_CLIENT_SECRET!)
+    const client = new paypal.core.PayPalHttpClient(environment)
+    const request = new paypal.orders.OrdersCaptureRequest(orderId)
+    const capture = await client.execute(request)
+    if (capture.result.status === 'COMPLETED') {
+      const row = await pool.query(
+        'SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
+        [req.userId]
+      )
+      const coupleId = row.rows[0]?.id
+      if (coupleId) {
+        await pool.query(
+          'UPDATE couples SET album_paid = TRUE WHERE id = $1',
+          [coupleId]
+        )
+      }
+      res.json({ success: true })
+    } else {
+      res.status(400).json({ error: 'Pagamento não completado' })
+    }
+  } catch (err) {
+    console.error('Album capture error:', err)
+    res.status(500).json({ error: 'Erro ao capturar pagamento' })
+  }
+})
+
 // ─── Álbum de convidados ──────────────────────────────────────────────────────
 router.get('/album-token', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
