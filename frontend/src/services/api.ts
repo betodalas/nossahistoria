@@ -106,10 +106,10 @@ export const lettersService = {
 // Álbum de convidados
 export const guestService = {
   getAll: () => api.get('/guest-posts'),
-  create: (data: { name: string; message: string; photo?: string | null }) => api.post('/guest-posts', data),
+  create: (data: { name: string; message: string; photo?: string | null; media_type?: string }) => api.post('/guest-posts', data),
   getAlbumToken: () => api.get('/album-token'),
   getPublicPosts: (token: string) => api.get(`/guest-posts/public/${token}`),
-  createPublicPost: (token: string, data: { name: string; message: string; photo?: string | null }) =>
+  createPublicPost: (token: string, data: { name: string; message: string; photo?: string | null; media_type?: string }) =>
     api.post(`/guest-posts/public/${token}`, data),
 }
 
