@@ -7,7 +7,7 @@ import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 
 export default function Profile() {
-  const { user, couple, saveCouple, refreshCouple, logout } = useAuth()
+  const { user, couple, saveCouple, refreshCouple, logout, hasAlbum } = useAuth()
   const navigate = useNavigate()
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
@@ -135,9 +135,44 @@ export default function Profile() {
           </button>
         </div>
 
-        <button type="button" className="btn-secondary mb-3" onClick={() => navigate('/armazenamento')}>
-          💾 Armazenamento
-        </button>
+        <p className="section-label mb-3">Funcionalidades</p>
+
+        <div className="mb-4 rounded-2xl overflow-hidden" style={{ border: '1px solid #E8C4CE' }}>
+          <button
+            type="button"
+            onClick={() => navigate(hasAlbum ? '/album-convidados' : '/album-convidados/info')}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+            style={{ background: 'white', borderBottom: '1px solid #E8C4CE' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">📸</span>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#3D1A2A' }}>Álbum de convidados</p>
+                <p className="text-xs" style={{ color: '#9B6B7A' }}>
+                  {hasAlbum ? 'Ver fotos enviadas pelos convidados' : 'Convidados enviam fotos do casamento'}
+                </p>
+              </div>
+            </div>
+            <span style={{ color: '#C9A0B0', fontSize: '18px' }}>›</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/armazenamento')}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+            style={{ background: 'white' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">💾</span>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#3D1A2A' }}>Armazenamento</p>
+                <p className="text-xs" style={{ color: '#9B6B7A' }}>Gerencie o espaço para fotos e vídeos</p>
+              </div>
+            </div>
+            <span style={{ color: '#C9A0B0', fontSize: '18px' }}>›</span>
+          </button>
+        </div>
+
         <button type="submit" disabled={saving} className="btn-primary mb-3 disabled:opacity-60">
           {saving ? 'Salvando...' : '✅ Salvar e voltar'}
         </button>
