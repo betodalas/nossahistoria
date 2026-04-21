@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { authService } from '../services/api'
 import { parseDate, daysUntil } from '../utils/dateUtils'
 import Layout from '../components/Layout'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Profile() {
   const { user, couple, saveCouple, refreshCouple, logout } = useAuth()
@@ -152,48 +153,40 @@ export default function Profile() {
         </div>
       </form>
 
-      {/* Modal de confirmação */}
+      {/* Modal de confirmação de exclusão de conta */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'rgba(61,26,42,0.7)' }}>
-          <div className="w-full max-w-sm rounded-3xl p-6 text-center"
-            style={{ background: 'white', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <div className="text-5xl mb-4">⚠️</div>
-            <h2 className="text-lg font-bold mb-2" style={{ color: '#3D1A2A' }}>Cancelar conta</h2>
-            {user && couple?.user1_id === user.id ? (
-              <>
-                <p className="text-sm mb-1" style={{ color: '#7C4D6B' }}>
-                  Você é o criador do casal. Isso vai apagar permanentemente:
-                </p>
-                <p className="text-xs mb-5" style={{ color: '#9B6B7A' }}>
-                  todos os momentos, cartas, perguntas e dados do casal — para você e seu parceiro(a). Esta ação não pode ser desfeita.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm mb-1" style={{ color: '#7C4D6B' }}>
-                  Você vai sair do casal. Isso vai apagar:
-                </p>
-                <p className="text-xs mb-5" style={{ color: '#9B6B7A' }}>
-                  apenas a sua conta. Os momentos e a história do casal continuam intactos para seu parceiro(a).
-                </p>
-              </>
-            )}
-            {deleteError && <p className="text-xs mb-3" style={{ color: '#e53e3e' }}>{deleteError}</p>}
-            <button
-              onClick={handleDeleteAccount}
-              disabled={deleting}
-              className="w-full py-3 rounded-2xl text-sm font-bold mb-3 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', color: 'white' }}>
-              {deleting ? 'Cancelando...' : '🗑️ Sim, cancelar minha conta'}
-            </button>
-            <button
-              onClick={() => { setShowDeleteModal(false); setDeleteError('') }}
-              className="w-full py-2 rounded-2xl text-sm btn-secondary">
-              Voltar
-            </button>
-          </div>
-        </div>
+        <ConfirmModal
+          icon="⚠️"
+          title="Cancelar conta"
+          confirmLabel="🗑️ Sim, cancelar minha conta"
+          loadingLabel="Cancelando..."
+          cancelLabel="Voltar"
+          danger
+          loading={deleting}
+          errorMessage={deleteError || undefined}
+          onConfirm={handleDeleteAccount}
+          onCancel={() => { setShowDeleteModal(false); setDeleteError('') }}
+        >
+          {user && couple?.user1_id === user.id ? (
+            <div className="text-center">
+              <p className="text-sm mb-1" style={{ color: '#7C4D6B' }}>
+                Você é o criador do casal. Isso vai apagar permanentemente:
+              </p>
+              <p className="text-xs" style={{ color: '#9B6B7A' }}>
+                todos os momentos, cartas, perguntas e dados do casal — para você e seu parceiro(a). Esta ação não pode ser desfeita.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm mb-1" style={{ color: '#7C4D6B' }}>
+                Você vai sair do casal. Isso vai apagar:
+              </p>
+              <p className="text-xs" style={{ color: '#9B6B7A' }}>
+                apenas a sua conta. Os momentos e a história do casal continuam intactos para seu parceiro(a).
+              </p>
+            </div>
+          )}
+        </ConfirmModal>
       )}
     </Layout>
   )

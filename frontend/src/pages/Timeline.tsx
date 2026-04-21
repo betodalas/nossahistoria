@@ -6,43 +6,7 @@ import { formatDateBR } from '../utils/dateUtils'
 import { FREE_MOMENTS_LIMIT } from '../constants'
 import Layout from '../components/Layout'
 import MusicPlayer from '../components/MusicPlayer'
-
-function DeleteModal({ onConfirm, onCancel, loading }: {
-  onConfirm: () => void
-  onCancel: () => void
-  loading: boolean
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ background: 'rgba(61,26,42,0.5)' }}
-      onClick={onCancel}>
-      <div
-        className="w-full rounded-t-3xl p-6"
-        style={{ background: 'white', maxWidth: '430px' }}
-        onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: '#E8C4CE' }} />
-        <div className="text-center mb-5">
-          <div className="text-4xl mb-3">🗑️</div>
-          <p className="text-base font-bold" style={{ color: '#3D1A2A' }}>Apagar momento?</p>
-          <p className="text-sm mt-1" style={{ color: '#9B6B7A' }}>Esta ação não pode ser desfeita.</p>
-        </div>
-        <button
-          onClick={onConfirm}
-          disabled={loading}
-          className="w-full py-3 rounded-xl font-bold text-sm mb-3"
-          style={{ background: '#e11d48', color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Apagando...' : 'Sim, apagar'}
-        </button>
-        <button
-          onClick={onCancel}
-          disabled={loading}
-          className="btn-secondary">
-          Cancelar
-        </button>
-      </div>
-    </div>
-  )
-}
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Timeline() {
   const [moments, setMoments] = useState<any[]>([])
@@ -106,7 +70,13 @@ export default function Timeline() {
     <Layout>
       {/* Modal de confirmação de exclusão */}
       {confirmDeleteId && (
-        <DeleteModal
+        <ConfirmModal
+          icon="🗑️"
+          title="Apagar momento?"
+          description="Esta ação não pode ser desfeita."
+          confirmLabel="Sim, apagar"
+          loadingLabel="Apagando..."
+          danger
           loading={deleting === confirmDeleteId}
           onConfirm={handleDelete}
           onCancel={() => { setConfirmDeleteId(null); setMenuOpen(null) }}
