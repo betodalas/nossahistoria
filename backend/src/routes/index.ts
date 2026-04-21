@@ -462,7 +462,7 @@ router.get('/guest-posts/public/:token', async (req, res) => {
     if (!coupleRow.rows[0]) return res.status(404).json({ error: 'Álbum não encontrado' })
     const coupleId = coupleRow.rows[0].id
     const result = await pool.query(
-      'SELECT id, name, message, photo_url, created_at FROM guest_posts WHERE couple_id = $1 ORDER BY created_at DESC',
+      'SELECT id, name, message, photo_url, media_type, created_at FROM guest_posts WHERE couple_id = $1 ORDER BY created_at DESC',
       [coupleId]
     )
     res.json(result.rows)
@@ -475,7 +475,7 @@ router.post('/guest-posts/public/:token', async (req, res) => {
   const { pool } = await import('../utils/db')
   const { v2: cloudinary } = await import('cloudinary')
   const { token } = req.params
-  const { name, message, photo } = req.body
+  const { name, message, photo, media_type } = req.body
   if (!name || !message) return res.status(400).json({ error: 'Nome e mensagem obrigatórios' })
   try {
     const coupleRow = await pool.query(
@@ -485,15 +485,19 @@ router.post('/guest-posts/public/:token', async (req, res) => {
     if (!coupleRow.rows[0]) return res.status(404).json({ error: 'Álbum não encontrado' })
     const coupleId = coupleRow.rows[0].id
     let photo_url = null
+    const resolvedType = media_type === 'video' ? 'video' : 'image'
     if (photo) {
       try {
-        const result = await cloudinary.uploader.upload(photo, { folder: 'nossa-historia/guest' })
+        const result = await cloudinary.uploader.upload(photo, {
+          folder: 'nossa-historia/guest',
+          resource_type: 'auto',
+        })
         photo_url = result.secure_url
       } catch {}
     }
     const result = await pool.query(
-      'INSERT INTO guest_posts (couple_id, name, message, photo_url) VALUES ($1, $2, $3, $4) RETURNING *',
-      [coupleId, name, message, photo_url]
+      'INSERT INTO guest_posts (couple_id, name, message, photo_url, media_type) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [coupleId, name, message, photo_url, photo_url ? resolvedType : null]
     )
     res.status(201).json(result.rows[0])
   } catch (err) {
@@ -520,22 +524,26 @@ router.get('/guest-posts', authMiddleware, async (req: any, res) => {
 router.post('/guest-posts', authMiddleware, async (req: any, res) => {
   const { pool } = await import('../utils/db')
   const { v2: cloudinary } = await import('cloudinary')
-  const { name, message, photo } = req.body
+  const { name, message, photo, media_type } = req.body
   if (!name || !message) return res.status(400).json({ error: 'Nome e mensagem obrigatórios' })
   try {
     const row = await pool.query('SELECT id FROM couples WHERE user1_id = $1 OR user2_id = $1 LIMIT 1', [req.userId])
     const coupleId = row.rows[0]?.id
     if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
     let photo_url = null
+    const resolvedType = media_type === 'video' ? 'video' : 'image'
     if (photo) {
       try {
-        const result = await cloudinary.uploader.upload(photo, { folder: 'nossa-historia/guest' })
+        const result = await cloudinary.uploader.upload(photo, {
+          folder: 'nossa-historia/guest',
+          resource_type: 'auto',
+        })
         photo_url = result.secure_url
       } catch {}
     }
     const result = await pool.query(
-      'INSERT INTO guest_posts (couple_id, name, message, photo_url) VALUES ($1, $2, $3, $4) RETURNING *',
-      [coupleId, name, message, photo_url]
+      'INSERT INTO guest_posts (couple_id, name, message, photo_url, media_type) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [coupleId, name, message, photo_url, photo_url ? resolvedType : null]
     )
     res.status(201).json(result.rows[0])
   } catch (err) {

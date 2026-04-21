@@ -12,6 +12,7 @@ export default function GuestAlbum() {
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
   const [photo, setPhoto] = useState<string | null>(null)
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -25,6 +26,8 @@ export default function GuestAlbum() {
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const isVideo = file.type.startsWith('video/')
+    setMediaType(isVideo ? 'video' : 'image')
     const reader = new FileReader()
     reader.onload = ev => setPhoto(ev.target?.result as string)
     reader.readAsDataURL(file)
@@ -34,7 +37,7 @@ export default function GuestAlbum() {
     if (!name.trim() || !message.trim()) return
     setSending(true)
     try {
-      const res = await guestService.create({ name, message, photo })
+      const res = await guestService.create({ name, message, photo, media_type: mediaType })
       setPosts([res.data, ...posts])
       setName(''); setMessage(''); setPhoto(null)
       setSent(true)
@@ -64,7 +67,11 @@ export default function GuestAlbum() {
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{background:'rgba(61,26,42,0.92)'}} onClick={() => setLightbox(null)}>
-          <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" />
+          {lightbox.includes('/video/') || lightbox.match(/\.(mp4|mov|webm)/) ? (
+            <video src={lightbox} controls className="max-w-full max-h-full rounded-2xl" onClick={e => e.stopPropagation()} />
+          ) : (
+            <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" />
+          )}
           <button className="absolute top-4 right-4 text-white text-2xl w-10 h-10 rounded-full flex items-center justify-center"
             style={{background:'rgba(255,255,255,0.2)'}} onClick={() => setLightbox(null)}>×</button>
         </div>
@@ -111,12 +118,22 @@ export default function GuestAlbum() {
                 {/* Grid de fotos */}
                 {posts.some(p => p.photo_url) && (
                   <>
-                    <p className="section-label mb-3">Fotos enviadas</p>
+                    <p className="section-label mb-3">Fotos e vídeos</p>
                     <div className="grid grid-cols-3 gap-2 mb-5">
                       {posts.filter(p => p.photo_url).map(p => (
-                        <div key={p.id} className="aspect-square rounded-xl overflow-hidden cursor-pointer"
+                        <div key={p.id} className="aspect-square rounded-xl overflow-hidden cursor-pointer relative"
                           onClick={() => setLightbox(p.photo_url)}>
-                          <img src={p.photo_url} className="w-full h-full object-cover" />
+                          {p.media_type === 'video' ? (
+                            <>
+                              <video src={p.photo_url} className="w-full h-full object-cover" muted playsInline />
+                              <div className="absolute inset-0 flex items-center justify-center"
+                                style={{background:'rgba(0,0,0,0.25)'}}>
+                                <span className="text-white text-2xl">▶</span>
+                              </div>
+                            </>
+                          ) : (
+                            <img src={p.photo_url} className="w-full h-full object-cover" />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -142,10 +159,16 @@ export default function GuestAlbum() {
                     </div>
                     <p className="text-sm leading-relaxed" style={{color:'#3D1A2A'}}>{p.message}</p>
                     {p.photo_url && (
-                      <img src={p.photo_url}
-                        className="w-full rounded-xl mt-3 object-contain cursor-pointer"
-                        style={{maxHeight:'200px', background:'#FFF0F3'}}
-                        onClick={() => setLightbox(p.photo_url)} />
+                      p.media_type === 'video' ? (
+                        <video src={p.photo_url} controls
+                          className="w-full rounded-xl mt-3"
+                          style={{maxHeight:'200px'}} />
+                      ) : (
+                        <img src={p.photo_url}
+                          className="w-full rounded-xl mt-3 object-contain cursor-pointer"
+                          style={{maxHeight:'200px', background:'#FFF0F3'}}
+                          onClick={() => setLightbox(p.photo_url)} />
+                      )
                     )}
                   </div>
                 ))}
@@ -195,10 +218,14 @@ export default function GuestAlbum() {
                   value={message} onChange={e => setMessage(e.target.value)} />
               </div>
               <div className="mb-4">
-                <label className="text-xs block mb-2" style={{color:'#9B6B7A'}}>Foto (opcional)</label>
+                <label className="text-xs block mb-2" style={{color:'#9B6B7A'}}>Foto ou vídeo (opcional)</label>
                 {photo ? (
                   <div className="relative">
-                    <img src={photo} className="w-full rounded-xl object-contain" style={{maxHeight:'180px'}} />
+                    {mediaType === 'video' ? (
+                      <video src={photo} controls className="w-full rounded-xl" style={{maxHeight:'180px'}} />
+                    ) : (
+                      <img src={photo} className="w-full rounded-xl object-contain" style={{maxHeight:'180px'}} />
+                    )}
                     <button onClick={() => setPhoto(null)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-sm"
                       style={{background:'rgba(61,26,42,0.7)', color:'white'}}>×</button>
@@ -206,8 +233,8 @@ export default function GuestAlbum() {
                 ) : (
                   <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl cursor-pointer text-sm"
                     style={{background:'#FADADD', border:'2px dashed #E8C4CE', color:'#9B6B7A'}}>
-                    📷 Adicionar foto
-                    <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+                    📷 Adicionar foto ou vídeo
+                    <input type="file" accept="image/*,video/*" className="hidden" onChange={handlePhoto} />
                   </label>
                 )}
               </div>

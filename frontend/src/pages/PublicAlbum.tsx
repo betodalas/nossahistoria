@@ -10,7 +10,8 @@ export default function PublicAlbum() {
   // Form state
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
-  const [photo, setPhoto] = useState<string | null>(null)
+  const [media, setMedia] = useState<string | null>(null)
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -22,11 +23,13 @@ export default function PublicAlbum() {
       .catch(() => { setNotFound(true); setLoading(false) })
   }, [token])
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const isVideo = file.type.startsWith('video/')
+    setMediaType(isVideo ? 'video' : 'image')
     const reader = new FileReader()
-    reader.onload = ev => setPhoto(ev.target?.result as string)
+    reader.onload = ev => setMedia(ev.target?.result as string)
     reader.readAsDataURL(file)
   }
 
@@ -34,8 +37,8 @@ export default function PublicAlbum() {
     if (!name.trim() || !message.trim() || !token) return
     setSending(true)
     try {
-      await guestService.createPublicPost(token, { name, message, photo })
-      setName(''); setMessage(''); setPhoto(null)
+      await guestService.createPublicPost(token, { name, message, photo: media, media_type: mediaType })
+      setName(''); setMessage(''); setMedia(null)
       setSent(true)
     } catch {}
     setSending(false)
@@ -108,19 +111,23 @@ export default function PublicAlbum() {
           </div>
 
           <div className="mb-5">
-            <label className="text-xs block mb-2" style={{color:'#9B6B7A'}}>Foto (opcional)</label>
-            {photo ? (
+            <label className="text-xs block mb-2" style={{color:'#9B6B7A'}}>Foto ou vídeo (opcional)</label>
+            {media ? (
               <div className="relative">
-                <img src={photo} className="w-full rounded-xl object-contain" style={{maxHeight:'180px'}} />
-                <button onClick={() => setPhoto(null)}
+                {mediaType === 'video' ? (
+                  <video src={media} controls className="w-full rounded-xl" style={{maxHeight:'180px'}} />
+                ) : (
+                  <img src={media} className="w-full rounded-xl object-contain" style={{maxHeight:'180px'}} />
+                )}
+                <button onClick={() => setMedia(null)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-sm"
-                  style={{background:'rgba(61,26,42,0.7)', color:'white'}}>x</button>
+                  style={{background:'rgba(61,26,42,0.7)', color:'white'}}>×</button>
               </div>
             ) : (
               <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl cursor-pointer text-sm"
                 style={{background:'#FADADD', border:'2px dashed #E8C4CE', color:'#9B6B7A'}}>
-                Adicionar foto
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+                📷 Adicionar foto ou vídeo
+                <input type="file" accept="image/*,video/*" className="hidden" onChange={handleMedia} />
               </label>
             )}
           </div>

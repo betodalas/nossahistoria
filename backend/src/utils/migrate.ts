@@ -146,6 +146,10 @@ const migrate = async () => {
     `).catch(() => {})
 
     await client.query(`
+      ALTER TABLE guest_posts ADD COLUMN IF NOT EXISTS media_type VARCHAR(10) DEFAULT 'image';
+    `).catch(() => {})
+
+    await client.query(`
       ALTER TABLE couples DROP CONSTRAINT IF EXISTS couples_user2_id_fkey;
       ALTER TABLE couples ADD CONSTRAINT couples_user2_id_fkey
         FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE SET NULL;
