@@ -124,6 +124,7 @@ export default function PublicAlbum() {
                   style={{background:'rgba(61,26,42,0.7)', color:'white'}}>×</button>
               </div>
             ) : (
+              <>
               <label className="flex items-center justify-center gap-2 w-full py-4 rounded-xl cursor-pointer text-sm mb-2"
                 style={{background:'#FADADD', border:'2px dashed #E8C4CE', color:'#9B6B7A'}}>
                 📷 Adicionar foto ou vídeo da galeria
@@ -134,6 +135,7 @@ export default function PublicAlbum() {
                 🎥 Gravar vídeo agora
                 <input type="file" accept="video/*" capture="environment" className="hidden" onChange={handleMedia} />
               </label>
+              </>
             )}
           </div>
 
