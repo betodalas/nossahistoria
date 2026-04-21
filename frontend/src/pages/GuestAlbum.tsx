@@ -109,14 +109,14 @@ export default function GuestAlbum() {
             ) : (
               <>
                 {/* Grid de fotos */}
-                {posts.some(p => p.photo) && (
+                {posts.some(p => p.photo_url) && (
                   <>
                     <p className="section-label mb-3">Fotos enviadas</p>
                     <div className="grid grid-cols-3 gap-2 mb-5">
-                      {posts.filter(p => p.photo).map(p => (
+                      {posts.filter(p => p.photo_url).map(p => (
                         <div key={p.id} className="aspect-square rounded-xl overflow-hidden cursor-pointer"
-                          onClick={() => setLightbox(p.photo)}>
-                          <img src={p.photo} className="w-full h-full object-cover" />
+                          onClick={() => setLightbox(p.photo_url)}>
+                          <img src={p.photo_url} className="w-full h-full object-cover" />
                         </div>
                       ))}
                     </div>
@@ -136,16 +136,16 @@ export default function GuestAlbum() {
                       <div>
                         <p className="text-sm font-semibold" style={{color:'#3D1A2A'}}>{p.name}</p>
                         <p className="text-xs" style={{color:'#9B6B7A'}}>
-                          {new Date(p.date).toLocaleDateString('pt-BR', {day:'numeric',month:'long'})}
+                          {new Date(p.created_at).toLocaleDateString('pt-BR', {day:'numeric',month:'long'})}
                         </p>
                       </div>
                     </div>
                     <p className="text-sm leading-relaxed" style={{color:'#3D1A2A'}}>{p.message}</p>
-                    {p.photo && (
-                      <img src={p.photo}
+                    {p.photo_url && (
+                      <img src={p.photo_url}
                         className="w-full rounded-xl mt-3 object-contain cursor-pointer"
                         style={{maxHeight:'200px', background:'#FFF0F3'}}
-                        onClick={() => setLightbox(p.photo)} />
+                        onClick={() => setLightbox(p.photo_url)} />
                     )}
                   </div>
                 ))}
