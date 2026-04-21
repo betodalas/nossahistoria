@@ -8,6 +8,7 @@
     "db:migrate": "node -r tsx/cjs src/utils/migrate.ts"
   },
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.8.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
@@ -28,8 +29,8 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
-    "resend": "^3.2.0",
     "pg": "^8.11.3",
+    "resend": "^3.2.0",
     "tsx": "^4.6.2",
     "typescript": "^5.3.2",
     "uuid": "^9.0.0"
