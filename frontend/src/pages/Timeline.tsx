@@ -17,7 +17,11 @@ export default function Timeline() {
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const { isPremium } = useAuth()
+  const [perspectiveOpen, setPerspectiveOpen] = useState<string | null>(null)
+  const [perspectiveText, setPerspectiveText] = useState('')
+  const [perspectiveSaving, setPerspectiveSaving] = useState(false)
+  const [perspectiveSuccess, setPerspectiveSuccess] = useState<string | null>(null)
+  const { isPremium, user } = useAuth()
   const navigate = useNavigate()
 
   const loadMoments = () => {
@@ -61,6 +65,33 @@ export default function Timeline() {
     }
   }
 
+  const openPerspective = (m: any) => {
+    setMenuOpen(null)
+    setPerspectiveText(m.my_perspective || '')
+    setPerspectiveOpen(m.id)
+  }
+
+  const handleSavePerspective = async () => {
+    if (!perspectiveOpen || !perspectiveText.trim()) return
+    setPerspectiveSaving(true)
+    try {
+      await momentsService.addPerspective(perspectiveOpen, perspectiveText.trim())
+      setMoments(prev => prev.map(m =>
+        m.id === perspectiveOpen ? { ...m, my_perspective: perspectiveText.trim() } : m
+      ))
+      setPerspectiveSuccess(perspectiveOpen)
+      setTimeout(() => {
+        setPerspectiveOpen(null)
+        setPerspectiveText('')
+        setPerspectiveSuccess(null)
+      }, 1200)
+    } catch {
+      // silently fail
+    } finally {
+      setPerspectiveSaving(false)
+    }
+  }
+
   const openEdit = (m: any) => {
     setMenuOpen(null)
     navigate('/novo-momento', { state: { moment: m } })
@@ -81,6 +112,69 @@ export default function Timeline() {
           onConfirm={handleDelete}
           onCancel={() => { setConfirmDeleteId(null); setMenuOpen(null) }}
         />
+      )}
+
+      {/* Modal de perspectiva */}
+      {perspectiveOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(61,26,42,0.5)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setPerspectiveOpen(null); setPerspectiveText('') } }}>
+          <div className="w-full max-w-lg rounded-t-3xl p-6 pb-8"
+            style={{ background: 'white', boxShadow: '0 -4px 24px rgba(61,26,42,0.15)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">💬</span>
+              <h3 className="text-base font-bold" style={{ color: '#3D1A2A' }}>Minha perspectiva</h3>
+            </div>
+            <p className="text-xs mb-4" style={{ color: '#9B6B7A' }}>
+              Como você viveu esse momento? Compartilhe seu ponto de vista.
+            </p>
+            {perspectiveSuccess === perspectiveOpen ? (
+              <div className="flex flex-col items-center py-6 gap-2">
+                <span className="text-3xl">✨</span>
+                <p className="text-sm font-semibold" style={{ color: '#7C4D6B' }}>Perspectiva salva!</p>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  className="w-full rounded-xl p-3 text-sm resize-none outline-none"
+                  style={{
+                    background: '#FFF0F3',
+                    border: '1.5px solid #E8C4CE',
+                    color: '#3D1A2A',
+                    minHeight: '110px',
+                  }}
+                  placeholder="Escreva como você viveu esse momento..."
+                  value={perspectiveText}
+                  onChange={e => setPerspectiveText(e.target.value)}
+                  maxLength={1000}
+                  autoFocus
+                />
+                <div className="flex justify-between items-center mt-1 mb-4">
+                  <span className="text-xs" style={{ color: '#C9A0B0' }}>{perspectiveText.length}/1000</span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 py-3 rounded-xl text-sm font-medium"
+                    style={{ background: '#F5E6EA', color: '#7C4D6B' }}
+                    onClick={() => { setPerspectiveOpen(null); setPerspectiveText('') }}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                    style={{
+                      background: perspectiveText.trim() ? 'linear-gradient(135deg,#C9A0B0,#7C4D6B)' : '#E8C4CE',
+                      color: 'white',
+                      opacity: perspectiveSaving ? 0.7 : 1,
+                    }}
+                    disabled={!perspectiveText.trim() || perspectiveSaving}
+                    onClick={handleSavePerspective}>
+                    {perspectiveSaving ? 'Salvando...' : 'Salvar'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Lightbox */}
@@ -211,6 +305,11 @@ export default function Timeline() {
                             style={{ color: '#3D1A2A' }}>
                             ✏️ Editar
                           </button>
+                          <button onClick={() => openPerspective(m)}
+                            className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 border-t"
+                            style={{ color: '#7C4D6B', borderColor: '#E8C4CE' }}>
+                            💬 Minha perspectiva
+                          </button>
                           <button onClick={() => { setMenuOpen(null); setConfirmDeleteId(m.id) }}
                             className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 border-t"
                             style={{ color: '#e11d48', borderColor: '#E8C4CE' }}>
@@ -251,6 +350,32 @@ export default function Timeline() {
                   )}
 
                   {m.music_name && <MusicPlayer musicName={m.music_name} />}
+
+                  {m.my_perspective && (
+                    <div className="mt-3 rounded-xl px-3 py-2.5"
+                      style={{ background: '#F5E6EA', border: '1px solid #E8C4CE' }}>
+                      <p className="text-xs font-semibold mb-1" style={{ color: '#7C4D6B' }}>
+                        💬 Minha perspectiva
+                      </p>
+                      <p className="text-xs leading-relaxed" style={{ color: '#3D1A2A' }}>
+                        {m.my_perspective}
+                      </p>
+                    </div>
+                  )}
+
+                  {!m.my_perspective && (
+                    <button
+                      onClick={() => openPerspective(m)}
+                      className="mt-3 w-full text-left px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+                      style={{
+                        background: 'transparent',
+                        border: '1px dashed #C9A0B0',
+                        color: '#9B6B7A',
+                      }}>
+                      <span style={{ fontSize: '13px' }}>💬</span>
+                      Adicionar minha perspectiva
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
