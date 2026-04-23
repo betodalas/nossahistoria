@@ -67,7 +67,8 @@ export default function Timeline() {
 
   const openPerspective = (m: any) => {
     setMenuOpen(null)
-    setPerspectiveText(m.my_perspective || '')
+    const mine = (m.perspectives || []).find((p: any) => p.userId === user?.id)
+    setPerspectiveText(mine?.text || '')
     setPerspectiveOpen(m.id)
   }
 
@@ -76,9 +77,11 @@ export default function Timeline() {
     setPerspectiveSaving(true)
     try {
       await momentsService.addPerspective(perspectiveOpen, perspectiveText.trim())
-      setMoments(prev => prev.map(m =>
-        m.id === perspectiveOpen ? { ...m, my_perspective: perspectiveText.trim() } : m
-      ))
+      setMoments(prev => prev.map(m => {
+        if (m.id !== perspectiveOpen) return m
+        const existing = (m.perspectives || []).filter((p: any) => p.userId !== user?.id)
+        return { ...m, perspectives: [...existing, { userId: user?.id, text: perspectiveText.trim() }] }
+      }))
       setPerspectiveSuccess(perspectiveOpen)
       setTimeout(() => {
         setPerspectiveOpen(null)
@@ -351,31 +354,49 @@ export default function Timeline() {
 
                   {m.music_name && <MusicPlayer musicName={m.music_name} />}
 
-                  {m.my_perspective && (
-                    <div className="mt-3 rounded-xl px-3 py-2.5"
-                      style={{ background: '#F5E6EA', border: '1px solid #E8C4CE' }}>
-                      <p className="text-xs font-semibold mb-1" style={{ color: '#7C4D6B' }}>
-                        💬 Minha perspectiva
-                      </p>
-                      <p className="text-xs leading-relaxed" style={{ color: '#3D1A2A' }}>
-                        {m.my_perspective}
-                      </p>
-                    </div>
-                  )}
-
-                  {!m.my_perspective && (
-                    <button
-                      onClick={() => openPerspective(m)}
-                      className="mt-3 w-full text-left px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
-                      style={{
-                        background: 'transparent',
-                        border: '1px dashed #C9A0B0',
-                        color: '#9B6B7A',
-                      }}>
-                      <span style={{ fontSize: '13px' }}>💬</span>
-                      Adicionar minha perspectiva
-                    </button>
-                  )}
+                  {/* Perspectivas */}
+                  {(() => {
+                    const mine = (m.perspectives || []).find((p: any) => p.userId === user?.id)
+                    const partner = (m.perspectives || []).find((p: any) => p.userId !== user?.id)
+                    return (
+                      <>
+                        {partner && (
+                          <div className="mt-3 rounded-xl px-3 py-2.5"
+                            style={{ background: '#FFF0F3', border: '1px solid #E8C4CE' }}>
+                            <p className="text-xs font-semibold mb-1" style={{ color: '#C9A0B0' }}>
+                              💬 Perspectiva do parceiro
+                            </p>
+                            <p className="text-xs leading-relaxed" style={{ color: '#3D1A2A' }}>
+                              {partner.text}
+                            </p>
+                          </div>
+                        )}
+                        {mine ? (
+                          <div className="mt-2 rounded-xl px-3 py-2.5"
+                            style={{ background: '#F5E6EA', border: '1px solid #E8C4CE' }}>
+                            <p className="text-xs font-semibold mb-1" style={{ color: '#7C4D6B' }}>
+                              💬 Minha perspectiva
+                            </p>
+                            <p className="text-xs leading-relaxed" style={{ color: '#3D1A2A' }}>
+                              {mine.text}
+                            </p>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => openPerspective(m)}
+                            className="mt-2 w-full text-left px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+                            style={{
+                              background: 'transparent',
+                              border: '1px dashed #C9A0B0',
+                              color: '#9B6B7A',
+                            }}>
+                            <span style={{ fontSize: '13px' }}>💬</span>
+                            Adicionar minha perspectiva
+                          </button>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
               </div>
             ))}
