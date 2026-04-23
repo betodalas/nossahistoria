@@ -7,6 +7,7 @@ import { FREE_MOMENTS_LIMIT } from '../constants'
 import Layout from '../components/Layout'
 import MusicPlayer from '../components/MusicPlayer'
 import ConfirmModal from '../components/ConfirmModal'
+import ShareMoment from '../components/ShareMoment'
 
 export default function Timeline() {
   const [moments, setMoments] = useState<any[]>([])
@@ -21,6 +22,7 @@ export default function Timeline() {
   const [perspectiveText, setPerspectiveText] = useState('')
   const [perspectiveSaving, setPerspectiveSaving] = useState(false)
   const [perspectiveSuccess, setPerspectiveSuccess] = useState<string | null>(null)
+  const [sharingMoment, setSharingMoment] = useState<any | null>(null)
   const { isPremium, user } = useAuth()
   const navigate = useNavigate()
 
@@ -102,6 +104,10 @@ export default function Timeline() {
 
   return (
     <Layout>
+      {sharingMoment && (
+        <ShareMoment moment={sharingMoment} onClose={() => setSharingMoment(null)} />
+      )}
+
       {/* Modal de confirmação de exclusão */}
       {confirmDeleteId && (
         <ConfirmModal
@@ -307,6 +313,11 @@ export default function Timeline() {
                             className="w-full text-left px-4 py-3 text-sm flex items-center gap-2"
                             style={{ color: '#3D1A2A' }}>
                             ✏️ Editar
+                          </button>
+                          <button onClick={() => { setMenuOpen(null); setSharingMoment(m) }}
+                            className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 border-t"
+                            style={{ color: '#3D1A2A', borderColor: '#E8C4CE' }}>
+                            📤 Compartilhar
                           </button>
                           <button onClick={() => openPerspective(m)}
                             className="w-full text-left px-4 py-3 text-sm flex items-center gap-2 border-t"
