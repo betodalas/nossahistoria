@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { pool } from '../utils/db'
 import { AuthRequest } from '../middleware/auth'
 import { v2 as cloudinary } from 'cloudinary'
+import { notifyPartnerNewMoment } from './notificationsController'
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -141,6 +142,7 @@ export const createMoment = async (req: AuthRequest, res: Response) => {
       [coupleId, title, description, moment_date, music_name, music_link, photo_url, voice_url, audioDuration, photoSize, audioSize, userId]
     )
     res.status(201).json(result.rows[0])
+    notifyPartnerNewMoment(coupleId!, userId!, title).catch(() => {})
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Erro ao criar momento' })

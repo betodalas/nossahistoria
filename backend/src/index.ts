@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import routes from './routes'
 import { pool } from './utils/db'
+import { startNotificationCrons } from './utils/notificationCrons'
 
 dotenv.config()
 
@@ -203,6 +204,7 @@ const runMigrations = async () => {
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`)
   await runMigrations()
+  startNotificationCrons()
 })
 
 export default app

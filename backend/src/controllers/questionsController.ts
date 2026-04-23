@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import { pool } from '../utils/db'
 import { AuthRequest } from '../middleware/auth'
+import { notifyPartnerAnsweredQuestion } from './notificationsController'
 
 export const getWeeklyQuestion = async (req: AuthRequest, res: Response) => {
   const { userId } = req
@@ -165,6 +166,12 @@ export const answerQuestion = async (req: AuthRequest, res: Response) => {
     }
 
     res.status(201).json(result.rows[0])
+    pool.query('SELECT text FROM questions WHERE id = $1', [questionId])
+      .then(q => {
+        const questionText = q.rows[0]?.text || 'pergunta do dia'
+        return notifyPartnerAnsweredQuestion(coupleId!, userId!, questionText)
+      })
+      .catch(() => {})
   } catch (err) {
     res.status(500).json({ error: 'Erro ao salvar resposta' })
   }

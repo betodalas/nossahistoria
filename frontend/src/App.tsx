@@ -3,6 +3,7 @@ import { PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { useEffect } from 'react'
 import { App as CapApp } from '@capacitor/app'
+import { usePushNotifications } from './hooks/usePushNotifications'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -23,6 +24,12 @@ import AlbumPayment from './pages/AlbumPayment'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
+
+function PushRegistrar() {
+  const { user } = useAuth()
+  usePushNotifications(user?.id)
+  return null
+}
 
 function DeepLinkHandler() {
   const navigate = useNavigate()
@@ -60,6 +67,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <DeepLinkHandler />
+          <PushRegistrar />
           <Routes>
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />
