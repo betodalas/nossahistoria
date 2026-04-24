@@ -4,6 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.nossahistoria.app',
   appName: 'Nossa História',
   webDir: 'dist',
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+  },
 };
 
 export default config;

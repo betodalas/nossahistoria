@@ -71,6 +71,70 @@ export default function Profile() {
 
   const daysLeft = weddingDate ? daysUntil(parseDate(weddingDate)) : null
 
+  const [pushLog, setPushLog] = useState<string[]>([])
+
+  const log = (msg: string) => setPushLog(prev => [...prev, `${new Date().toLocaleTimeString()} ${msg}`])
+
+  const testPush = async () => {
+    setPushLog([])
+    const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+    log('Iniciando...')
+
+    try {
+      const { initializeApp, getApps } = await import('firebase/app')
+      const { getMessaging, getToken } = await import('firebase/messaging')
+      const { PushNotifications } = await import('@capacitor/push-notifications')
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCdz_OzOzwlK-ZIF0MexnB1mSZ5BB-7NYs",
+        authDomain: "nossahistoria-67c05.firebaseapp.com",
+        projectId: "nossahistoria-67c05",
+        storageBucket: "nossahistoria-67c05.firebasestorage.app",
+        messagingSenderId: "263899434835",
+        appId: "1:263899434835:web:3f19bbc75d01e7d7475ba6",
+      }
+
+      const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+      log('✓ Firebase inicializado')
+
+      // Usa Capacitor para pedir permissão (funciona na WebView)
+      const perm = await PushNotifications.requestPermissions()
+      log('Permissão: ' + perm.receive)
+      if (perm.receive === 'denied') { log('❌ Permissão negada'); return }
+
+      // Usa Capacitor para registrar e pegar o token nativo
+      await PushNotifications.register()
+      log('Aguardando token nativo...')
+
+      await new Promise<void>((resolve) => {
+        PushNotifications.addListener('registration', async (token) => {
+          log('✓ Token: ' + token.value.slice(0, 30) + '...')
+
+          const jwt = localStorage.getItem('token')
+          if (!jwt) { log('❌ JWT não encontrado'); resolve(); return }
+
+          const res = await fetch(`${BACKEND_URL}/notifications/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+            body: JSON.stringify({ token: token.value, platform: 'android' }),
+          })
+          const body = await res.json()
+          log('Backend ' + res.status + ': ' + JSON.stringify(body))
+          resolve()
+        })
+
+        PushNotifications.addListener('registrationError' as any, (err: any) => {
+          log('❌ Erro FCM: ' + JSON.stringify(err))
+          resolve()
+        })
+
+        setTimeout(() => { log('⚠️ Timeout — token não chegou'); resolve() }, 10000)
+      })
+    } catch (err: any) {
+      log('❌ Erro: ' + err.message)
+    }
+  }
+
   return (
     <Layout>
       <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid #E8C4CE' }}>
@@ -189,6 +253,22 @@ export default function Profile() {
       </form>
 
       {/* Modal de confirmação de exclusão de conta */}
+      <div className="mx-4 mb-6 rounded-2xl p-4" style={{ background: '#FFF0F3', border: '1px solid #E8C4CE' }}>
+          <p className="text-xs font-semibold mb-3" style={{ color: '#3D1A2A' }}>🔔 Diagnóstico de Push</p>
+          <button onClick={testPush}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold mb-3"
+            style={{ background: 'linear-gradient(135deg,#C9A0B0,#7C4D6B)', color: 'white' }}>
+            Testar registro FCM
+          </button>
+          {pushLog.length > 0 && (
+            <div className="rounded-xl p-3" style={{ background: '#3D1A2A' }}>
+              {pushLog.map((line, i) => (
+                <p key={i} className="text-xs font-mono mb-1" style={{ color: '#E8C4CE' }}>{line}</p>
+              ))}
+            </div>
+          )}
+        </div>
+
       {showDeleteModal && (
         <ConfirmModal
           icon="⚠️"
