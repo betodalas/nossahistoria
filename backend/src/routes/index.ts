@@ -10,6 +10,7 @@ import {
 import { getMoments, createMoment, addPerspective, deleteMoment, updateMoment } from '../controllers/momentsController'
 import { getWeeklyQuestion, answerQuestion, seedQuestions } from '../controllers/questionsController'
 import { createOrder, captureOrder } from '../controllers/paymentController'
+import { saveToken } from '../controllers/notificationsController'
 import { authMiddleware } from '../middleware/auth'
 import multer from 'multer'
 
@@ -235,6 +236,9 @@ router.put('/moments/:id', authMiddleware, upload.fields([
   { name: 'audio', maxCount: 1 },
 ]), updateMoment)
 router.delete('/moments/:id', authMiddleware, deleteMoment)
+
+// Notificações push
+router.post('/notifications/token', authMiddleware, saveToken)
 
 // ─── Perguntas ────────────────────────────────────────────────────────────────
 router.get('/questions/answer-count', authMiddleware, async (req: any, res) => {
