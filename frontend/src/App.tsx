@@ -40,7 +40,7 @@ function PushRegistrar() {
     const alreadyDecided = localStorage.getItem('push_permission_decided')
     if (alreadyDecided) return
 
-    if (permissionStatus === 'prompt') {
+    if (permissionStatus === 'prompt' || permissionStatus === 'denied') {
       askedRef.current = true
       const timer = setTimeout(async () => {
         await requestPermission()
@@ -49,7 +49,7 @@ function PushRegistrar() {
       return () => clearTimeout(timer)
     }
 
-    if (permissionStatus === 'granted' || permissionStatus === 'denied') {
+    if (permissionStatus === 'granted') {
       localStorage.setItem('push_permission_decided', '1')
     }
   }, [loading, user, permissionStatus, requestPermission])
