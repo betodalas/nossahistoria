@@ -30,11 +30,20 @@ function PushRegistrar() {
   const { permissionStatus, requestPermission } = usePushNotifications()
 
   useEffect(() => {
+    // Aguarda o status ser resolvido (sai de 'unknown') antes de agir.
+    // 'unknown' é o estado inicial assíncrono — ainda não sabemos a resposta do SO.
+    if (permissionStatus === 'unknown') return
+
     // Pede permissão automaticamente na primeira vez que o app abre
     if (permissionStatus === 'prompt') {
-      requestPermission()
+      // Pequeno delay para garantir que a UI do app já está totalmente montada
+      // antes de o sistema operacional exibir o pop-up nativo de permissão.
+      const timer = setTimeout(() => {
+        requestPermission()
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }, [permissionStatus])
+  }, [permissionStatus, requestPermission])
 
   return null
 }

@@ -104,7 +104,11 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
       // Verificar status atual de permissão
       const current = await Push.checkPermissions()
-      const status = current.receive as PushPermissionStatus
+      // No iOS/Android, 'prompt' indica que nunca foi solicitado antes.
+      // Mapeia 'prompt-with-rationale' (Android) → 'prompt' para consistência.
+      const rawStatus = current.receive as string
+      const status: PushPermissionStatus =
+        rawStatus === 'prompt-with-rationale' ? 'prompt' : rawStatus as PushPermissionStatus
       setPermissionStatus(status)
 
       // Se já foi autorizado, registrar automaticamente
