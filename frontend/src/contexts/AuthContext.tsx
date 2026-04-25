@@ -37,7 +37,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Carrega imediatamente do localStorage — campos do perfil não ficam vazios
   const [user, setUser] = useState<User | null>(() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null') } catch { return null }
   })
@@ -47,53 +46,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // ─── Detecção de reinstalação ──────────────────────────────────────────
-    // No Android, o localStorage do WebView sobrevive à desinstalação em muitos
-    // fabricantes. Usamos o Capacitor Preferences (armazenamento nativo) como
-    // âncora: se o app é nativo e a chave 'app_installed' não existe no storage
-    // nativo, é uma instalação nova — limpamos o localStorage legado.
     const clearIfReinstalled = async () => {
       if (Capacitor.isNativePlatform()) {
         try {
           const { Preferences } = await import('@capacitor/preferences')
           const { value } = await Preferences.get({ key: 'app_installed' })
           if (!value) {
-            // Primeira vez após (re)instalação — limpa dados legados
+            // Primeira vez após (re)instalação — limpa TODOS os dados legados
+            // incluindo push_permission_asked para que o diálogo apareça de novo
             localStorage.removeItem('token')
             localStorage.removeItem('user')
             localStorage.removeItem('couple')
             localStorage.removeItem('push_registered_token')
+            localStorage.removeItem('push_permission_asked')  // ← fix: limpa flag de permissão
             await Preferences.set({ key: 'app_installed', value: '1' })
           }
         } catch {
           // @capacitor/preferences não disponível — ignora silenciosamente
         }
       }
-      // Continua o fluxo normal de validação do token
       initAuth()
     }
 
     const initAuth = () => {
       const token = localStorage.getItem('token')
       if (token) {
-      authService.me()
-        .then(res => {
-          const u = res.data.user
-          const c = res.data.couple || null
-          setUser(u)
-          setCouple(c)
-          localStorage.setItem('user', JSON.stringify(u))
-          if (c) localStorage.setItem('couple', JSON.stringify(c))
-          else localStorage.removeItem('couple')
-        })
-        .catch(() => {
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          localStorage.removeItem('couple')
-          setUser(null)
-          setCouple(null)
-        })
-        .finally(() => setLoading(false))
+        authService.me()
+          .then(res => {
+            const u = res.data.user
+            const c = res.data.couple || null
+            setUser(u)
+            setCouple(c)
+            localStorage.setItem('user', JSON.stringify(u))
+            if (c) localStorage.setItem('couple', JSON.stringify(c))
+            else localStorage.removeItem('couple')
+          })
+          .catch(() => {
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            localStorage.removeItem('couple')
+            setUser(null)
+            setCouple(null)
+          })
+          .finally(() => setLoading(false))
       } else {
         setLoading(false)
       }

@@ -1,16 +1,6 @@
 /**
  * usePushNotifications
  * Hook central para gerenciamento de push notifications via Capacitor.
- *
- * Responsabilidades:
- *  - Pedir permissão ao usuário (iOS/Android)
- *  - Registrar o device token no backend
- *  - Ouvir notificações recebidas em foreground
- *  - Ouvir toque em notificações (deep-link para a tela correta)
- *  - Detectar se já foi registrado (evitar chamadas desnecessárias)
- *
- * Uso:
- *   const { permissionStatus, requestPermission } = usePushNotifications()
  */
 
 import { useEffect, useCallback, useState } from 'react'
@@ -18,7 +8,6 @@ import { Capacitor } from '@capacitor/core'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
-// Importa apenas os tipos — não afeta o bundle web (tree-shaken)
 import type {
   Token,
   RegistrationError,
@@ -26,7 +15,6 @@ import type {
   ActionPerformed,
 } from '@capacitor/push-notifications'
 
-// Lazy import — não quebra o bundle web se o plugin não estiver instalado
 async function getPushPlugin() {
   if (!Capacitor.isNativePlatform()) return null
   try {
@@ -38,6 +26,7 @@ async function getPushPlugin() {
 }
 
 const STORAGE_KEY = 'push_registered_token'
+const ASKED_KEY = 'push_permission_asked'
 
 export type PushPermissionStatus = 'unknown' | 'granted' | 'denied' | 'prompt'
 
@@ -53,22 +42,20 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   const [permissionStatus, setPermissionStatus] = useState<PushPermissionStatus>('unknown')
   const [isRegistered, setIsRegistered] = useState(false)
 
-  // ─── Registrar token no backend ──────────────────────────────────────────
   const sendTokenToBackend = useCallback(async (token: string, platform: string) => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === token) return // já registrado — sem requisição desnecessária
+    if (saved === token) return
 
     try {
       await api.post('/notifications/token', { token, platform })
       localStorage.setItem(STORAGE_KEY, token)
       setIsRegistered(true)
-      console.log('[Push] Token registrado no backend ✓')
+      console.log('[Push] Token registrado no backend ✓', token.slice(0, 20) + '...')
     } catch (err) {
       console.warn('[Push] Falha ao registrar token:', err)
     }
   }, [])
 
-  // ─── Navegar pela notificação tocada ─────────────────────────────────────
   const handleNotificationAction = useCallback((data?: Record<string, string>) => {
     const screen = data?.screen
     if (!screen) return
@@ -83,10 +70,8 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     if (route) navigate(route)
   }, [navigate])
 
-  // ─── Inicialização: verificar permissão + ouvir eventos ──────────────────
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
-      // No browser, ler o status atual da Web Notifications API
       if ('Notification' in window) {
         const p = Notification.permission
         setPermissionStatus(p === 'default' ? 'prompt' : p as PushPermissionStatus)
@@ -102,68 +87,59 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       const Push = await getPushPlugin()
       if (!Push) return
 
-      // Verificar status atual de permissão.
-      // No Android, o status inicial (nunca perguntado) é 'denied', assim como
-      // após uma reinstalação. Já 'prompt-with-rationale' indica que o usuário
-      // negou uma vez mas o SO permite pedir de novo.
-      // Em ambos os casos precisamos expor 'prompt' para o PushRegistrar poder
-      // chamar requestPermission() — mas SÓ se o usuário ainda não negou
-      // explicitamente nesta instalação (controlado pela flag push_permission_asked).
       const current = await Push.checkPermissions()
       const rawStatus = current.receive as string
 
-      const neverAsked = !localStorage.getItem('push_permission_asked')
+      // Se não tem token registrado mas tem flag de "já perguntei",
+      // pode ser reinstalação com race condition (AuthContext ainda não limpou).
+      // Garantimos a limpeza aqui também.
+      const hasToken = !!localStorage.getItem(STORAGE_KEY)
+      const alreadyAsked = !!localStorage.getItem(ASKED_KEY)
+      if (!hasToken && alreadyAsked && rawStatus !== 'granted') {
+        console.log('[Push] Possível reinstalação detectada — resetando flag de permissão')
+        localStorage.removeItem(ASKED_KEY)
+      }
+
+      const neverAsked = !localStorage.getItem(ASKED_KEY)
 
       let status: PushPermissionStatus
       if (rawStatus === 'granted') {
         status = 'granted'
       } else if (rawStatus === 'prompt-with-rationale') {
-        // SO permite pedir de novo (negou 1x mas não marcou "não perguntar mais")
         status = 'prompt'
       } else if (rawStatus === 'denied' && neverAsked) {
-        // Android: estado inicial antes de qualquer pergunta — tratamos como 'prompt'
-        // para que o diálogo nativo apareça na primeira abertura
+        // Android: estado inicial antes de qualquer pergunta — o SO ainda vai mostrar o diálogo
+        console.log('[Push] Status inicial Android → tratando como prompt')
         status = 'prompt'
       } else {
-        // 'denied' após o usuário já ter sido perguntado = negação real
         status = rawStatus as PushPermissionStatus
       }
 
+      console.log(`[Push] checkPermissions: raw=${rawStatus} → mapped=${status} neverAsked=${neverAsked}`)
       setPermissionStatus(status)
 
-      // Se já foi autorizado, registrar automaticamente
       if (status === 'granted') {
         await Push.register()
       }
 
-      // ── Listeners ────────────────────────────────────────────────────────
-
-      // Token FCM obtido
       const regListener = await Push.addListener('registration', async (tokenData: Token) => {
-        const platform = Capacitor.getPlatform() // 'android' | 'ios'
+        const platform = Capacitor.getPlatform()
+        console.log('[Push] Token FCM recebido ✓')
         await sendTokenToBackend(tokenData.value, platform)
       })
 
-      // Erro de registro
       const regErrListener = await Push.addListener('registrationError', (err: RegistrationError) => {
-        console.error('[Push] Erro de registro:', err)
+        console.error('[Push] Erro de registro FCM:', err)
         setIsRegistered(false)
       })
 
-      // Notificação recebida com app em FOREGROUND — exibir banner in-app
       const rcvListener = await Push.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
         console.log('[Push] Recebida em foreground:', notification.title)
-        // O evento de UI é emitido para que o componente NotificationBanner possa capturá-lo
         window.dispatchEvent(new CustomEvent('push:foreground', {
-          detail: {
-            title: notification.title,
-            body: notification.body,
-            data: notification.data,
-          },
+          detail: { title: notification.title, body: notification.body, data: notification.data },
         }))
       })
 
-      // Usuário TOCOU na notificação (app em background/fechado)
       const actionListener = await Push.addListener('pushNotificationActionPerformed', (action: ActionPerformed) => {
         console.log('[Push] Ação realizada:', action.notification.title)
         handleNotificationAction(action.notification.data as Record<string, string>)
@@ -181,15 +157,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     return () => { cleanup?.() }
   }, [sendTokenToBackend, handleNotificationAction])
 
-  // ─── Solicitar permissão (chamado pelo usuário ou PushRegistrar) ──────────
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const Push = await getPushPlugin()
     if (!Push) {
-      // Web — tentar usar a Web Notifications API como fallback
-      if (!('Notification' in window)) {
-        setPermissionStatus('denied')
-        return false
-      }
+      if (!('Notification' in window)) { setPermissionStatus('denied'); return false }
       try {
         const result = await Notification.requestPermission()
         const granted = result === 'granted'
@@ -201,12 +172,12 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       }
     }
 
-    // Marca que já perguntamos — a partir daqui 'denied' do Capacitor
-    // significa negação real do usuário, não o estado inicial do Android
-    localStorage.setItem('push_permission_asked', '1')
+    console.log('[Push] Chamando requestPermissions()...')
+    localStorage.setItem(ASKED_KEY, '1')
 
     const result = await Push.requestPermissions()
     const granted = result.receive === 'granted'
+    console.log(`[Push] requestPermissions resultado: ${result.receive}`)
     setPermissionStatus(result.receive as PushPermissionStatus)
 
     if (granted) {
@@ -216,9 +187,9 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     return granted
   }, [])
 
-  // ─── Descadastrar (limpar token local) ───────────────────────────────────
   const unregister = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(ASKED_KEY)
     setIsRegistered(false)
     setPermissionStatus('prompt')
   }, [])
