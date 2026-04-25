@@ -18,6 +18,14 @@ import { Capacitor } from '@capacitor/core'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
+// Importa apenas os tipos — não afeta o bundle web (tree-shaken)
+import type {
+  Token,
+  RegistrationError,
+  PushNotificationSchema,
+  ActionPerformed,
+} from '@capacitor/push-notifications'
+
 // Lazy import — não quebra o bundle web se o plugin não estiver instalado
 async function getPushPlugin() {
   if (!Capacitor.isNativePlatform()) return null
@@ -78,7 +86,13 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   // ─── Inicialização: verificar permissão + ouvir eventos ──────────────────
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
-      setPermissionStatus('prompt')
+      // No browser, ler o status atual da Web Notifications API
+      if ('Notification' in window) {
+        const p = Notification.permission
+        setPermissionStatus(p === 'default' ? 'prompt' : p as PushPermissionStatus)
+      } else {
+        setPermissionStatus('denied')
+      }
       return
     }
 
@@ -101,19 +115,19 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       // ── Listeners ────────────────────────────────────────────────────────
 
       // Token FCM obtido
-      const regListener = await Push.addListener('registration', async (tokenData) => {
+      const regListener = await Push.addListener('registration', async (tokenData: Token) => {
         const platform = Capacitor.getPlatform() // 'android' | 'ios'
         await sendTokenToBackend(tokenData.value, platform)
       })
 
       // Erro de registro
-      const regErrListener = await Push.addListener('registrationError', (err) => {
+      const regErrListener = await Push.addListener('registrationError', (err: RegistrationError) => {
         console.error('[Push] Erro de registro:', err)
         setIsRegistered(false)
       })
 
       // Notificação recebida com app em FOREGROUND — exibir banner in-app
-      const rcvListener = await Push.addListener('pushNotificationReceived', (notification) => {
+      const rcvListener = await Push.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
         console.log('[Push] Recebida em foreground:', notification.title)
         // O evento de UI é emitido para que o componente NotificationBanner possa capturá-lo
         window.dispatchEvent(new CustomEvent('push:foreground', {
@@ -126,7 +140,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       })
 
       // Usuário TOCOU na notificação (app em background/fechado)
-      const actionListener = await Push.addListener('pushNotificationActionPerformed', (action) => {
+      const actionListener = await Push.addListener('pushNotificationActionPerformed', (action: ActionPerformed) => {
         console.log('[Push] Ação realizada:', action.notification.title)
         handleNotificationAction(action.notification.data as Record<string, string>)
       })
@@ -147,9 +161,20 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const Push = await getPushPlugin()
     if (!Push) {
-      // Web — sem suporte nativo
-      setPermissionStatus('denied')
-      return false
+      // Web — tentar usar a Web Notifications API como fallback
+      if (!('Notification' in window)) {
+        setPermissionStatus('denied')
+        return false
+      }
+      try {
+        const result = await Notification.requestPermission()
+        const granted = result === 'granted'
+        setPermissionStatus(granted ? 'granted' : 'denied')
+        return granted
+      } catch {
+        setPermissionStatus('denied')
+        return false
+      }
     }
 
     const result = await Push.requestPermissions()
