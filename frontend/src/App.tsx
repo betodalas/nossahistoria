@@ -32,25 +32,26 @@ function PushRegistrar() {
   const askedRef = useRef(false)
 
   useEffect(() => {
+    // Só age depois do AuthContext resolver (loading=false) e com usuário logado
     if (loading || !user) return
+    // Status ainda não resolvido pelo Capacitor
     if (permissionStatus === 'unknown') return
+    // Já pediu nessa sessão — evita pedir duas vezes
     if (askedRef.current) return
-    // Só pede se nunca foi decidido (primeira instalação)
-    // Se já foi negado explicitamente pelo usuário, não incomoda mais
-    const alreadyDecided = localStorage.getItem('push_permission_decided')
-    if (alreadyDecided) return
 
-    if (permissionStatus === 'prompt' || permissionStatus === 'denied') {
+    // 'prompt' cobre:
+    //   - primeira instalação no Android (estado inicial é 'denied' mas o hook
+    //     mapeia para 'prompt' enquanto push_permission_asked não existir)
+    //   - 'prompt-with-rationale': usuário negou 1x mas ainda pode ser pedido de novo
+    // 'denied' real (após push_permission_asked já estar gravado) NÃO entra aqui,
+    //   evitando chamar requestPermissions() quando o SO não vai exibir o diálogo.
+    if (permissionStatus === 'prompt') {
       askedRef.current = true
-      const timer = setTimeout(async () => {
-        await requestPermission()
-        localStorage.setItem('push_permission_decided', '1')
-      }, 1000)
+      // Delay para garantir que a UI já está visível ao usuário
+      const timer = setTimeout(() => {
+        requestPermission()
+      }, 1500)
       return () => clearTimeout(timer)
-    }
-
-    if (permissionStatus === 'granted') {
-      localStorage.setItem('push_permission_decided', '1')
     }
   }, [loading, user, permissionStatus, requestPermission])
 

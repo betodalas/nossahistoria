@@ -102,18 +102,33 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       const Push = await getPushPlugin()
       if (!Push) return
 
-      // Verificar status atual de permissão
+      // Verificar status atual de permissão.
+      // No Android, o status inicial (nunca perguntado) é 'denied', assim como
+      // após uma reinstalação. Já 'prompt-with-rationale' indica que o usuário
+      // negou uma vez mas o SO permite pedir de novo.
+      // Em ambos os casos precisamos expor 'prompt' para o PushRegistrar poder
+      // chamar requestPermission() — mas SÓ se o usuário ainda não negou
+      // explicitamente nesta instalação (controlado pela flag push_permission_asked).
       const current = await Push.checkPermissions()
-      // No Android, após reinstalar o app, o sistema retorna 'denied' mesmo sem
-      // o usuário ter negado explicitamente — é o estado padrão do SO pós-reinstall.
-      // Mapeamos 'denied' para 'prompt' para que o PushRegistrar tente requestPermission(),
-      // que por sua vez chamará requestPermissions() e o SO exibirá o pop-up nativo.
-      // 'prompt-with-rationale' (Android) também vira 'prompt' para consistência.
       const rawStatus = current.receive as string
-      const status: PushPermissionStatus =
-        (rawStatus === 'prompt-with-rationale' || rawStatus === 'denied')
-          ? 'prompt'
-          : rawStatus as PushPermissionStatus
+
+      const neverAsked = !localStorage.getItem('push_permission_asked')
+
+      let status: PushPermissionStatus
+      if (rawStatus === 'granted') {
+        status = 'granted'
+      } else if (rawStatus === 'prompt-with-rationale') {
+        // SO permite pedir de novo (negou 1x mas não marcou "não perguntar mais")
+        status = 'prompt'
+      } else if (rawStatus === 'denied' && neverAsked) {
+        // Android: estado inicial antes de qualquer pergunta — tratamos como 'prompt'
+        // para que o diálogo nativo apareça na primeira abertura
+        status = 'prompt'
+      } else {
+        // 'denied' após o usuário já ter sido perguntado = negação real
+        status = rawStatus as PushPermissionStatus
+      }
+
       setPermissionStatus(status)
 
       // Se já foi autorizado, registrar automaticamente
@@ -166,7 +181,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     return () => { cleanup?.() }
   }, [sendTokenToBackend, handleNotificationAction])
 
-  // ─── Solicitar permissão (chamado pelo usuário) ───────────────────────────
+  // ─── Solicitar permissão (chamado pelo usuário ou PushRegistrar) ──────────
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const Push = await getPushPlugin()
     if (!Push) {
@@ -185,6 +200,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         return false
       }
     }
+
+    // Marca que já perguntamos — a partir daqui 'denied' do Capacitor
+    // significa negação real do usuário, não o estado inicial do Android
+    localStorage.setItem('push_permission_asked', '1')
 
     const result = await Push.requestPermissions()
     const granted = result.receive === 'granted'
