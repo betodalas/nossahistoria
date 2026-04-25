@@ -6,11 +6,11 @@ import { parseDate, daysUntil } from '../utils/dateUtils'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import PushPermissionCard from '../components/PushPermissionCard'
-import { usePushNotifications } from '../hooks/usePushNotifications'
+import { usePush } from '../contexts/PushContext'
 
 export default function Profile() {
   const { user, couple, saveCouple, refreshCouple, logout, hasAlbum } = useAuth()
-  const { permissionStatus, isRegistered, requestPermission } = usePushNotifications()
+  const { permissionStatus, isRegistered, requestPermission } = usePush()
   const navigate = useNavigate()
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
