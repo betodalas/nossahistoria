@@ -5,12 +5,9 @@ import { authService } from '../services/api'
 import { parseDate, daysUntil } from '../utils/dateUtils'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
-import PushPermissionCard from '../components/PushPermissionCard'
-import { usePush } from '../contexts/PushContext'
 
 export default function Profile() {
   const { user, couple, saveCouple, refreshCouple, logout, hasAlbum } = useAuth()
-  const { permissionStatus, isRegistered, requestPermission } = usePush()
   const navigate = useNavigate()
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
@@ -87,12 +84,6 @@ export default function Profile() {
       </div>
 
       <form onSubmit={handleSave} className="p-4 pb-8">
-
-        <PushPermissionCard
-          status={permissionStatus}
-          isRegistered={isRegistered}
-          onRequest={requestPermission}
-        />
 
         <div className="flex items-center gap-4 p-4 rounded-2xl mb-6"
           style={{ background: '#FADADD', border: '1px solid #E8C4CE' }}>

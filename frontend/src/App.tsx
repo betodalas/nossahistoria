@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { PushProvider } from './contexts/PushContext'
 import { useEffect } from 'react'
 import { App as CapApp } from '@capacitor/app'
+import { usePushNotifications } from './hooks/usePushNotifications'
 import NotificationBanner from './components/NotificationBanner'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -25,6 +25,19 @@ import AlbumPayment from './pages/AlbumPayment'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
+
+function PushRegistrar() {
+  const { permissionStatus, requestPermission } = usePushNotifications()
+
+  useEffect(() => {
+    // Pede permissão automaticamente na primeira vez que o app abre
+    if (permissionStatus === 'prompt') {
+      requestPermission()
+    }
+  }, [permissionStatus])
+
+  return null
+}
 
 function DeepLinkHandler() {
   const navigate = useNavigate()
@@ -61,9 +74,9 @@ function App() {
     <PayPalScriptProvider options={{ clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || 'test', currency: 'BRL' }}>
       <AuthProvider>
         <BrowserRouter>
-          <PushProvider>
-            <DeepLinkHandler />
-            <NotificationBanner />
+          <DeepLinkHandler />
+          <PushRegistrar />
+          <NotificationBanner />
           <Routes>
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />
@@ -88,7 +101,6 @@ function App() {
             <Route path="/splash" element={<Splash />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-          </PushProvider>
         </BrowserRouter>
       </AuthProvider>
     </PayPalScriptProvider>
