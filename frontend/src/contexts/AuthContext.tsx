@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { authService } from '../services/api'
+import { Capacitor } from '@capacitor/core'
 
 interface User {
   id: string
@@ -46,8 +47,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
+    // ─── Detecção de reinstalação ──────────────────────────────────────────
+    // No Android, o localStorage do WebView sobrevive à desinstalação em muitos
+    // fabricantes. Usamos o Capacitor Preferences (armazenamento nativo) como
+    // âncora: se o app é nativo e a chave 'app_installed' não existe no storage
+    // nativo, é uma instalação nova — limpamos o localStorage legado.
+    const clearIfReinstalled = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { Preferences } = await import('@capacitor/preferences')
+          const { value } = await Preferences.get({ key: 'app_installed' })
+          if (!value) {
+            // Primeira vez após (re)instalação — limpa dados legados
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            localStorage.removeItem('couple')
+            localStorage.removeItem('push_registered_token')
+            await Preferences.set({ key: 'app_installed', value: '1' })
+          }
+        } catch {
+          // @capacitor/preferences não disponível — ignora silenciosamente
+        }
+      }
+      // Continua o fluxo normal de validação do token
+      initAuth()
+    }
+
+    const initAuth = () => {
+      const token = localStorage.getItem('token')
+      if (token) {
       authService.me()
         .then(res => {
           const u = res.data.user
@@ -66,9 +94,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCouple(null)
         })
         .finally(() => setLoading(false))
-    } else {
-      setLoading(false)
+      } else {
+        setLoading(false)
+      }
     }
+
+    clearIfReinstalled()
   }, [])
 
   const login = async (email: string, password: string) => {
