@@ -104,11 +104,16 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
       // Verificar status atual de permissão
       const current = await Push.checkPermissions()
-      // No iOS/Android, 'prompt' indica que nunca foi solicitado antes.
-      // Mapeia 'prompt-with-rationale' (Android) → 'prompt' para consistência.
+      // No Android, após reinstalar o app, o sistema retorna 'denied' mesmo sem
+      // o usuário ter negado explicitamente — é o estado padrão do SO pós-reinstall.
+      // Mapeamos 'denied' para 'prompt' para que o PushRegistrar tente requestPermission(),
+      // que por sua vez chamará requestPermissions() e o SO exibirá o pop-up nativo.
+      // 'prompt-with-rationale' (Android) também vira 'prompt' para consistência.
       const rawStatus = current.receive as string
       const status: PushPermissionStatus =
-        rawStatus === 'prompt-with-rationale' ? 'prompt' : rawStatus as PushPermissionStatus
+        (rawStatus === 'prompt-with-rationale' || rawStatus === 'denied')
+          ? 'prompt'
+          : rawStatus as PushPermissionStatus
       setPermissionStatus(status)
 
       // Se já foi autorizado, registrar automaticamente

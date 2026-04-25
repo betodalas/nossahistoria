@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { PayPalScriptProvider } from '@paypal/react-paypal-js'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { App as CapApp } from '@capacitor/app'
 import { usePushNotifications } from './hooks/usePushNotifications'
 import NotificationBanner from './components/NotificationBanner'
@@ -27,23 +27,27 @@ import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
 
 function PushRegistrar() {
+  const { user, loading } = useAuth()
   const { permissionStatus, requestPermission } = usePushNotifications()
+  const askedRef = useRef(false)
 
   useEffect(() => {
-    // Aguarda o status ser resolvido (sai de 'unknown') antes de agir.
-    // 'unknown' é o estado inicial assíncrono — ainda não sabemos a resposta do SO.
+    // Só age depois do AuthContext resolver (loading=false) e com usuário logado
+    if (loading || !user) return
+    // Status ainda não resolvido pelo Capacitor
     if (permissionStatus === 'unknown') return
+    // Já pediu nessa sessão — evita pedir duas vezes
+    if (askedRef.current) return
 
-    // Pede permissão automaticamente na primeira vez que o app abre
-    if (permissionStatus === 'prompt') {
-      // Pequeno delay para garantir que a UI do app já está totalmente montada
-      // antes de o sistema operacional exibir o pop-up nativo de permissão.
+    if (permissionStatus === 'prompt' || permissionStatus === 'denied') {
+      askedRef.current = true
+      // Delay para garantir que a UI já está visível ao usuário
       const timer = setTimeout(() => {
         requestPermission()
-      }, 500)
+      }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [permissionStatus, requestPermission])
+  }, [loading, user, permissionStatus, requestPermission])
 
   return null
 }
