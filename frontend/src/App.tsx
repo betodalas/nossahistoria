@@ -27,7 +27,15 @@ import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
 
 function PushRegistrar() {
-  usePushNotifications()
+  const { permissionStatus, requestPermission } = usePushNotifications()
+
+  useEffect(() => {
+    // Pedir permissão automaticamente na primeira vez (status 'prompt' = ainda não perguntou)
+    if (permissionStatus === 'prompt') {
+      requestPermission()
+    }
+  }, [permissionStatus])
+
   return null
 }
 
