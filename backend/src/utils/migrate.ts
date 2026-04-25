@@ -155,6 +155,12 @@ const migrate = async () => {
         FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE SET NULL;
     `).catch(() => {})
 
+    // Push preferences e aniversários pessoais
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN DEFAULT TRUE;
+    `).catch(() => {})
+
     await client.query('COMMIT')
     console.log('✅ Migrations executadas com sucesso!')
   } catch (err) {

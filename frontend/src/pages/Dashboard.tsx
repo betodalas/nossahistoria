@@ -5,8 +5,6 @@ import { momentsService, questionsService } from '../services/api'
 import { parseDate, daysUntil } from '../utils/dateUtils'
 import { FREE_MOMENTS_LIMIT } from '../constants'
 import Layout from '../components/Layout'
-import { Capacitor } from '@capacitor/core'
-import { PushNotifications } from '@capacitor/push-notifications'
 
 export default function Dashboard() {
   const { user, couple, isPremium, logout } = useAuth()
@@ -70,31 +68,6 @@ export default function Dashboard() {
               style={{ background: 'rgba(255,255,255,0.75)', color: '#9B6B7A' }}>
               Sair
             </button>
-            {Capacitor.isNativePlatform() && (
-              <button onClick={async () => {
-                const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-                alert('Iniciando registro FCM...')
-                await PushNotifications.register()
-                PushNotifications.addListener('registration', async (token) => {
-                  alert('Token: ' + token.value.slice(0, 40))
-                  const jwt = localStorage.getItem('token')
-                  const res = await fetch(`${BACKEND_URL}/notifications/token`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
-                    body: JSON.stringify({ token: token.value, platform: 'android' }),
-                  })
-                  const body = await res.json()
-                  alert('Backend: ' + JSON.stringify(body))
-                })
-                PushNotifications.addListener('registrationError' as any, (err: any) => {
-                  alert('Erro FCM: ' + JSON.stringify(err))
-                })
-              }}
-                className="text-xs px-3 py-1.5 rounded-lg"
-                style={{ background: 'rgba(255,100,100,0.75)', color: 'white' }}>
-                🔔 Test Push
-              </button>
-            )}
           </div>
         </div>
       </div>

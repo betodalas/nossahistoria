@@ -5,9 +5,12 @@ import { authService } from '../services/api'
 import { parseDate, daysUntil } from '../utils/dateUtils'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import PushPermissionCard from '../components/PushPermissionCard'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 export default function Profile() {
   const { user, couple, saveCouple, refreshCouple, logout, hasAlbum } = useAuth()
+  const { permissionStatus, isRegistered, requestPermission } = usePushNotifications()
   const navigate = useNavigate()
 
   const [partnerName, setPartnerName] = useState(couple?.partner_name || '')
@@ -15,6 +18,7 @@ export default function Profile() {
   const [weddingDate, setWeddingDate] = useState(
     couple?.wedding_date ? couple.wedding_date.split('T')[0] : ''
   )
+  const [birthDate, setBirthDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -31,6 +35,10 @@ export default function Profile() {
         coupleName: coupleName || undefined,
         partnerName: partnerName || undefined,
       })
+      // Salvar data de aniversário pessoal se preenchida
+      if (birthDate) {
+        await authService.updateBirthday(birthDate)
+      }
       saveCouple({ ...couple, ...res.data, partner_name: partnerName || couple?.partner_name })
       await refreshCouple()
       navigate('/dashboard')
@@ -145,6 +153,13 @@ export default function Profile() {
 
       <form onSubmit={handleSave} className="p-4 pb-8">
 
+        {/* Notificações Push */}
+        <PushPermissionCard
+          status={permissionStatus}
+          isRegistered={isRegistered}
+          onRequest={requestPermission}
+        />
+
         <div className="flex items-center gap-4 p-4 rounded-2xl mb-6"
           style={{ background: '#FADADD', border: '1px solid #E8C4CE' }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
@@ -189,6 +204,20 @@ export default function Profile() {
                 : `Casados há ${Math.abs(daysLeft)} dias 💍`}
             </p>
           )}
+        </div>
+
+        <div className="mb-4">
+          <label className="text-xs block mb-1" style={{ color: '#9B6B7A' }}>Meu aniversário 🎂</label>
+          <input
+            className="input-field"
+            type="date"
+            value={birthDate}
+            onChange={e => setBirthDate(e.target.value)}
+            placeholder="Sua data de nascimento"
+          />
+          <p className="text-xs mt-1" style={{ color: '#C9A0B0' }}>
+            Seu parceiro(a) receberá um lembrete — surpresa garantida! 😉
+          </p>
         </div>
 
         <div className="mb-4 p-3 rounded-xl" style={{ background: '#FADADD', border: '1px solid #E8C4CE' }}>

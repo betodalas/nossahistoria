@@ -152,6 +152,24 @@ export async function notifyPartnerNewMoment(
 
 // ─── Notificar parceiro: resposta de pergunta ──────────────────────────────────
 
+export async function notifyPartnerJoined(
+  creatorId: string,
+  joinerId: string
+): Promise<void> {
+  try {
+    const joiner = await pool.query('SELECT name FROM users WHERE id = $1', [joinerId])
+    const joinerName = joiner.rows[0]?.name || 'Seu amor'
+
+    await sendPushToUser(creatorId, {
+      title: '💑 Vocês estão conectados!',
+      body: `${joinerName} aceitou seu convite. Comecem a escrever a história de vocês!`,
+      data: { screen: 'dashboard' },
+    })
+  } catch (err) {
+    console.error('[notifyPartnerJoined]', err)
+  }
+}
+
 export async function notifyPartnerAnsweredQuestion(
   coupleId: string,
   answererId: string,

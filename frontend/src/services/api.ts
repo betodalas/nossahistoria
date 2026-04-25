@@ -38,6 +38,8 @@ export const authService = {
     api.post('/auth/couple', data),
   updateCouple: (data: { weddingDate?: string; coupleName?: string; partnerName?: string }) =>
     api.put('/auth/couple', data),
+  updateBirthday: (birthDate: string) =>
+    api.put('/auth/birthday', { birthDate }),
   sendInvite: (partnerEmail: string) =>
     api.post('/auth/invite', { partnerEmail }, { timeout: 30000 }),
   acceptInvite: (token: string) =>

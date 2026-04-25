@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { useEffect } from 'react'
 import { App as CapApp } from '@capacitor/app'
 import { usePushNotifications } from './hooks/usePushNotifications'
+import NotificationBanner from './components/NotificationBanner'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -26,8 +27,7 @@ import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
 
 function PushRegistrar() {
-  const { user } = useAuth()
-  usePushNotifications(user?.id)
+  usePushNotifications()
   return null
 }
 
@@ -68,6 +68,7 @@ function App() {
         <BrowserRouter>
           <DeepLinkHandler />
           <PushRegistrar />
+          <NotificationBanner />
           <Routes>
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<Login />} />

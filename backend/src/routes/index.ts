@@ -148,6 +148,13 @@ router.post('/auth/invite/accept', authMiddleware, async (req: any, res) => {
       [req.userId, couple.id]
     )
     if (!updated.rows[0]) return res.status(400).json({ error: 'Este convite já foi usado' })
+
+    // Notificar o criador do casal que o parceiro aceitou
+    try {
+      const { notifyPartnerJoined } = await import('../controllers/notificationsController')
+      await notifyPartnerJoined(couple.user1_id, req.userId!)
+    } catch { /* push não crítico */ }
+
     res.json(updated.rows[0])
   } catch (err) {
     res.status(500).json({ error: 'Erro ao aceitar convite' })
@@ -239,6 +246,19 @@ router.delete('/moments/:id', authMiddleware, deleteMoment)
 
 // Notificações push
 router.post('/notifications/token', authMiddleware, saveToken)
+
+// Salvar data de aniversário pessoal (para lembretes de birthday)
+router.put('/auth/birthday', authMiddleware, async (req: any, res) => {
+  const { pool } = await import('../utils/db')
+  const { birthDate } = req.body
+  if (!birthDate) return res.status(400).json({ error: 'birthDate obrigatório' })
+  try {
+    await pool.query('UPDATE users SET birth_date = $1 WHERE id = $2', [birthDate, req.userId])
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao salvar data de aniversário' })
+  }
+})
 
 // ─── Perguntas ────────────────────────────────────────────────────────────────
 router.get('/questions/answer-count', authMiddleware, async (req: any, res) => {
