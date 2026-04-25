@@ -32,20 +32,25 @@ function PushRegistrar() {
   const askedRef = useRef(false)
 
   useEffect(() => {
-    // Só age depois do AuthContext resolver (loading=false) e com usuário logado
     if (loading || !user) return
-    // Status ainda não resolvido pelo Capacitor
     if (permissionStatus === 'unknown') return
-    // Já pediu nessa sessão — evita pedir duas vezes
     if (askedRef.current) return
+    // Só pede se nunca foi decidido (primeira instalação)
+    // Se já foi negado explicitamente pelo usuário, não incomoda mais
+    const alreadyDecided = localStorage.getItem('push_permission_decided')
+    if (alreadyDecided) return
 
-    if (permissionStatus === 'prompt' || permissionStatus === 'denied') {
+    if (permissionStatus === 'prompt') {
       askedRef.current = true
-      // Delay para garantir que a UI já está visível ao usuário
-      const timer = setTimeout(() => {
-        requestPermission()
+      const timer = setTimeout(async () => {
+        await requestPermission()
+        localStorage.setItem('push_permission_decided', '1')
       }, 1000)
       return () => clearTimeout(timer)
+    }
+
+    if (permissionStatus === 'granted' || permissionStatus === 'denied') {
+      localStorage.setItem('push_permission_decided', '1')
     }
   }, [loading, user, permissionStatus, requestPermission])
 
