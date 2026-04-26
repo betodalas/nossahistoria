@@ -15,6 +15,10 @@ import type {
 const STORAGE_KEY = 'push_registered_token'
 const ASKED_KEY = 'push_permission_asked'
 
+// Token mock para desenvolvimento/emulador
+// Remove essa linha em produção ou quando o FCM funcionar no device
+const IS_DEV = import.meta.env.DEV
+
 export type PushPermissionStatus = 'unknown' | 'granted' | 'denied' | 'prompt'
 
 interface UsePushNotificationsReturn {
@@ -29,7 +33,8 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   const [permissionStatus, setPermissionStatus] = useState<PushPermissionStatus>('unknown')
   const [isRegistered, setIsRegistered] = useState(false)
   const listenersRef = useRef<PluginListenerHandle[]>([])
-  const initializedRef = useRef(false)  // previne double-init do React StrictMode
+  const initializedRef = useRef(false)
+  const mockSentRef = useRef(false)
 
   const sendTokenToBackend = useCallback(async (token: string, platform: string) => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -43,6 +48,14 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       console.warn('[Push] Falha ao registrar token:', err)
     }
   }, [])
+
+  const sendMockToken = useCallback(async () => {
+    if (!IS_DEV || mockSentRef.current) return
+    mockSentRef.current = true
+    const mockToken = 'MOCK_DEV_TOKEN_' + Date.now()
+    console.log('[Push] ⚠️ Emulador/Dev: usando token mock para teste')
+    await sendTokenToBackend(mockToken, 'android')
+  }, [sendTokenToBackend])
 
   const handleNotificationAction = useCallback((data?: Record<string, string>) => {
     const screen = data?.screen
@@ -59,7 +72,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   }, [navigate])
 
   const setupListeners = useCallback(async () => {
-    // Não remove listeners existentes se já estão ativos
     if (listenersRef.current.length > 0) return
 
     const h1 = await PushNotifications.addListener('registration', async (tokenData: Token) => {
@@ -71,6 +83,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     const h2 = await PushNotifications.addListener('registrationError', (err: RegistrationError) => {
       console.error('[Push] Erro de registro FCM:', err)
       setIsRegistered(false)
+      sendMockToken()
     })
 
     const h3 = await PushNotifications.addListener('pushNotificationReceived', (n: PushNotificationSchema) => {
@@ -87,7 +100,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
     listenersRef.current = [h1, h2, h3, h4]
     console.log('[Push] Listeners registrados ✓')
-  }, [sendTokenToBackend, handleNotificationAction])
+  }, [sendTokenToBackend, sendMockToken, handleNotificationAction])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
@@ -100,7 +113,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       return
     }
 
-    // Evita double-init do React StrictMode
     if (initializedRef.current) return
     initializedRef.current = true
 
@@ -136,6 +148,9 @@ export function usePushNotifications(): UsePushNotificationsReturn {
           await setupListeners()
           await PushNotifications.register()
           console.log('[Push] register() chamado (já tinha permissão)')
+          if (IS_DEV) {
+            setTimeout(() => sendMockToken(), 10000)
+          }
         }
       } catch (err) {
         console.error('[Push] Erro na inicialização:', err)
@@ -143,10 +158,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     }
 
     init()
-
-    // Não remove listeners no cleanup — eles precisam ficar ativos para receber o token
-    // São removidos apenas quando o componente é definitivamente desmontado (app fechado)
-  }, [setupListeners])
+  }, [setupListeners, sendMockToken])
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) {
@@ -173,13 +185,16 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       if (granted) {
         await PushNotifications.register()
         console.log('[Push] register() chamado após permissão concedida')
+        if (IS_DEV) {
+          setTimeout(() => sendMockToken(), 10000)
+        }
       }
       return granted
     } catch (err) {
       console.error('[Push] Erro ao pedir permissão:', err)
       return false
     }
-  }, [setupListeners])
+  }, [setupListeners, sendMockToken])
 
   const unregister = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY)
@@ -187,6 +202,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     setIsRegistered(false)
     setPermissionStatus('prompt')
     initializedRef.current = false
+    mockSentRef.current = false
   }, [])
 
   return { permissionStatus, isRegistered, requestPermission, unregister }
