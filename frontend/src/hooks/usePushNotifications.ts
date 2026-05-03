@@ -1,8 +1,10 @@
 import { useEffect, useCallback, useRef, useState } from 'react'
-import { Capacitor, registerPlugin } from '@capacitor/core'
+import { Capacitor } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { useNavigate } from 'react-router-dom'
+import { initializeApp, getApps } from 'firebase/app'
+import { getMessaging, getToken } from 'firebase/messaging'
 import api from '../services/api'
 
 import type {
@@ -12,118 +14,115 @@ import type {
   ActionPerformed,
 } from '@capacitor/push-notifications'
 
-// Plugin nativo que busca o token FCM diretamente,
-// contornando o bloqueio do MIUI no broadcast do Capacitor
-interface FcmTokenPlugin {
-  getToken(): Promise<{ token: string }>
+// ─── Firebase config (espelha o google-services.json) ────────────────────────
+const firebaseConfig = {
+  projectId:        'nossahistoria-67c05',
+  appId:            '1:263899434835:android:fb5129b4f1e1828e475ba6',
+  apiKey:           'AIzaSyCxPR70Hha11gcNVtb1DUUu3DTl9DViI-U',
+  messagingSenderId: '263899434835',
+  storageBucket:    'nossahistoria-67c05.firebasestorage.app',
 }
-const FcmToken = registerPlugin<FcmTokenPlugin>('FcmToken')
 
 const STORAGE_KEY = 'push_registered_token'
-const ASKED_KEY = 'push_permission_asked'
-
-const IS_DEV = import.meta.env.DEV
+const ASKED_KEY   = 'push_permission_asked'
+const IS_DEV      = import.meta.env.DEV
 
 export type PushPermissionStatus = 'unknown' | 'granted' | 'denied' | 'prompt'
 
 interface UsePushNotificationsReturn {
   permissionStatus: PushPermissionStatus
-  isRegistered: boolean
+  isRegistered:     boolean
   requestPermission: () => Promise<boolean>
-  unregister: () => Promise<void>
+  unregister:        () => Promise<void>
+}
+
+// Inicializa Firebase JS SDK uma única vez
+function getFirebaseApp() {
+  if (getApps().length) return getApps()[0]
+  return initializeApp(firebaseConfig)
 }
 
 export function usePushNotifications(): UsePushNotificationsReturn {
   const navigate = useNavigate()
   const [permissionStatus, setPermissionStatus] = useState<PushPermissionStatus>('unknown')
-  const [isRegistered, setIsRegistered] = useState(false)
-  const listenersRef = useRef<PluginListenerHandle[]>([])
-  const initializedRef = useRef(false)
-  const mockSentRef = useRef(false)
+  const [isRegistered,     setIsRegistered]     = useState(false)
+  const listenersRef     = useRef<PluginListenerHandle[]>([])
+  const initializedRef   = useRef(false)
   const retryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // ─── Envia token ao backend ────────────────────────────────────────────────
   const sendTokenToBackend = useCallback(async (token: string, platform: string) => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === token) {
-      setIsRegistered(true)
-      return
-    }
+    if (saved === token) { setIsRegistered(true); return }
     try {
       await api.post('/notifications/token', { token, platform })
       localStorage.setItem(STORAGE_KEY, token)
       setIsRegistered(true)
       console.log('[Push] Token registrado no backend ✓', token.slice(0, 20) + '...')
-
-      // Token recebido — cancela qualquer retry pendente
       if (retryIntervalRef.current) {
         clearInterval(retryIntervalRef.current)
         retryIntervalRef.current = null
       }
     } catch (err) {
-      console.warn('[Push] Falha ao registrar token:', err)
+      console.warn('[Push] Falha ao registrar token no backend:', err)
     }
   }, [])
 
-  const sendMockToken = useCallback(async () => {
-    if (!IS_DEV || mockSentRef.current) return
-    mockSentRef.current = true
-    const mockToken = 'MOCK_DEV_TOKEN_' + Date.now()
-    console.log('[Push] ⚠️ Emulador/Dev: usando token mock para teste')
-    await sendTokenToBackend(mockToken, 'android')
-  }, [sendTokenToBackend])
-
   /**
-   * FIX MIUI: busca token diretamente via plugin nativo,
-   * sem depender do evento 'registration' do Capacitor.
-   * O MIUI bloqueia o broadcast mas não bloqueia chamada direta ao SDK.
+   * ─── SOLUÇÃO MIUI ──────────────────────────────────────────────────────────
+   * O MIUI bloqueia o broadcast nativo do FCM *e* o Firebase Installations,
+   * então o evento 'registration' do Capacitor nunca dispara e o plugin nativo
+   * FcmToken também dá timeout.
+   *
+   * O Firebase JS SDK usa HTTP puro (não usa broadcast nem Installations nativo),
+   * por isso consegue buscar o token mesmo no MIUI.
    */
-  const fetchTokenNative = useCallback(async (): Promise<boolean> => {
-    if (!Capacitor.isNativePlatform()) return false
+  const fetchTokenViaJsSdk = useCallback(async (): Promise<boolean> => {
     try {
-      console.log('[Push] Tentando buscar token via plugin nativo...')
-      const { token } = await FcmToken.getToken()
+      console.log('[Push] Buscando token via Firebase JS SDK (HTTP)...')
+      const app       = getFirebaseApp()
+      const messaging = getMessaging(app)
+      const token     = await getToken(messaging)
       if (token) {
-        const platform = Capacitor.getPlatform()
-        console.log('[Push] Token obtido via plugin nativo ✓')
+        const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'web'
+        console.log('[Push] Token via JS SDK ✓')
         await sendTokenToBackend(token, platform)
         return true
       }
     } catch (err) {
-      console.warn('[Push] Plugin nativo falhou:', err)
+      console.warn('[Push] Firebase JS SDK falhou:', err)
     }
     return false
   }, [sendTokenToBackend])
 
+  // ─── Navegação por notificação ─────────────────────────────────────────────
   const handleNotificationAction = useCallback((data?: Record<string, string>) => {
-    const screen = data?.screen
-    if (!screen) return
     const routes: Record<string, string> = {
-      timeline: '/timeline',
+      timeline:  '/linha-do-tempo',
       questions: '/perguntas',
       dashboard: '/dashboard',
-      profile: '/perfil',
-      moments: '/timeline',
+      profile:   '/perfil',
+      moments:   '/linha-do-tempo',
     }
-    const route = routes[screen]
+    const route = data?.screen ? routes[data.screen] : null
     if (route) navigate(route)
   }, [navigate])
 
+  // ─── Registra listeners do Capacitor ──────────────────────────────────────
   const setupListeners = useCallback(async () => {
-    if (listenersRef.current.length > 0) {
-      await Promise.all(listenersRef.current.map(h => h.remove()))
-      listenersRef.current = []
-    }
+    await Promise.all(listenersRef.current.map(h => h.remove()))
+    listenersRef.current = []
 
-    const h1 = await PushNotifications.addListener('registration', async (tokenData: Token) => {
-      const platform = Capacitor.getPlatform()
-      console.log('[Push] Token FCM recebido via evento ✓')
-      await sendTokenToBackend(tokenData.value, platform)
+    // Evento nativo — funciona em dispositivos normais
+    const h1 = await PushNotifications.addListener('registration', async (t: Token) => {
+      console.log('[Push] Token via evento Capacitor ✓')
+      await sendTokenToBackend(t.value, Capacitor.getPlatform())
     })
 
-    const h2 = await PushNotifications.addListener('registrationError', (err: RegistrationError) => {
-      console.error('[Push] Erro de registro FCM:', err)
-      setIsRegistered(false)
-      if (IS_DEV) sendMockToken()
+    // Fallback imediato para JS SDK quando o evento nativo falha (MIUI/Xiaomi)
+    const h2 = await PushNotifications.addListener('registrationError', async (err: RegistrationError) => {
+      console.error('[Push] registrationError — tentando JS SDK como fallback:', err)
+      await fetchTokenViaJsSdk()
     })
 
     const h3 = await PushNotifications.addListener('pushNotificationReceived', (n: PushNotificationSchema) => {
@@ -140,51 +139,39 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
     listenersRef.current = [h1, h2, h3, h4]
     console.log('[Push] Listeners registrados ✓')
-  }, [sendTokenToBackend, sendMockToken, handleNotificationAction])
+  }, [sendTokenToBackend, fetchTokenViaJsSdk, handleNotificationAction])
 
-  /**
-   * Retry com fallback nativo para contornar MIUI/Xiaomi
-   */
-  const startRegisterRetry = useCallback(() => {
-    if (retryIntervalRef.current) {
-      clearInterval(retryIntervalRef.current)
-      retryIntervalRef.current = null
-    }
-
+  // ─── Retry com JS SDK (substitui o plugin nativo FcmToken) ────────────────
+  const startRetry = useCallback(() => {
+    if (retryIntervalRef.current) return
     let attempts = 0
-    const MAX_ATTEMPTS = 5
+    const MAX = 5
 
     retryIntervalRef.current = setInterval(async () => {
       if (localStorage.getItem(STORAGE_KEY)) {
-        clearInterval(retryIntervalRef.current!)
-        retryIntervalRef.current = null
-        return
+        clearInterval(retryIntervalRef.current!); retryIntervalRef.current = null; return
       }
 
       attempts++
-      console.warn(`[Push] Token ainda não chegou — retry ${attempts}/${MAX_ATTEMPTS} (MIUI/bateria?)`)
+      console.warn(`[Push] Token ainda não chegou — retry ${attempts}/${MAX}`)
 
-      // Tenta plugin nativo primeiro (contorna MIUI)
-      const gotToken = await fetchTokenNative()
-      if (gotToken) return
-
-      // Fallback: tenta register() novamente
-      try {
-        await PushNotifications.register()
-      } catch (err) {
-        console.warn('[Push] Erro no retry de register():', err)
+      // JS SDK primeiro (contorna MIUI)
+      const ok = await fetchTokenViaJsSdk()
+      if (!ok) {
+        // Fallback: tenta register() novamente
+        try { await PushNotifications.register() } catch {}
       }
 
-      if (attempts >= MAX_ATTEMPTS) {
-        clearInterval(retryIntervalRef.current!)
-        retryIntervalRef.current = null
+      if (attempts >= MAX) {
+        clearInterval(retryIntervalRef.current!); retryIntervalRef.current = null
         console.error('[Push] Token FCM não chegou após todas as tentativas.')
-        if (IS_DEV) sendMockToken()
       }
     }, 8000)
-  }, [fetchTokenNative, sendMockToken])
+  }, [fetchTokenViaJsSdk])
 
+  // ─── Inicialização ────────────────────────────────────────────────────────
   useEffect(() => {
+    // Web / PWA
     if (!Capacitor.isNativePlatform()) {
       if ('Notification' in window) {
         const p = Notification.permission
@@ -200,28 +187,23 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
     const init = async () => {
       try {
-        const current = await PushNotifications.checkPermissions()
-        const rawStatus = current.receive as string
-
-        const hasToken = !!localStorage.getItem(STORAGE_KEY)
+        const current    = await PushNotifications.checkPermissions()
+        const rawStatus  = current.receive as string
+        const hasToken   = !!localStorage.getItem(STORAGE_KEY)
         const alreadyAsked = !!localStorage.getItem(ASKED_KEY)
+
+        // Reinstalação: reseta flag para poder perguntar de novo
         if (!hasToken && alreadyAsked && rawStatus !== 'granted') {
           console.log('[Push] Possível reinstalação — resetando flag')
           localStorage.removeItem(ASKED_KEY)
         }
 
         const neverAsked = !localStorage.getItem(ASKED_KEY)
-
-        let status: PushPermissionStatus
-        if (rawStatus === 'granted') {
-          status = 'granted'
-        } else if (rawStatus === 'prompt-with-rationale') {
-          status = 'prompt'
-        } else if (rawStatus === 'denied' && neverAsked) {
-          status = 'prompt'
-        } else {
-          status = rawStatus as PushPermissionStatus
-        }
+        const status: PushPermissionStatus =
+          rawStatus === 'granted'               ? 'granted' :
+          rawStatus === 'prompt-with-rationale' ? 'prompt'  :
+          rawStatus === 'denied' && neverAsked  ? 'prompt'  :
+          rawStatus as PushPermissionStatus
 
         console.log(`[Push] checkPermissions: raw=${rawStatus} → mapped=${status}`)
         setPermissionStatus(status)
@@ -229,19 +211,11 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         if (status === 'granted') {
           await setupListeners()
           await PushNotifications.register()
-          console.log('[Push] register() chamado (já tinha permissão)')
+          console.log('[Push] register() chamado (permissão já existia)')
 
-          // Tenta plugin nativo imediatamente
-          const gotToken = await fetchTokenNative()
-
-          // Se não conseguiu, inicia retries
-          if (!gotToken && !localStorage.getItem(STORAGE_KEY)) {
-            startRegisterRetry()
-          }
-
-          if (IS_DEV) {
-            setTimeout(() => sendMockToken(), 10000)
-          }
+          // Tenta JS SDK imediatamente; se falhar, inicia retries
+          const ok = await fetchTokenViaJsSdk()
+          if (!ok && !localStorage.getItem(STORAGE_KEY)) startRetry()
         }
       } catch (err) {
         console.error('[Push] Erro na inicialização:', err)
@@ -251,18 +225,17 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     init()
 
     return () => {
-      if (retryIntervalRef.current) {
-        clearInterval(retryIntervalRef.current)
-        retryIntervalRef.current = null
-      }
+      if (retryIntervalRef.current) { clearInterval(retryIntervalRef.current); retryIntervalRef.current = null }
     }
-  }, [setupListeners, sendMockToken, startRegisterRetry, fetchTokenNative])
+  }, [setupListeners, fetchTokenViaJsSdk, startRetry])
 
+  // ─── Pedir permissão ──────────────────────────────────────────────────────
   const requestPermission = useCallback(async (): Promise<boolean> => {
+    // Web / PWA
     if (!Capacitor.isNativePlatform()) {
       if (!('Notification' in window)) { setPermissionStatus('denied'); return false }
       try {
-        const result = await Notification.requestPermission()
+        const result  = await Notification.requestPermission()
         const granted = result === 'granted'
         setPermissionStatus(granted ? 'granted' : 'denied')
         return granted
@@ -272,13 +245,14 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       }
     }
 
+    // Android / iOS
     try {
       console.log('[Push] Chamando requestPermissions()...')
       localStorage.setItem(ASKED_KEY, '1')
 
       await setupListeners()
 
-      const result = await PushNotifications.requestPermissions()
+      const result  = await PushNotifications.requestPermissions()
       const granted = result.receive === 'granted'
       console.log(`[Push] requestPermissions resultado: ${result.receive}`)
       setPermissionStatus(result.receive as PushPermissionStatus)
@@ -288,38 +262,26 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         await PushNotifications.register()
         console.log('[Push] register() chamado após permissão concedida')
 
-        // Tenta plugin nativo imediatamente
-        const gotToken = await fetchTokenNative()
-
-        // Se não conseguiu, inicia retries
-        if (!gotToken && !localStorage.getItem(STORAGE_KEY)) {
-          startRegisterRetry()
-        }
-
-        if (IS_DEV) {
-          setTimeout(() => sendMockToken(), 10000)
-        }
+        const ok = await fetchTokenViaJsSdk()
+        if (!ok && !localStorage.getItem(STORAGE_KEY)) startRetry()
       }
+
       return granted
     } catch (err) {
       console.error('[Push] Erro ao pedir permissão:', err)
       return false
     }
-  }, [setupListeners, sendMockToken, startRegisterRetry, fetchTokenNative])
+  }, [setupListeners, fetchTokenViaJsSdk, startRetry])
 
+  // ─── Desregistrar ─────────────────────────────────────────────────────────
   const unregister = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(ASKED_KEY)
     setIsRegistered(false)
     setPermissionStatus('prompt')
     initializedRef.current = false
-    mockSentRef.current = false
 
-    if (retryIntervalRef.current) {
-      clearInterval(retryIntervalRef.current)
-      retryIntervalRef.current = null
-    }
-
+    if (retryIntervalRef.current) { clearInterval(retryIntervalRef.current); retryIntervalRef.current = null }
     await Promise.all(listenersRef.current.map(h => h.remove()))
     listenersRef.current = []
   }, [])
