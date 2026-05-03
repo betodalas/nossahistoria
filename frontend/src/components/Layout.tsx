@@ -56,6 +56,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       ),
     },
     {
+      label: 'Datas',
+      route: '/datas-especiais',
+      icon: (active: boolean) => (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+          stroke={active ? '#7C4D6B' : '#C9A0B0'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+          <line x1="8" y1="14" x2="8" y2="14" strokeWidth="3" strokeLinecap="round" />
+          <line x1="12" y1="14" x2="12" y2="14" strokeWidth="3" strokeLinecap="round" />
+          <line x1="16" y1="14" x2="16" y2="14" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      ),
+    },
+    {
       label: 'Álbum',
       route: hasAlbum ? '/album-convidados' : '/album-convidados/info',
       icon: (active: boolean) => (

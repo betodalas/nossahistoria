@@ -5,6 +5,7 @@ import { momentsService, questionsService } from '../services/api'
 import { parseDate, daysUntil } from '../utils/dateUtils'
 import { FREE_MOMENTS_LIMIT } from '../constants'
 import Layout from '../components/Layout'
+import SpecialDatesWidget from '../components/SpecialDatesWidget'
 
 export default function Dashboard() {
   const { user, couple, isPremium, logout } = useAuth()
@@ -130,6 +131,11 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        <SpecialDatesWidget
+          maxItems={4}
+          onManage={() => navigate('/datas-especiais')}
+        />
 
         {firstMoment && (
           <div className="rounded-2xl p-3 mb-4 cursor-pointer"

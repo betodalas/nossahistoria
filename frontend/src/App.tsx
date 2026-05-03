@@ -25,6 +25,7 @@ import AlbumPayment from './pages/AlbumPayment'
 import Storage from './pages/Storage'
 import BookPDF from './pages/BookPDF'
 import Splash from './pages/Splash'
+import SpecialDatesPage from './pages/SpecialDatesPage'
 
 function PushRegistrar() {
   const { user, loading } = useAuth()
@@ -110,6 +111,7 @@ function App() {
             <Route path="/armazenamento" element={<PrivateRoute><Storage /></PrivateRoute>} />
             <Route path="/livro-pdf" element={<PrivateRoute><BookPDF /></PrivateRoute>} />
             <Route path="/pagamento/sucesso" element={<PrivateRoute><PaymentSuccess /></PrivateRoute>} />
+            <Route path="/datas-especiais" element={<PrivateRoute><SpecialDatesPage /></PrivateRoute>} />
             <Route path="/splash" element={<Splash />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
