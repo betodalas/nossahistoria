@@ -581,4 +581,19 @@ router.get('/storage', authMiddleware, getStorageInfo)
 router.post('/storage/create-order', authMiddleware, createStorageOrder)
 router.post('/storage/capture', authMiddleware, captureStorageOrder)
 
+// ─── Datas Especiais ──────────────────────────────────────────────────────────
+import {
+  getSpecialDates,
+  createSpecialDate,
+  updateSpecialDate,
+  deleteSpecialDate,
+  getDatesForCapsules,
+} from '../controllers/specialDatesController'
+
+router.get('/special-dates', authMiddleware, getSpecialDates)
+router.post('/special-dates', authMiddleware, createSpecialDate)
+router.put('/special-dates/:id', authMiddleware, updateSpecialDate)
+router.delete('/special-dates/:id', authMiddleware, deleteSpecialDate)
+router.get('/special-dates/for-capsules', authMiddleware, getDatesForCapsules)
+
 export default router

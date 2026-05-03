@@ -154,6 +154,17 @@ const runMigrations = async () => {
         used BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS special_dates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        label VARCHAR(150) NOT NULL,
+        date DATE NOT NULL,
+        emoji VARCHAR(10) DEFAULT '💕',
+        type VARCHAR(50) DEFAULT 'custom',
+        show_in_dashboard BOOLEAN DEFAULT TRUE,
+        show_in_capsules BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `)
 
     await client.query(`
@@ -166,6 +177,21 @@ const runMigrations = async () => {
       ALTER TABLE moments ADD COLUMN IF NOT EXISTS music_link TEXT;
       ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_url TEXT;
       ALTER TABLE moments ADD COLUMN IF NOT EXISTS voice_duration INTEGER DEFAULT 0;
+    `).catch(() => {})
+
+    // Migration: special_dates (datas especiais do casal)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS special_dates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        couple_id UUID REFERENCES couples(id) ON DELETE CASCADE,
+        label VARCHAR(150) NOT NULL,
+        date DATE NOT NULL,
+        emoji VARCHAR(10) DEFAULT '💕',
+        type VARCHAR(50) DEFAULT 'custom',
+        show_in_dashboard BOOLEAN DEFAULT TRUE,
+        show_in_capsules BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `).catch(() => {})
 
     // Libera todos os usuários existentes para logar
