@@ -26,6 +26,7 @@ export interface SpecialDate {
   date: string          // YYYY-MM-DD
   emoji: string
   type: string
+  photo_url: string | null
   show_in_dashboard: boolean
   show_in_capsules: boolean
   created_at: string
@@ -46,6 +47,8 @@ export type CreateSpecialDatePayload = {
   date: string
   emoji?: string
   type?: string
+  photo?: string          // base64
+  remove_photo?: boolean
   show_in_dashboard?: boolean
   show_in_capsules?: boolean
 }
@@ -134,6 +137,8 @@ export function formatCounterLabel(counters: SpecialDateCounters, compact = fals
 }
 
 export function formatDateBR(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-')
+  // Normaliza ISO datetime '2003-04-23T00:00:00.000Z' → '2003-04-23'
+  const normalized = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr
+  const [y, m, d] = normalized.split('-')
   return `${d}/${m}/${y}`
 }

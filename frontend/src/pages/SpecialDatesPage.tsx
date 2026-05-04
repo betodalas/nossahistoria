@@ -29,6 +29,9 @@ function DateForm({ initial, onSave, onCancel, loading }: DateFormProps) {
   const [emoji, setEmoji] = useState(initial?.emoji || '')
   const [showInDashboard, setShowInDashboard] = useState(initial?.show_in_dashboard ?? true)
   const [showInCapsules, setShowInCapsules] = useState(initial?.show_in_capsules ?? true)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url || null)
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null)
+  const [removePhoto, setRemovePhoto] = useState(false)
 
   const selectedTypeOption = DATE_TYPE_OPTIONS.find(o => o.value === type)
 
@@ -37,6 +40,25 @@ function DateForm({ initial, onSave, onCancel, loading }: DateFormProps) {
     const opt = DATE_TYPE_OPTIONS.find(o => o.value === val)
     if (opt && !label) setLabel(opt.label)
     if (opt && !emoji) setEmoji(opt.emoji)
+  }
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const b64 = reader.result as string
+      setPhotoBase64(b64)
+      setPhotoPreview(b64)
+      setRemovePhoto(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleRemovePhoto() {
+    setPhotoBase64(null)
+    setPhotoPreview(null)
+    setRemovePhoto(true)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -49,6 +71,8 @@ function DateForm({ initial, onSave, onCancel, loading }: DateFormProps) {
       type,
       show_in_dashboard: showInDashboard,
       show_in_capsules: showInCapsules,
+      ...(photoBase64 ? { photo: photoBase64 } : {}),
+      ...(removePhoto ? { remove_photo: true } : {}),
     })
   }
 
@@ -102,6 +126,27 @@ function DateForm({ initial, onSave, onCancel, loading }: DateFormProps) {
         maxLength={4}
       />
 
+      {/* Foto */}
+      <label style={styles.label}>Foto da data (opcional)</label>
+      {photoPreview ? (
+        <div style={styles.photoPreviewWrapper}>
+          <img src={photoPreview} alt="Foto da data" style={styles.photoPreview} />
+          <button type="button" onClick={handleRemovePhoto} style={styles.removePhotoBtn}>
+            ✕ Remover foto
+          </button>
+        </div>
+      ) : (
+        <label style={styles.photoUploadBtn}>
+          📷 Escolher foto
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            style={{ display: 'none' }}
+          />
+        </label>
+      )}
+
       {/* Toggles */}
       <div style={styles.toggleRow}>
         <label style={styles.toggleLabel}>
@@ -151,41 +196,50 @@ function DateCard({ item, onEdit, onDelete }: DateCardProps) {
 
   return (
     <div style={styles.card}>
-      <div style={styles.cardLeft}>
-        <span style={styles.cardEmoji}>{item.emoji}</span>
-        <div>
-          <div style={styles.cardLabel}>{item.label}</div>
-          <div style={styles.cardDate}>{formatDateBR(item.date)}</div>
-        </div>
-      </div>
-      <div style={styles.cardRight}>
-        <div style={styles.counterBadge}>
-          {counters.isPast ? (
-            <>
-              <span style={styles.counterNum}>{counterLabel}</span>
-              <span style={styles.counterSub}>juntos</span>
-            </>
-          ) : (
-            <>
-              <span style={styles.counterNum}>{counterLabel}</span>
-              <span style={styles.counterSub}>faltam</span>
-            </>
-          )}
-        </div>
-        {counters.isPast && counters.daysToNextAnniversary <= 30 && (
-          <div style={styles.anniversaryBadge}>
-            🎉 {counters.daysToNextAnniversary === 0
-              ? 'Aniversário hoje!'
-              : `Aniversário em ${counters.daysToNextAnniversary} dias`}
+      {item.photo_url && (
+        <img
+          src={item.photo_url}
+          alt={item.label}
+          style={styles.cardPhoto}
+        />
+      )}
+      <div style={styles.cardBody}>
+        <div style={styles.cardLeft}>
+          <span style={styles.cardEmoji}>{item.emoji}</span>
+          <div>
+            <div style={styles.cardLabel}>{item.label}</div>
+            <div style={styles.cardDate}>{formatDateBR(item.date)}</div>
           </div>
-        )}
-        <div style={styles.cardActions}>
-          <button onClick={onEdit} style={styles.btnEdit}>✏️</button>
-          <button onClick={onDelete} style={styles.btnDelete}>🗑️</button>
         </div>
-        <div style={styles.cardBadges}>
-          {item.show_in_dashboard && <span style={styles.badge}>Dashboard</span>}
-          {item.show_in_capsules && <span style={styles.badge}>Cápsulas</span>}
+        <div style={styles.cardRight}>
+          <div style={styles.counterBadge}>
+            {counters.isPast ? (
+              <>
+                <span style={styles.counterNum}>{counterLabel}</span>
+                <span style={styles.counterSub}>juntos</span>
+              </>
+            ) : (
+              <>
+                <span style={styles.counterNum}>{counterLabel}</span>
+                <span style={styles.counterSub}>faltam</span>
+              </>
+            )}
+          </div>
+          {counters.isPast && counters.daysToNextAnniversary <= 30 && (
+            <div style={styles.anniversaryBadge}>
+              🎉 {counters.daysToNextAnniversary === 0
+                ? 'Aniversário hoje!'
+                : `Aniversário em ${counters.daysToNextAnniversary} dias`}
+            </div>
+          )}
+          <div style={styles.cardActions}>
+            <button onClick={onEdit} style={styles.btnEdit}>✏️</button>
+            <button onClick={onDelete} style={styles.btnDelete}>🗑️</button>
+          </div>
+          <div style={styles.cardBadges}>
+            {item.show_in_dashboard && <span style={styles.badge}>Dashboard</span>}
+            {item.show_in_capsules && <span style={styles.badge}>Cápsulas</span>}
+          </div>
         </div>
       </div>
     </div>
@@ -465,13 +519,57 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     background: '#fff',
     borderRadius: 16,
+    overflow: 'hidden',
+    boxShadow: '0 2px 12px rgba(124,77,107,0.08)',
+    border: '1px solid #F3C8D5',
+  },
+  cardPhoto: {
+    width: '100%',
+    height: 160,
+    objectFit: 'cover' as const,
+    display: 'block',
+  },
+  cardBody: {
     padding: '16px 20px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 16,
-    boxShadow: '0 2px 12px rgba(124,77,107,0.08)',
-    border: '1px solid #F3C8D5',
+  },
+  photoPreviewWrapper: {
+    position: 'relative' as const,
+    display: 'inline-block',
+  },
+  photoPreview: {
+    width: '100%',
+    maxHeight: 180,
+    objectFit: 'cover' as const,
+    borderRadius: 10,
+    display: 'block',
+  },
+  removePhotoBtn: {
+    marginTop: 8,
+    background: 'none',
+    border: '1px solid #E8B4C4',
+    borderRadius: 8,
+    padding: '5px 12px',
+    fontSize: 13,
+    color: '#9B6B7A',
+    cursor: 'pointer',
+    fontFamily: "'Georgia', serif",
+  },
+  photoUploadBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '10px 18px',
+    borderRadius: 10,
+    border: '1.5px dashed #E8B4C4',
+    background: '#FFF8FA',
+    color: '#7C4D6B',
+    fontSize: 14,
+    cursor: 'pointer',
+    fontFamily: "'Georgia', serif",
   },
   cardLeft: {
     display: 'flex',

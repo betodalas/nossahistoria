@@ -188,10 +188,12 @@ const runMigrations = async () => {
         date DATE NOT NULL,
         emoji VARCHAR(10) DEFAULT '💕',
         type VARCHAR(50) DEFAULT 'custom',
+        photo_url TEXT,
         show_in_dashboard BOOLEAN DEFAULT TRUE,
         show_in_capsules BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE special_dates ADD COLUMN IF NOT EXISTS photo_url TEXT;
     `).catch(() => {})
 
     // Libera todos os usuários existentes para logar
