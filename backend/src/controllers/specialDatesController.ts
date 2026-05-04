@@ -168,7 +168,7 @@ export const updateSpecialDate = async (req: AuthRequest, res: Response) => {
          type              = COALESCE($4, type),
          show_in_dashboard = COALESCE($5, show_in_dashboard),
          show_in_capsules  = COALESCE($6, show_in_capsules),
-         photo_url         = CASE WHEN $7::boolean THEN NULL WHEN $8 IS NOT NULL THEN $8 ELSE photo_url END
+         photo_url         = CASE WHEN $7::boolean THEN NULL WHEN $8::text IS NOT NULL THEN $8::text ELSE photo_url END
        WHERE id = $9 AND couple_id = $10
        RETURNING *`,
       [
