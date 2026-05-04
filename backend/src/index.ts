@@ -30,8 +30,8 @@ app.use(cors({
   credentials: true,
 }))
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '20mb' }))
+app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 app.use('/api', routes)
 app.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date() }))
 

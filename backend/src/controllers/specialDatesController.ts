@@ -148,36 +148,50 @@ export const updateSpecialDate = async (req: AuthRequest, res: Response) => {
     const coupleId = await getCoupleId(req.userId!)
     if (!coupleId) return res.status(403).json({ error: 'Casal não encontrado' })
 
-    let photo_url: string | null | undefined = undefined
-    if (remove_photo) {
-      photo_url = null
-    } else if (photo) {
+    // Upload de foto se enviada
+    let newPhotoUrl: string | null = null
+    if (photo) {
       const { v2: cloudinary } = await import('cloudinary')
-      const result = await cloudinary.uploader.upload(photo, {
+      const uploaded = await cloudinary.uploader.upload(photo, {
         folder: 'special_dates',
         transformation: [{ width: 1200, quality: 'auto', fetch_format: 'auto' }],
       })
-      photo_url = result.secure_url
+      newPhotoUrl = uploaded.secure_url
     }
 
-    const result = await pool.query(
+    // Atualiza campos base (sem photo_url)
+    await pool.query(
       `UPDATE special_dates SET
          label             = COALESCE($1, label),
          date              = COALESCE($2::date, date),
          emoji             = COALESCE($3, emoji),
          type              = COALESCE($4, type),
          show_in_dashboard = COALESCE($5, show_in_dashboard),
-         show_in_capsules  = COALESCE($6, show_in_capsules),
-         photo_url         = CASE WHEN $7::boolean THEN NULL WHEN $8::text IS NOT NULL THEN $8::text ELSE photo_url END
-       WHERE id = $9 AND couple_id = $10
-       RETURNING *`,
+         show_in_capsules  = COALESCE($6, show_in_capsules)
+       WHERE id = $7 AND couple_id = $8`,
       [
         label || null, date || null, emoji || null, type || null,
         show_in_dashboard ?? null, show_in_capsules ?? null,
-        remove_photo ? true : false,
-        photo_url ?? null,
         id, coupleId,
       ]
+    )
+
+    // Atualiza photo_url separadamente se necessário
+    if (remove_photo) {
+      await pool.query(
+        `UPDATE special_dates SET photo_url = NULL WHERE id = $1 AND couple_id = $2`,
+        [id, coupleId]
+      )
+    } else if (newPhotoUrl) {
+      await pool.query(
+        `UPDATE special_dates SET photo_url = $1 WHERE id = $2 AND couple_id = $3`,
+        [newPhotoUrl, id, coupleId]
+      )
+    }
+
+    const result = await pool.query(
+      `SELECT * FROM special_dates WHERE id = $1 AND couple_id = $2`,
+      [id, coupleId]
     )
 
     if (!result.rows[0]) return res.status(404).json({ error: 'Data não encontrada' })
